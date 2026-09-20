@@ -209,6 +209,8 @@ def main():
     eco.add_argument('--aging-rate', dest='aging_rate', type=float, default=1.0)
     eco.add_argument('--repro-rate', dest='repro_rate', type=float, default=1.0)
     eco.add_argument('--max-population', dest='max_population', type=int, default=36)
+    eco.add_argument('--mutation-rate', dest='mutation_rate', type=float, default=0.85)
+    eco.add_argument('--mutation-sigma', dest='mutation_sigma', type=float, default=0.08)
     eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
@@ -229,7 +231,8 @@ def main():
                 kwargs.update(mode='ecosystem', agents=a.agents, patches=a.patches,
                               map_half=a.map_half, food_rate=a.food_rate,
                               aging_rate=a.aging_rate, repro_rate=a.repro_rate,
-                              max_population=a.max_population)
+                              max_population=a.max_population,
+                              mutation_rate=a.mutation_rate, mutation_sigma=a.mutation_sigma)
                 if a.max_age is not None:
                     kwargs['max_age'] = a.max_age
             output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)

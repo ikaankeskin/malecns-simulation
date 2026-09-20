@@ -26,17 +26,17 @@ Default: 10 flies, 3 pellets, map ±20. The command prints a leaderboard and wri
 
 ## Watch ecosystem v0.1
 
-A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Nearby well-fed adults can reproduce; offspring inherit the same MaleCNS-derived controller. Energy, aging, and birth are labelled simulation rules, not fly physiology.
+A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Nearby well-fed adults can reproduce. Offspring inherit and mutate **simulation** traits (turn gain, sensory gain, metabolism, speed); MaleCNS topology stays fixed.
 
 ```bash
 python3 sim.py ecosystem circuits/dng13.json --ticks 2000 --turn-sign -1 --turn-gain 1 --out view.html --open
 ```
 
-Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate` (`0` disables birth), `--max-population`. The local viewer shows patch stages, births, generation, parents, a population/food/energy chart, and an event timeline. The broader sequence is in [ROADMAP.md](ROADMAP.md).
+Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate` (`0` disables birth), `--mutation-rate`, `--mutation-sigma`, `--max-population`. The local viewer shows genomes, mutations, generation, parents, and population means. This is parameter evolution in the toy world, not evolution of the fly connectome.
 
 ## Try it in the browser
 
-The GitHub Pages app runs the same ecosystem live. Choose a rule preset or set agent count, food spawn rate, aging rate, and reproduction rate, then randomize.
+The GitHub Pages app runs the same ecosystem live. Choose a rule preset or set agent count, food spawn rate, aging rate, reproduction rate, and mutation rate, then randomize.
 
 [Open the live ecosystem](https://ikaankeskin.github.io/malecns-simulation/)
 

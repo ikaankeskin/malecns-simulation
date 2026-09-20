@@ -26,6 +26,16 @@
     food_rate: 1,
     aging_rate: 1,
     repro_rate: 1,
+    mutation_rate: 0.85,
+    mutation_sigma: 0.08,
+  };
+
+  const BASE_GENOME = { turn_gain: 1, sensory_gain: 1, metabolism: 1, speed: 1 };
+  const GENE_BOUNDS = {
+    turn_gain: [0.45, 2],
+    sensory_gain: [0.45, 2],
+    metabolism: [0.5, 1.8],
+    speed: [0.55, 1.75],
   };
 
   const PRESETS = {
@@ -52,6 +62,42 @@
     return Math.max(lo, Math.min(hi, value));
   }
 
+  function gauss(random, sigma) {
+    let u = 0;
+    let v = 0;
+    while (u === 0) u = random();
+    while (v === 0) v = random();
+    return sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  function inheritGenome(mother, father, random, rules) {
+    const child = {};
+    const mutations = {};
+    const rate = rules.mutation_rate;
+    const sigma = rules.mutation_sigma;
+    Object.keys(GENE_BOUNDS).forEach((gene) => {
+      const mid = 0.5 * (mother[gene] + father[gene]);
+      let value = mid;
+      if (rate > 0 && sigma > 0 && random() < rate) {
+        const bounds = GENE_BOUNDS[gene];
+        value = clamp(mid * (1 + gauss(random, sigma)), bounds[0], bounds[1]);
+      }
+      child[gene] = value;
+      if (Math.abs(value - mid) > 1e-6) mutations[gene] = value - mid;
+    });
+    return [child, mutations];
+  }
+
+  function decoderFor(base, genome) {
+    return {
+      turn_sign: base.turn_sign,
+      turn_gain: base.turn_gain * genome.turn_gain,
+      turn_clip: base.turn_clip,
+      speed_gain: base.speed_gain * genome.speed,
+      sensory_sign: base.sensory_sign,
+    };
+  }
+
   function rulesFrom(ui) {
     const food = Math.max(0.2, Number(ui.food_rate) || 1);
     const aging = Math.max(0.2, Number(ui.aging_rate) || 1);
@@ -73,6 +119,8 @@
       min_repro_energy: repro <= 0 ? 99 : Math.max(0.55, DEFAULTS.min_repro_energy - 0.15 * (repro - 1)),
       mate_radius: repro <= 0 ? DEFAULTS.mate_radius : DEFAULTS.mate_radius * (0.75 + 0.25 * repro),
       max_population: clamp(Math.round(Number(ui.max_population) || 36), agents, 40),
+      mutation_rate: clamp(Number(ui.mutation_rate == null ? DEFAULTS.mutation_rate : ui.mutation_rate), 0, 1),
+      mutation_sigma: Math.max(0, Number(ui.mutation_sigma == null ? DEFAULTS.mutation_sigma : ui.mutation_sigma)),
     });
   }
 
@@ -147,7 +195,7 @@
         energy: energy, age: 0, alive: true, meals: 0, ate: false, birth_tick: 0,
         death_tick: null, cause_of_death: null, corpse_until: null, last_repro: -1e6,
         generation: 0, parents: null, offspring: 0, left: 0, right: 0, speed: 0,
-        trail: [],
+        genome: Object.assign({}, BASE_GENOME), mutations: {}, trail: [],
       });
     }
     return agents;
@@ -256,6 +304,7 @@
       partner.offspring += 1;
       const angle = world.random() * 2 * Math.PI;
       const half = rules.map_half;
+      const inherited = inheritGenome(parent.genome, partner.genome, world.random, rules);
       const child = {
         id: world.agents.reduce((max, agent) => Math.max(max, agent.id), 0) + 1,
         x: clamp((parent.x + partner.x) / 2 + 0.35 * Math.cos(angle), -half, half),
@@ -264,13 +313,16 @@
         birth_tick: tick, death_tick: null, cause_of_death: null, corpse_until: null,
         last_repro: tick, generation: Math.max(parent.generation, partner.generation) + 1,
         parents: [parent.id, partner.id], offspring: 0, left: 0, right: 0, speed: 0, trail: [],
+        genome: inherited[0], mutations: inherited[1],
       };
       world.agents.push(child);
       world.circuits.push(new Circuit(world.graph));
       world.births += 1;
+      const mutated = Object.keys(inherited[1]);
       world.events.push({
-        tick: tick, kind: 'born', agent: child.id, parents: child.parents,
-        text: 'F' + child.id + ' born to F' + parent.id + ' and F' + partner.id,
+        tick: tick, kind: 'born', agent: child.id, parents: child.parents, mutations: inherited[1],
+        text: 'F' + child.id + ' born to F' + parent.id + ' and F' + partner.id + ' · ' +
+          (mutated.length ? mutated.map((gene) => gene + ' ' + child.genome[gene].toFixed(2)).join(', ') : 'no mutation'),
       });
     }
   }
@@ -290,12 +342,13 @@
       if (found[0]) {
         bearing = Math.atan2(found[0][1] - agent.y, found[0][0] - agent.x) - agent.heading;
         bearing = Math.atan2(Math.sin(bearing), Math.cos(bearing));
-        stimulus = Math.max(0, 1 - found[1] / rules.sense_range);
+        stimulus = Math.max(0, 1 - found[1] / rules.sense_range) * agent.genome.sensory_gain;
       }
       const circuit = world.circuits[index];
-      circuit.step(sensoryDrives(circuit.nodes, decoder, bearing, stimulus));
+      const body = decoderFor(decoder, agent.genome);
+      circuit.step(sensoryDrives(circuit.nodes, body, bearing, stimulus));
       const motors = circuit.motors();
-      const moved = integrateMotion(decoder, agent.x, agent.y, agent.heading, motors[0], motors[1]);
+      const moved = integrateMotion(body, agent.x, agent.y, agent.heading, motors[0], motors[1]);
       agent.x = moved[0]; agent.y = moved[1]; agent.heading = moved[2]; agent.speed = moved[3];
       agent.left = motors[0]; agent.right = motors[1];
       agent.trail.push([agent.x, agent.y]);
@@ -325,7 +378,7 @@
     reproduce(world);
     world.agents.forEach((agent) => {
       if (!agent.alive) return;
-      agent.energy -= rules.base_drain + rules.move_cost * agent.speed;
+      agent.energy -= rules.base_drain * agent.genome.metabolism + rules.move_cost * agent.speed;
       if (agent.age >= rules.max_age) {
         kill(agent, world.tick, 'old_age', rules.corpse_ticks);
         world.events.push({ tick: world.tick, kind: 'died', text: 'F' + agent.id + ' died of old age' });
@@ -350,6 +403,8 @@
         born: world.births,
         food: world.patches.filter((patch) => patch.stage === 'mature').length,
         energy: living.length ? living.reduce((sum, agent) => sum + agent.energy, 0) / living.length : 0,
+        speed: living.length ? living.reduce((sum, agent) => sum + agent.genome.speed, 0) / living.length : 1,
+        metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
       });
       if (world.series.length > 180) world.series.shift();
     }
@@ -369,6 +424,8 @@
       generation: generations.length ? Math.max.apply(null, generations) : 0,
       mature_food: world.patches.filter((patch) => patch.stage === 'mature').length,
       mean_energy: living.length ? living.reduce((sum, agent) => sum + agent.energy, 0) / living.length : 0,
+      mean_speed: living.length ? living.reduce((sum, agent) => sum + agent.genome.speed, 0) / living.length : 1,
+      mean_metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null),
       agents: world.agents,
       patches: world.patches,
@@ -388,6 +445,7 @@
       food_rate: Math.round((0.4 + roll() * 1.8) * 100) / 100,
       aging_rate: Math.round((0.45 + roll() * 1.7) * 100) / 100,
       repro_rate: Math.round((roll() * 2.1) * 100) / 100,
+      mutation_rate: Math.round((0.4 + roll() * 0.6) * 100) / 100,
     });
   }
 
@@ -395,6 +453,7 @@
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,
     DECODER: DECODER,
+    inheritGenome: inheritGenome,
     rulesFrom: rulesFrom,
     createWorld: createWorld,
     step: step,

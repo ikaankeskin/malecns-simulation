@@ -31,11 +31,27 @@ DEFAULTS = {
     'food_rate': 1.0,
     'aging_rate': 1.0,
     'repro_rate': 1.0,
+    'mutation_rate': 0.85,
+    'mutation_sigma': 0.08,
 }
 
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown')
-RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate')
+RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
+
+# Relative body/decoder multipliers. Topology is not in the genome.
+BASE_GENOME = {
+    'turn_gain': 1.0,
+    'sensory_gain': 1.0,
+    'metabolism': 1.0,
+    'speed': 1.0,
+}
+GENE_BOUNDS = {
+    'turn_gain': (0.45, 2.0),
+    'sensory_gain': (0.45, 2.0),
+    'metabolism': (0.5, 1.8),
+    'speed': (0.55, 1.75),
+}
 
 
 def _positive_number(name, value, allow_zero=False):
@@ -77,7 +93,7 @@ def rules_from(overrides):
         if type(rules[key]) is not int or rules[key] < 1:
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
-        _positive_number(key, rules[key], allow_zero=(key == 'repro_rate'))
+        _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 50:
@@ -113,6 +129,8 @@ def spawn_agents(count, radius, energy):
             'generation': 0,
             'parents': None,
             'offspring': 0,
+            'genome': dict(BASE_GENOME),
+            'mutations': {},
         })
     return agents
 
@@ -185,6 +203,53 @@ def kill(agent, tick, cause, corpse_ticks):
     agent['corpse_until'] = tick + corpse_ticks
 
 
+def round_genome(genome):
+    return {gene: round(float(genome[gene]), 4) for gene in BASE_GENOME}
+
+
+def inherit_genome(mother, father, rng, rules):
+    child = {}
+    mutations = {}
+    rate = rules.get('mutation_rate', DEFAULTS['mutation_rate'])
+    sigma = rules.get('mutation_sigma', DEFAULTS['mutation_sigma'])
+    for gene, (lo, hi) in GENE_BOUNDS.items():
+        mid = 0.5 * (mother[gene] + father[gene])
+        value = mid
+        if rate > 0 and sigma > 0 and rng.random() < rate:
+            value = max(lo, min(hi, mid * (1.0 + rng.gauss(0.0, sigma))))
+        child[gene] = value
+        if abs(value - mid) > 1e-6:
+            mutations[gene] = round(value - mid, 4)
+    return child, mutations
+
+
+def decoder_for(base, genome):
+    return {
+        'turn_sign': base['turn_sign'],
+        'turn_gain': base['turn_gain'] * genome['turn_gain'],
+        'turn_clip': base['turn_clip'],
+        'speed_gain': base['speed_gain'] * genome['speed'],
+        'sensory_sign': base['sensory_sign'],
+    }
+
+
+def genome_stats(agents):
+    living = [agent for agent in agents if agent['alive']]
+    empty = {gene: 0.0 for gene in BASE_GENOME}
+    if not living:
+        return empty, empty
+    means = {}
+    stds = {}
+    count = len(living)
+    for gene in BASE_GENOME:
+        values = [agent['genome'][gene] for agent in living]
+        mean = sum(values) / count
+        variance = sum((value - mean) ** 2 for value in values) / count
+        means[gene] = round(mean, 4)
+        stds[gene] = round(variance ** 0.5, 4)
+    return means, stds
+
+
 def can_reproduce(agent, tick, rules):
     return (rules.get('repro_enabled', True)
             and agent['alive']
@@ -231,6 +296,7 @@ def reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, s
         x = max(-half, min(half, (parent['x'] + partner['x']) / 2 + 0.35 * math.cos(angle)))
         y = max(-half, min(half, (parent['y'] + partner['y']) / 2 + 0.35 * math.sin(angle)))
         child_id = max(agent['id'] for agent in agents) + 1
+        genome, mutations = inherit_genome(parent['genome'], partner['genome'], rng, rules)
         agents.append({
             'id': child_id,
             'x': x,
@@ -249,14 +315,18 @@ def reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, s
             'generation': max(parent['generation'], partner['generation']) + 1,
             'parents': (parent['id'], partner['id']),
             'offspring': 0,
+            'genome': genome,
+            'mutations': mutations,
         })
         circuits.append(Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed))
+        mutated = ', '.join(f'{gene} {genome[gene]:.2f}' for gene in mutations) if mutations else 'no mutation'
         events.append({
             'tick': tick,
             'kind': 'born',
             'agent': child_id,
             'parents': [parent['id'], partner['id']],
-            'text': f'F{child_id} born to F{parent["id"]} and F{partner["id"]}',
+            'mutations': mutations,
+            'text': f'F{child_id} born to F{parent["id"]} and F{partner["id"]} · {mutated}',
         })
         births += 1
     return births
@@ -279,6 +349,8 @@ def snapshot_agent(agent, left, right, speed):
         'generation': agent['generation'],
         'parents': list(parents) if parents else None,
         'offspring': agent['offspring'],
+        'genome': round_genome(agent['genome']),
+        'mutations': dict(agent.get('mutations') or {}),
         'left_motor': round(left, 6),
         'right_motor': round(right, 6),
         'speed': round(speed, 6),
@@ -309,11 +381,12 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
         if target is not None and drive_enabled:
             bearing = math.atan2(target[1] - agent['y'], target[0] - agent['x']) - agent['heading']
             bearing = math.atan2(math.sin(bearing), math.cos(bearing))
-            stimulus = max(0.0, 1.0 - distance / rules['sense_range'])
-        circuit.step(sensory_drives(circuit.nodes, decoder, bearing, stimulus))
+            stimulus = max(0.0, 1.0 - distance / rules['sense_range']) * agent['genome']['sensory_gain']
+        body = decoder_for(decoder, agent['genome'])
+        circuit.step(sensory_drives(circuit.nodes, body, bearing, stimulus))
         left, right = circuit.motors()
         agent['x'], agent['y'], agent['heading'], speed = integrate_motion(
-            decoder, agent['x'], agent['y'], agent['heading'], left, right)
+            body, agent['x'], agent['y'], agent['heading'], left, right)
         motors.append((left, right, speed))
     return motors
 
@@ -359,7 +432,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         for agent, (left, right, speed) in zip(agents, motors):
             if not agent['alive']:
                 continue
-            agent['energy'] -= rules['base_drain'] + rules['move_cost'] * speed
+            agent['energy'] -= rules['base_drain'] * agent['genome']['metabolism'] + rules['move_cost'] * speed
             if agent['age'] >= rules['max_age']:
                 kill(agent, tick, 'old_age', rules['corpse_ticks'])
                 events.append({'tick': tick, 'kind': 'died', 'agent': agent['id'], 'cause': 'old_age',
@@ -381,6 +454,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                                 'cause': agent['cause_of_death']})
         alive = [agent for agent in agents if agent['alive']]
         peak = max(peak, len(alive))
+        means, stds = genome_stats(agents)
         history.append({
             'tick': tick,
             'agents': [snapshot_agent(agent, left, right, speed)
@@ -391,6 +465,10 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'born': births,
             'mature_food': sum(patch['stage'] == 'mature' for patch in patches),
             'mean_energy': round(sum(agent['energy'] for agent in alive) / len(alive), 6) if alive else 0.0,
+            'mean_speed': means['speed'],
+            'mean_metabolism': means['metabolism'],
+            'genome_mean': means,
+            'genome_std': stds,
         })
     return {
         'mode': 'ecosystem',
@@ -404,6 +482,8 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'births': births,
             'peak': peak,
             'generation': max((agent['generation'] for agent in agents), default=0),
+            'genome_mean': genome_stats(agents)[0],
+            'genome_std': genome_stats(agents)[1],
         },
         'ticks': history,
     }
@@ -413,7 +493,9 @@ def summarize_ecosystem(result):
     final = result['final']
     rules = result['rules']
     last = result['ticks'][-1]
+    means = final.get('genome_mean') or {}
     return (f"ecosystem {rules['agents']} start, {rules['patches']} patches, {len(result['ticks'])} ticks; "
             f"alive {final['alive']}, births {final['births']}, gen {final['generation']}, "
             f"starved {final['starved']}, old_age {final['old_age']}, "
-            f"meals {final['meals']}, mature food {last['mature_food']}")
+            f"meals {final['meals']}, mature food {last['mature_food']}, "
+            f"mean speed {means.get('speed', 1):.2f}, metabolism {means.get('metabolism', 1):.2f}")

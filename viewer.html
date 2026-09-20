@@ -101,6 +101,8 @@
         <div class="stat"><span>tick</span><strong id="eco-tick">0</strong></div>
         <div class="stat"><span>alive</span><strong id="eco-alive">0</strong></div>
         <div class="stat"><span>born</span><strong id="eco-born">0</strong></div>
+        <div class="stat"><span>mean speed</span><strong id="eco-mean-speed">1</strong></div>
+        <div class="stat"><span>mean metabolism</span><strong id="eco-mean-metab">1</strong></div>
         <div class="stat"><span>mature food</span><strong id="eco-food">0</strong></div>
         <div class="stat"><span>corpses</span><strong id="eco-corpses">0</strong></div>
         <canvas id="popchart" width="280" height="72" aria-label="Population and food chart"></canvas>
@@ -113,6 +115,11 @@
         <div class="stat"><span>id</span><strong id="eco-id">0</strong></div>
         <div class="stat"><span>generation</span><strong id="eco-gen">0</strong></div>
         <div class="stat"><span>parents</span><strong id="eco-parents">founder</strong></div>
+        <div class="stat"><span>turn gain</span><strong id="eco-turn">1</strong></div>
+        <div class="stat"><span>sensory</span><strong id="eco-sense">1</strong></div>
+        <div class="stat"><span>metabolism</span><strong id="eco-metab">1</strong></div>
+        <div class="stat"><span>speed gene</span><strong id="eco-speedg">1</strong></div>
+        <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
         <div class="stat"><span>age</span><strong id="eco-age">0</strong></div>
         <div class="stat"><span>energy</span><strong id="eco-energy">0</strong></div>
         <div class="stat"><span>meals</span><strong id="eco-meals">0</strong></div>
@@ -401,6 +408,8 @@
         document.getElementById('eco-tick').textContent = tick.tick;
         document.getElementById('eco-alive').textContent = tick.alive;
         document.getElementById('eco-born').textContent = tick.born || 0;
+        document.getElementById('eco-mean-speed').textContent = Number(tick.mean_speed || 1).toFixed(2);
+        document.getElementById('eco-mean-metab').textContent = Number(tick.mean_metabolism || 1).toFixed(2);
         document.getElementById('eco-food').textContent = tick.mature_food;
         document.getElementById('eco-corpses').textContent = String((tick.corpses || []).length);
         const board = tick.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.meals - a.meals) || (b.energy - a.energy) || (a.id - b.id));
@@ -419,6 +428,14 @@
         document.getElementById('eco-gen').textContent = sel.generation || 0;
         document.getElementById('eco-parents').textContent = sel.parents
           ? ('F' + sel.parents[0] + ' + F' + sel.parents[1]) : 'founder';
+        const genome = sel.genome || {};
+        document.getElementById('eco-turn').textContent = Number(genome.turn_gain || 1).toFixed(2);
+        document.getElementById('eco-sense').textContent = Number(genome.sensory_gain || 1).toFixed(2);
+        document.getElementById('eco-metab').textContent = Number(genome.metabolism || 1).toFixed(2);
+        document.getElementById('eco-speedg').textContent = Number(genome.speed || 1).toFixed(2);
+        const mut = sel.mutations || {};
+        document.getElementById('eco-mut').textContent = Object.keys(mut).length
+          ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('eco-age').textContent = sel.age;
         document.getElementById('eco-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('eco-meals').textContent = sel.meals;

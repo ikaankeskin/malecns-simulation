@@ -55,6 +55,38 @@ class EcosystemTests(unittest.TestCase):
         self.assertIn('eco-wrap', html)
         self.assertIn('Reproduction is a proximity rule', html)
 
+    def test_offspring_blend_and_mutate_simulation_parameters(self):
+        import random
+        from ecosystem import BASE_GENOME, inherit_genome
+        mid, mutations = inherit_genome(
+            {'turn_gain': 1.0, 'sensory_gain': 1.2, 'metabolism': 0.8, 'speed': 1.0},
+            {'turn_gain': 1.4, 'sensory_gain': 1.0, 'metabolism': 1.0, 'speed': 1.2},
+            random.Random(0), {'mutation_rate': 0.0, 'mutation_sigma': 0.1})
+        self.assertAlmostEqual(mid['turn_gain'], 1.2)
+        self.assertAlmostEqual(mid['speed'], 1.1)
+        self.assertEqual(mutations, {})
+        changed, deltas = inherit_genome(
+            dict(BASE_GENOME), dict(BASE_GENOME),
+            random.Random(3), {'mutation_rate': 1.0, 'mutation_sigma': 0.25})
+        self.assertTrue(deltas)
+        self.assertTrue(any(abs(changed[gene] - 1.0) > 1e-6 for gene in BASE_GENOME))
+        born = simulate_ecosystem(
+            DEMO, 12, 1, agents=4, patches=1, map_half=8, disconnected=True,
+            min_repro_age=1, min_repro_energy=0.2, mate_radius=40, repro_cooldown=3,
+            repro_cost=0.05, max_age=500, base_drain=0.0001, move_cost=0.0,
+            max_population=8, energy_start=1.0, mutation_rate=1.0, mutation_sigma=0.2)
+        child = next(agent for agent in born['ticks'][-1]['agents'] if agent['generation'] > 0)
+        self.assertEqual(set(child['genome']), set(BASE_GENOME))
+        self.assertTrue(any(event.get('mutations') for event in born['events'] if event['kind'] == 'born'))
+        clone = simulate_ecosystem(
+            DEMO, 12, 1, agents=4, patches=1, map_half=8, disconnected=True,
+            min_repro_age=1, min_repro_energy=0.2, mate_radius=40, repro_cooldown=3,
+            repro_cost=0.05, max_age=500, base_drain=0.0001, move_cost=0.0,
+            max_population=8, mutation_rate=0.0)
+        frozen = next(agent for agent in clone['ticks'][-1]['agents'] if agent['generation'] > 0)
+        self.assertEqual(frozen['genome']['speed'], 1.0)
+        self.assertEqual(frozen['mutations'], {})
+
     def test_nearby_agents_can_reproduce_and_respect_the_cap(self):
         born = simulate_ecosystem(
             DEMO, 12, 1, agents=4, patches=1, map_half=8, disconnected=True,

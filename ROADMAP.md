@@ -24,8 +24,8 @@ Do not claim that food-seeking, survival, social behaviour, or evolution are pro
 1. Persistent ecosystem: renewable food, age, death, corpses, metabolism, inspector.
 2. Living environment: depletion, hazards, cycles.
 3. Life and death budgets: richer energy, causes of death.
-4. Reproduction (current): proximity, energy cost, parent IDs, generations. No mutation yet.
-5. Genetics / mutation of **simulation parameters**, not connectome topology, unless a separate experimental mode is declared.
+4. Reproduction: proximity, energy cost, parent IDs, generations.
+5. Genetics / mutation of **simulation parameters** (current): turn gain, sensory gain, metabolism, speed. Connectome topology stays fixed unless a separate experimental mode is declared.
 6. Resource competition metrics.
 7. Corpses as food, then optional predation.
 8–10. Relationships, collaboration actions, minimal signalling.
@@ -50,10 +50,11 @@ These are simulation abstractions unless noted.
 | Energy | Artificial budget: base drain + movement cost. Not fly metabolism |
 | Death | Starvation or old age |
 | Corpses | Visible, then decay. Not edible yet |
-| Reproduction | Two-parent proximity, energy cost, population cap. Same controller; no sex, no mutation |
+| Reproduction | Two-parent proximity, energy cost, population cap. Same controller topology |
+| Evolution | Inherit and mutate simulation multipliers. Not connectome evolution |
 
-## Next after reproduction
+## Next after parameter evolution
 
-Inheritable decoder/metabolism parameters, then competition metrics. LLM cognition only after a non-LLM social baseline exists.
+Competition metrics, then corpses as food / optional predation. LLM cognition only after a non-LLM social baseline exists.
 
-The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.
+The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.

@@ -89,6 +89,9 @@
       <label class="ctrl"><span>reproduction rate</span><strong id="repro-val">1.00</strong>
         <input id="repro-rate" type="range" min="0" max="2.5" step="0.05" value="1" aria-label="Reproduction rate">
       </label>
+      <label class="ctrl"><span>mutation rate</span><strong id="mut-val">0.85</strong>
+        <input id="mutation-rate" type="range" min="0" max="1" step="0.05" value="0.85" aria-label="Mutation rate">
+      </label>
       <div class="actions">
         <button type="button" id="randomize" class="primary">Randomize</button>
         <button type="button" id="apply">Apply</button>
@@ -103,6 +106,8 @@
       <div class="row"><span>alive</span><strong id="alive">0</strong></div>
       <div class="row"><span>born</span><strong id="born">0</strong></div>
       <div class="row"><span>generation</span><strong id="generation">0</strong></div>
+      <div class="row"><span>mean speed</span><strong id="mean-speed">1.00</strong></div>
+      <div class="row"><span>mean metabolism</span><strong id="mean-metab">1.00</strong></div>
       <div class="row"><span>mature food</span><strong id="food">0</strong></div>
       <canvas id="popchart" width="300" height="64" aria-label="Population chart"></canvas>
       <div class="meta">white population · gold food · teal energy</div>
@@ -115,12 +120,17 @@
       <div class="row"><span>id</span><strong id="sel-id">—</strong></div>
       <div class="row"><span>generation</span><strong id="sel-gen">0</strong></div>
       <div class="row"><span>parents</span><strong id="sel-parents">founder</strong></div>
+      <div class="row"><span>turn gain</span><strong id="sel-turn">1.00</strong></div>
+      <div class="row"><span>sensory</span><strong id="sel-sense">1.00</strong></div>
+      <div class="row"><span>metabolism</span><strong id="sel-metab">1.00</strong></div>
+      <div class="row"><span>speed gene</span><strong id="sel-speedg">1.00</strong></div>
+      <div class="row"><span>mutations</span><strong id="sel-mut">none</strong></div>
       <div class="row"><span>age</span><strong id="sel-age">0</strong></div>
       <div class="row"><span>energy</span><strong id="sel-energy">0</strong></div>
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
       <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
       <h2>Assumptions</h2>
-      <div class="meta">Energy is an artificial budget. Reproduction is proximity plus energy, with a population cap. The attraction decoder is an experimental interface mapping, not a biological feeding circuit. MaleCNS data: CC BY 4.0, FlyEM / Janelia, Cambridge, MRC LMB, Google Research.</div>
+      <div class="meta">Energy is an artificial budget. Reproduction is proximity plus energy, with a population cap. Offspring inherit and mutate speed, metabolism, and decoder gains. MaleCNS topology does not change. The attraction decoder is an experimental interface mapping, not a biological feeding circuit. MaleCNS data: CC BY 4.0, FlyEM / Janelia, Cambridge, MRC LMB, Google Research.</div>
     </aside>
   </main>
   <script src="engine.js"></script>
@@ -134,6 +144,7 @@
       food: document.getElementById('food-rate'),
       aging: document.getElementById('aging-rate'),
       repro: document.getElementById('repro-rate'),
+      mutation: document.getElementById('mutation-rate'),
       preset: document.getElementById('preset'),
     };
     let graph = null, world = null, selected = 0, playing = true, handle = null, seed = 4;
@@ -144,6 +155,7 @@
         food_rate: Number(fields.food.value),
         aging_rate: Number(fields.aging.value),
         repro_rate: Number(fields.repro.value),
+        mutation_rate: Number(fields.mutation.value),
         patches: (Eco.PRESETS[fields.preset.value] || Eco.PRESETS.balanced).patches,
       };
     }
@@ -153,6 +165,7 @@
       document.getElementById('food-val').textContent = Number(fields.food.value).toFixed(2);
       document.getElementById('aging-val').textContent = Number(fields.aging.value).toFixed(2);
       document.getElementById('repro-val').textContent = Number(fields.repro.value).toFixed(2);
+      document.getElementById('mut-val').textContent = Number(fields.mutation.value).toFixed(2);
     }
 
     function color(id) { return palette[id % palette.length]; }
@@ -261,6 +274,8 @@
       document.getElementById('alive').textContent = snap.alive;
       document.getElementById('born').textContent = snap.births;
       document.getElementById('generation').textContent = snap.generation;
+      document.getElementById('mean-speed').textContent = Number(snap.mean_speed || 1).toFixed(2);
+      document.getElementById('mean-metab').textContent = Number(snap.mean_metabolism || 1).toFixed(2);
       document.getElementById('food').textContent = snap.mature_food;
       document.getElementById('seed-val').textContent = seed;
       const rules = world.rules;
@@ -284,6 +299,13 @@
         document.getElementById('sel-id').textContent = 'F' + sel.id;
         document.getElementById('sel-gen').textContent = sel.generation;
         document.getElementById('sel-parents').textContent = sel.parents ? ('F' + sel.parents[0] + ' + F' + sel.parents[1]) : 'founder';
+        const genome = sel.genome || {};
+        document.getElementById('sel-turn').textContent = Number(genome.turn_gain || 1).toFixed(2);
+        document.getElementById('sel-sense').textContent = Number(genome.sensory_gain || 1).toFixed(2);
+        document.getElementById('sel-metab').textContent = Number(genome.metabolism || 1).toFixed(2);
+        document.getElementById('sel-speedg').textContent = Number(genome.speed || 1).toFixed(2);
+        const mut = sel.mutations || {};
+        document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('sel-age').textContent = sel.age;
         document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('sel-meals').textContent = sel.meals;
@@ -322,7 +344,7 @@
       showUi();
     }
 
-    ['agents', 'food', 'aging', 'repro'].forEach((key) => {
+    ['agents', 'food', 'aging', 'repro', 'mutation'].forEach((key) => {
       fields[key].addEventListener('input', () => {
         fields.preset.value = 'custom';
         showUi();
@@ -342,6 +364,7 @@
       fields.food.value = String(pick.food_rate);
       fields.aging.value = String(pick.aging_rate);
       fields.repro.value = String(pick.repro_rate);
+      if (pick.mutation_rate != null) fields.mutation.value = String(pick.mutation_rate);
       showUi();
       restart(pick.seed);
     };

@@ -10,9 +10,10 @@ class PagesTests(unittest.TestCase):
     def test_live_page_exposes_parameter_controls(self):
         html = (DOCS / 'index.html').read_text()
         for token in ('id="agents"', 'id="food-rate"', 'id="aging-rate"', 'id="repro-rate"',
-                      'id="randomize"', 'id="preset"', 'malecns-derived'):
+                      'id="mutation-rate"', 'id="randomize"', 'id="preset"', 'malecns-derived'):
             self.assertIn(token, html)
         engine = (DOCS / 'engine.js').read_text()
+        self.assertIn('function inheritGenome', engine)
         self.assertIn('function reproduce', engine)
         self.assertIn('createWorld', engine)
         circuit = DOCS / 'circuits' / 'dng13.json'
