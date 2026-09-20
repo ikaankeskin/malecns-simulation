@@ -74,6 +74,39 @@ class Circuit:
                      for side in ['left', 'right'])
 
 
+def sensory_drives(nodes, decoder, bearing, stimulus):
+    drives = [0.0] * len(nodes)
+    lateral = math.sin(bearing)
+    for i, node in enumerate(nodes):
+        if node['role'] != 'sensory':
+            continue
+        side = node['side']
+        if side == 'left':
+            laterality = decoder['sensory_sign'] * lateral
+        elif side == 'right':
+            laterality = -decoder['sensory_sign'] * lateral
+        else:
+            laterality = 0.0
+        drives[i] = stimulus * (1 + laterality)
+    return drives
+
+
+def integrate_motion(decoder, x, y, heading, left, right):
+    heading += max(-decoder['turn_clip'], min(decoder['turn_clip'],
+                                             (right - left) * decoder['turn_sign'] * decoder['turn_gain']))
+    speed = decoder['speed_gain'] * min(1, left + right)
+    x += speed * math.cos(heading)
+    y += speed * math.sin(heading)
+    return x, y, heading, speed
+
+
+def nearest_point(x, y, points):
+    if not points:
+        return None, float('inf')
+    best = min(points, key=lambda point: math.hypot(point[0] - x, point[1] - y))
+    return best, math.hypot(best[0] - x, best[1] - y)
+
+
 def validate_decoder(turn_sign=1, turn_gain=0.15, turn_clip=0.3, speed_gain=0.13, sensory_sign=1):
     if isinstance(turn_sign, bool) or turn_sign not in (1, -1):
         raise ValueError('turn_sign must be 1 or -1')
@@ -105,25 +138,10 @@ def simulate(path, ticks, seed, *, drive_enabled=True, disconnected=False,
         bearing = math.atan2(math.sin(bearing), math.cos(bearing))
         distance = math.hypot(food[0] - x, food[1] - y)
         stimulus = max(0.0, 1.0 - distance / 12.0) if drive_enabled else 0.0
-        drives = [0.0] * len(circuit.nodes)
-        for i, n in enumerate(circuit.nodes):
-            if n['role'] == 'sensory':
-                side = n['side']
-                if side == 'left':
-                    laterality = decoder['sensory_sign'] * math.sin(bearing)
-                elif side == 'right':
-                    laterality = -decoder['sensory_sign'] * math.sin(bearing)
-                else:
-                    laterality = 0.0
-                drives[i] = stimulus * (1 + laterality)
+        drives = sensory_drives(circuit.nodes, decoder, bearing, stimulus)
         activity = circuit.step(drives)
         left, right = circuit.motors()
-        heading += max(-decoder['turn_clip'], min(decoder['turn_clip'],
-                                                 (right - left) * decoder['turn_sign'] * decoder['turn_gain']))
-        # No independent locomotion bias: silencing the circuit stops movement.
-        speed = decoder['speed_gain'] * min(1, left + right)
-        x += speed * math.cos(heading)
-        y += speed * math.sin(heading)
+        x, y, heading, _speed = integrate_motion(decoder, x, y, heading, left, right)
         ate = math.hypot(food[0] - x, food[1] - y) < .4
         if ate:
             food = (rng.uniform(-6, 6), rng.uniform(-6, 6))
@@ -154,14 +172,18 @@ def import_csv(nodes_path, edges_path, output, limit):
     print(f'Saved {len(nodes)} neurons and {len(edges)} edges to {output}')
 
 
-def add_sim_args(parser, out_default):
+def add_sim_args(parser, out_default, ticks=120):
     parser.add_argument('graph')
-    parser.add_argument('--ticks', type=int, default=120)
+    parser.add_argument('--ticks', type=int, default=ticks)
     parser.add_argument('--seed', type=int, default=4)
     parser.add_argument('--out', default=out_default)
     parser.add_argument('--turn-sign', type=float, default=1)
     parser.add_argument('--turn-gain', type=float, default=0.15)
     parser.add_argument('--sensory-sign', type=float, default=1)
+
+
+def decoder_kwargs(args):
+    return {'turn_sign': args.turn_sign, 'turn_gain': args.turn_gain, 'sensory_sign': args.sensory_sign}
 
 
 def main():
@@ -171,22 +193,31 @@ def main():
     view = sub.add_parser('view')
     add_sim_args(view, 'view.html')
     view.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
+    contest = sub.add_parser('contest')
+    add_sim_args(contest, 'view.html', ticks=800)
+    contest.add_argument('--agents', type=int, default=10)
+    contest.add_argument('--foods', type=int, default=3)
+    contest.add_argument('--map', dest='map_half', type=float, default=20)
+    contest.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
     imp.add_argument('--limit', type=int, default=1000)
     a = p.parse_args()
     try:
         if a.command == 'run':
-            history = simulate(a.graph, a.ticks, a.seed, turn_sign=a.turn_sign,
-                               turn_gain=a.turn_gain, sensory_sign=a.sensory_sign)
+            history = simulate(a.graph, a.ticks, a.seed, **decoder_kwargs(a))
             Path(a.out).write_text(json.dumps(history, indent=2, allow_nan=False))
             print(f'{len(history)} ticks written to {a.out}; food collected: {sum(h["ate"] for h in history)}')
-        elif a.command == 'view':
+        elif a.command in ('view', 'contest'):
             from view import write_viewer
             import webbrowser
-            output = write_viewer(a.graph, a.ticks, a.seed, a.out, turn_sign=a.turn_sign,
-                                  turn_gain=a.turn_gain, sensory_sign=a.sensory_sign)
+            kwargs = decoder_kwargs(a)
+            if a.command == 'contest':
+                kwargs.update(agents=a.agents, foods=a.foods, map_half=a.map_half)
+            output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)
             print(f'Viewer written to {output}')
+            if summary:
+                print(summary)
             if a.open:
                 webbrowser.open(output.resolve().as_uri())
         else:

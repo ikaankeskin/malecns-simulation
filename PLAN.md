@@ -35,6 +35,7 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Eleven focused tests pass; disconnected and no-input controls stay stationary.
 - [x] Decoder mapping experiment: 12 sign/gain candidates on seeds 0–9; held-out seeds 10–19. Selected `turn_sign=-1`, `turn_gain=1.0` collected mean 4.0 food versus 0 baseline and 0.5 shuffled. Interface result, not biological foraging.
 - [x] Visible simulation: self-contained HTML playback with pause, step, reset, per-neuron activity, and synthetic vs MaleCNS-derived labels.
+- [x] Multi-agent CPU contest: 10 independent flies, scarce shared food, larger map, energy/survival ranking. Same circuit and decoder; spawn pose differs. See `python3 sim.py contest`.
 - [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
 ## First scientific decision
@@ -47,3 +48,4 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Follow-up experiment: include the real subgraph, circuit validation and ablations, remove independent locomotion, preserve unclipped synapse-count ratios, and report the negative foraging result. See `docs/DNG13_EXPERIMENT.md`.
 - Decoder experiment: parameterize turn/sensory signs and turn gain; select on development seeds; evaluate intact vs shuffled/disconnected/no-input on held-out seeds. See `docs/DNG13_DECODER.md`.
 - Viewer: `python3 sim.py view` writes a self-contained HTML replay of world state and neural activity. Generated `view.html` stays local.
+- Multi-agent contest: independent circuit copies, three non-respawning pellets, energy drain, deterministic leaderboard. Engineered scoring, not fly physiology.

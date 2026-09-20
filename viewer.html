@@ -54,7 +54,13 @@
     button, select { background: #262b38; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
     button:hover, select:hover { border-color: #4a5568; }
     input[type=range] { flex: 1; min-width: 160px; }
-    .empty { padding: 48px 24px; color: var(--muted); }
+    #board button { width: 100%; text-align: left; background: transparent; padding: 4px 6px; }
+    #board button:hover { border-color: #4a5568; }
+    .fly-row { display: grid; grid-template-columns: 12px 42px 1fr auto; gap: 8px; align-items: center; font-size: 12px; cursor: pointer; border-radius: 4px; }
+    .fly-row.selected { background: #262b38; }
+    .fly-row.dead { opacity: 0.45; }
+    .swatch { width: 10px; height: 10px; border-radius: 50%; }
+    #winner-line { color: var(--food); margin: 6px 0 10px; }
     @media (max-width: 860px) {
       body { height: auto; overflow: auto; }
       main { grid-template-columns: 1fr; }
@@ -72,6 +78,23 @@
   <main>
     <canvas id="arena" width="900" height="720" aria-label="Foraging arena"></canvas>
     <aside>
+      <div id="contest-wrap" hidden>
+        <h2>Survival</h2>
+        <div class="stat"><span>tick</span><strong id="contest-tick">0</strong></div>
+        <div class="stat"><span>remaining food</span><strong id="food-left">0</strong></div>
+        <div class="stat"><span>alive</span><strong id="alive-count">0</strong></div>
+        <div id="winner-line"></div>
+        <div id="board"></div>
+        <h2>Selected fly</h2>
+        <div class="stat"><span>id</span><strong id="sel-id">0</strong></div>
+        <div class="stat"><span>energy</span><strong id="sel-energy">0</strong></div>
+        <div class="stat"><span>meals</span><strong id="sel-meals">0</strong></div>
+        <div class="stat"><span>left motor</span><strong id="sel-left">0</strong></div>
+        <div class="bar"><i id="sel-left-bar"></i></div>
+        <div class="stat"><span>right motor</span><strong id="sel-right">0</strong></div>
+        <div class="bar right"><i id="sel-right-bar"></i></div>
+      </div>
+      <div id="solo-wrap">
       <h2>Tick</h2>
       <div class="stat"><span>index</span><strong id="tick">0</strong></div>
       <div class="stat"><span>collected</span><strong id="collected">0</strong></div>
@@ -86,6 +109,7 @@
       <div class="stat"><span>saturated</span><strong id="sat">0</strong></div>
       <h2>Neurons</h2>
       <div id="neurons"></div>
+      </div>
       <h2>Assumptions</h2>
       <div class="meta" id="assumptions"></div>
     </aside>
@@ -119,23 +143,36 @@
     } else {
       const ticks = data.ticks || [];
       const nodes = data.nodes || [];
+      const contest = !!(ticks[0] && ticks[0].agents);
+      const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
       let index = 0;
       let playing = false;
       let timer = null;
+      let selected = contest && data.winner ? data.winner.id : 0;
       const canvas = document.getElementById('arena');
       const ctx = canvas.getContext('2d');
       const neuronRoot = document.getElementById('neurons');
 
       document.getElementById('kind').textContent = data.kind || 'unverified';
       document.getElementById('kind').classList.add(data.kind || 'unverified');
-      document.title = (data.kind === 'synthetic' ? 'Synthetic' : 'MaleCNS') + ' simulation viewer';
+      document.title = (data.kind === 'synthetic' ? 'Synthetic' : 'MaleCNS') + (contest ? ' contest' : ' simulation') + ' viewer';
       document.getElementById('source').textContent = data.source || 'Unknown source';
       const d = data.decoder || {};
-      document.getElementById('decoder').textContent =
-        'seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · turn_gain ' + d.turn_gain +
-        ' · sensory_sign ' + d.sensory_sign + ' · ' + ticks.length + ' ticks';
+      const rules = data.rules || {};
+      document.getElementById('decoder').textContent = contest
+        ? (rules.agents + ' flies · ' + rules.foods + ' pellets · map ±' + rules.map_half +
+           ' · seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · ' + ticks.length + ' ticks')
+        : ('seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · turn_gain ' + d.turn_gain +
+           ' · sensory_sign ' + d.sensory_sign + ' · ' + ticks.length + ' ticks');
       document.getElementById('assumptions').textContent = (data.assumptions || []).join(' ');
       document.getElementById('slider').max = Math.max(0, ticks.length - 1);
+      document.getElementById('contest-wrap').hidden = !contest;
+      document.getElementById('solo-wrap').hidden = contest;
+      if (contest && data.winner) {
+        document.getElementById('winner-line').textContent =
+          'Winner fly ' + data.winner.id + ' · ' + data.winner.meals + ' meals · energy ' +
+          Number(data.winner.energy).toFixed(3) + (data.winner.alive ? ' · survived' : ' · died');
+      }
 
       neuronRoot.innerHTML = nodes.map((node, i) => {
         const label = node.label || node.id;
@@ -144,12 +181,28 @@
           '<div class="val" id="nv' + i + '">0</div></div>';
       }).join('');
 
-      const bounds = ticks.reduce((acc, tick) => ({
-        minX: Math.min(acc.minX, tick.x, tick.food_x),
-        maxX: Math.max(acc.maxX, tick.x, tick.food_x),
-        minY: Math.min(acc.minY, tick.y, tick.food_y),
-        maxY: Math.max(acc.maxY, tick.y, tick.food_y)
-      }), {minX: -2, maxX: 2, minY: -2, maxY: 2});
+      const bounds = {minX: -2, maxX: 2, minY: -2, maxY: 2};
+      ticks.forEach((tick) => {
+        if (tick.agents) {
+          tick.agents.forEach((agent) => {
+            bounds.minX = Math.min(bounds.minX, agent.x);
+            bounds.maxX = Math.max(bounds.maxX, agent.x);
+            bounds.minY = Math.min(bounds.minY, agent.y);
+            bounds.maxY = Math.max(bounds.maxY, agent.y);
+          });
+          (tick.foods || []).forEach((food) => {
+            bounds.minX = Math.min(bounds.minX, food.x);
+            bounds.maxX = Math.max(bounds.maxX, food.x);
+            bounds.minY = Math.min(bounds.minY, food.y);
+            bounds.maxY = Math.max(bounds.maxY, food.y);
+          });
+        } else {
+          bounds.minX = Math.min(bounds.minX, tick.x, tick.food_x);
+          bounds.maxX = Math.max(bounds.maxX, tick.x, tick.food_x);
+          bounds.minY = Math.min(bounds.minY, tick.y, tick.food_y);
+          bounds.maxY = Math.max(bounds.maxY, tick.y, tick.food_y);
+        }
+      });
       const padWorld = 1.5;
       bounds.minX -= padWorld; bounds.maxX += padWorld; bounds.minY -= padWorld; bounds.maxY += padWorld;
 
@@ -166,27 +219,36 @@
         return n;
       }
 
-      function draw() {
-        if (!ticks.length) return;
-        const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
-        if (cssW < 2 || cssH < 2) return;
-        if (canvas.width !== cssW || canvas.height !== cssH) {
-          canvas.width = cssW;
-          canvas.height = cssH;
-        }
-        const tick = ticks[index];
+      function flyColor(id) {
+        return palette[id % palette.length];
+      }
+
+      function drawTriangle(x, y, heading, color, faded) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-heading);
+        ctx.globalAlpha = faded ? 0.35 : 1;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(11, 0); ctx.lineTo(-7, 6); ctx.lineTo(-4, 0); ctx.lineTo(-7, -6);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+
+      function drawGrid() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const [, , scale] = worldToCanvas(0, 0);
+        const span = Math.max(bounds.maxX - bounds.minX, bounds.maxY - bounds.minY);
+        const step = span > 24 ? 2 : 1;
         ctx.strokeStyle = '#232836';
         ctx.lineWidth = 1;
         const x0g = Math.floor(bounds.minX), x1g = Math.ceil(bounds.maxX);
         const y0g = Math.floor(bounds.minY), y1g = Math.ceil(bounds.maxY);
-        for (let g = x0g; g <= x1g; g += 1) {
+        for (let g = x0g; g <= x1g; g += step) {
           const [x, yA] = worldToCanvas(g, bounds.minY);
           const [, yB] = worldToCanvas(g, bounds.maxY);
           ctx.beginPath(); ctx.moveTo(x, yA); ctx.lineTo(x, yB); ctx.stroke();
         }
-        for (let g = y0g; g <= y1g; g += 1) {
+        for (let g = y0g; g <= y1g; g += step) {
           const [xA, y] = worldToCanvas(bounds.minX, g);
           const [xB] = worldToCanvas(bounds.maxX, g);
           ctx.beginPath(); ctx.moveTo(xA, y); ctx.lineTo(xB, y); ctx.stroke();
@@ -200,7 +262,76 @@
         ctx.moveTo(originX, worldToCanvas(0, bounds.minY)[1]);
         ctx.lineTo(originX, worldToCanvas(0, bounds.maxY)[1]);
         ctx.stroke();
+      }
 
+      function drawFoods(foods, scale) {
+        foods.forEach((food) => {
+          const [fx, fy] = worldToCanvas(food.x, food.y);
+          ctx.strokeStyle = '#e6c15a';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath(); ctx.arc(fx, fy, 0.4 * scale, 0, Math.PI * 2); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#e6c15a';
+          ctx.beginPath(); ctx.arc(fx, fy, 6, 0, Math.PI * 2); ctx.fill();
+        });
+      }
+
+      function drawContest(tick) {
+        const [, , scale] = worldToCanvas(0, 0);
+        tick.agents.forEach((agent) => {
+          ctx.strokeStyle = flyColor(agent.id);
+          ctx.globalAlpha = agent.id === selected ? 0.95 : 0.45;
+          ctx.lineWidth = agent.id === selected ? 2.4 : 1.2;
+          ctx.beginPath();
+          let started = false;
+          ticks.slice(0, index + 1).forEach((step) => {
+            const body = step.agents[agent.id];
+            if (!body) return;
+            const [x, y] = worldToCanvas(body.x, body.y);
+            if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
+        drawFoods(tick.foods || [], scale);
+        tick.agents.forEach((agent) => {
+          const [ax, ay] = worldToCanvas(agent.x, agent.y);
+          drawTriangle(ax, ay, agent.heading, flyColor(agent.id), !agent.alive);
+          if (agent.ate) {
+            ctx.fillStyle = '#e6c15a';
+            ctx.beginPath(); ctx.arc(ax, ay, 5, 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.fillStyle = '#ece7dc';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('F' + agent.id, ax + 8, ay - 8);
+        });
+        const alive = tick.agents.filter((agent) => agent.alive).length;
+        document.getElementById('contest-tick').textContent = tick.tick;
+        document.getElementById('food-left').textContent = String((tick.foods || []).length);
+        document.getElementById('alive-count').textContent = String(alive);
+        const board = tick.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.meals - a.meals) || (b.energy - a.energy) || (a.id - b.id));
+        document.getElementById('board').innerHTML = board.map((agent) => {
+          const klass = 'fly-row' + (agent.id === selected ? ' selected' : '') + (agent.alive ? '' : ' dead');
+          return '<button type="button" class="' + klass + '" data-fly="' + agent.id + '">' +
+            '<span class="swatch" style="background:' + flyColor(agent.id) + '"></span>' +
+            '<span>F' + agent.id + '</span><span>' + agent.meals + ' meal' + (agent.meals === 1 ? '' : 's') +
+            '</span><span>' + agent.energy.toFixed(2) + '</span></button>';
+        }).join('');
+        Array.from(document.querySelectorAll('#board [data-fly]')).forEach((button) => {
+          button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
+        });
+        const sel = tick.agents[selected] || tick.agents[0];
+        document.getElementById('sel-id').textContent = 'F' + sel.id;
+        document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);
+        document.getElementById('sel-meals').textContent = sel.meals;
+        document.getElementById('sel-left').textContent = sel.left_motor.toFixed(3);
+        document.getElementById('sel-right').textContent = sel.right_motor.toFixed(3);
+        document.getElementById('sel-left-bar').style.width = Math.min(100, sel.left_motor * 100) + '%';
+        document.getElementById('sel-right-bar').style.width = Math.min(100, sel.right_motor * 100) + '%';
+      }
+
+      function drawSolo(tick) {
+        const [, , scale] = worldToCanvas(0, 0);
         ctx.strokeStyle = '#6fbfa3';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -215,25 +346,9 @@
           ctx.fillStyle = '#e6c15a';
           ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
         });
-
-        const [fx, fy] = worldToCanvas(tick.food_x, tick.food_y);
-        ctx.strokeStyle = '#e6c15a';
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.arc(fx, fy, 0.4 * scale, 0, Math.PI * 2); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#e6c15a';
-        ctx.beginPath(); ctx.arc(fx, fy, 6, 0, Math.PI * 2); ctx.fill();
-
+        drawFoods([{x: tick.food_x, y: tick.food_y}], scale);
         const [ax, ay] = worldToCanvas(tick.x, tick.y);
-        ctx.save();
-        ctx.translate(ax, ay);
-        ctx.rotate(-tick.heading);
-        ctx.fillStyle = '#f4f1ea';
-        ctx.beginPath();
-        ctx.moveTo(12, 0); ctx.lineTo(-8, 7); ctx.lineTo(-5, 0); ctx.lineTo(-8, -7);
-        ctx.closePath(); ctx.fill();
-        ctx.restore();
-
+        drawTriangle(ax, ay, tick.heading, '#f4f1ea', false);
         document.getElementById('tick').textContent = tick.tick;
         document.getElementById('collected').textContent = collected();
         const dist = Math.hypot(tick.food_x - tick.x, tick.food_y - tick.y);
@@ -245,13 +360,26 @@
         document.getElementById('right-bar').style.width = Math.min(100, tick.right_motor * 100) + '%';
         document.getElementById('mean-act').textContent = tick.mean_activity.toFixed(3);
         document.getElementById('sat').textContent = (tick.saturated_fraction * 100).toFixed(1) + '%';
-        document.getElementById('slider').value = String(index);
         (tick.activity || []).forEach((value, i) => {
           const bar = document.getElementById('n' + i);
           const label = document.getElementById('nv' + i);
           if (bar) bar.style.width = (Math.max(0, Math.min(1, value)) * 100) + '%';
           if (label) label.textContent = value.toFixed(2);
         });
+      }
+
+      function draw() {
+        if (!ticks.length) return;
+        const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+        if (cssW < 2 || cssH < 2) return;
+        if (canvas.width !== cssW || canvas.height !== cssH) {
+          canvas.width = cssW;
+          canvas.height = cssH;
+        }
+        const tick = ticks[index];
+        drawGrid();
+        if (contest) drawContest(tick); else drawSolo(tick);
+        document.getElementById('slider').value = String(index);
       }
 
       function setIndex(next) {

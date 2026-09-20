@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 from sim import simulate, validate_decoder
+from contest import simulate_contest, summarize_contest
 
 TEMPLATE = Path(__file__).with_name('viewer.html')
 PLACEHOLDER = '__PLAYBACK_JSON__'
@@ -24,6 +25,33 @@ def playback_document(path, ticks, seed, **decoder_args):
     decoder = validate_decoder(**{key: decoder_args[key] for key in decoder_args
                                  if key in {'turn_sign', 'turn_gain', 'turn_clip', 'speed_gain', 'sensory_sign'}})
     history = simulate(path, ticks, seed, **decoder)
+    return _document(path, graph, decoder, seed, history)
+
+
+def contest_document(path, ticks, seed, **kwargs):
+    path = Path(path)
+    graph = json.loads(path.read_text())
+    decoder_keys = {key: kwargs[key] for key in kwargs
+                    if key in {'turn_sign', 'turn_gain', 'turn_clip', 'speed_gain', 'sensory_sign'}}
+    decoder = validate_decoder(**decoder_keys)
+    contest_keys = {key: kwargs[key] for key in kwargs
+                    if key in {'agents', 'foods', 'map_half', 'drive_enabled', 'disconnected', 'shuffle_seed'}}
+    result = simulate_contest(path, ticks, seed, **decoder, **contest_keys)
+    document = _document(path, graph, decoder, seed, result['ticks'])
+    document.update({
+        'mode': 'contest',
+        'rules': result['rules'],
+        'ranking': result['ranking'],
+        'winner': result['winner'],
+        'assumptions': (graph.get('assumptions') or []) + [
+            'Contest energy, map size, and scarce pellets are engineered scoring rules, not fly physiology.',
+            'All flies share the same circuit and decoder; they differ only by spawn pose.',
+        ],
+    })
+    return document
+
+
+def _document(path, graph, decoder, seed, history):
     provenance = graph.get('provenance') if isinstance(graph.get('provenance'), dict) else {}
     nodes = []
     for node in graph['nodes']:
@@ -58,8 +86,13 @@ def render_viewer(payload):
     return template.replace(PLACEHOLDER, encoded)
 
 
-def write_viewer(path, ticks, seed, output, **decoder_args):
-    html = render_viewer(playback_document(path, ticks, seed, **decoder_args))
+def write_viewer(path, ticks, seed, output, **kwargs):
+    if kwargs.get('agents', 1) > 1:
+        payload = contest_document(path, ticks, seed, **kwargs)
+        summary = summarize_contest(payload)
+    else:
+        payload = playback_document(path, ticks, seed, **kwargs)
+        summary = None
     output = Path(output)
-    output.write_text(html)
-    return output
+    output.write_text(render_viewer(payload))
+    return output, summary

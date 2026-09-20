@@ -14,6 +14,16 @@ python3 sim.py run demo.json --ticks 120 --out trace.json
 
 The output records position, heading, food location, motor activity, and collection events. A fixed seed makes runs repeatable.
 
+## Watch a 10-fly survival contest
+
+Ten independent copies of the same circuit share a larger map and three pellets that do not respawn. Energy drains every tick; a meal can keep a fly alive to the end. Spawn pose is the only difference between flies. This is a scored toy contest, not biological competition.
+
+```bash
+python3 sim.py contest circuits/dng13.json --ticks 800 --turn-sign -1 --turn-gain 1 --out view.html --open
+```
+
+Default: 10 flies, 3 pellets, map ±20. The command prints a leaderboard and writes `view.html`. Click a fly in the sidebar to highlight its trail.
+
 ## Watch a run
 
 The viewer is a self-contained HTML file. It replays every tick: arena, heading, food, trail, collection events, motor output, and per-neuron activity. Pause, step, reset, and a tick slider are included. The page labels the circuit as synthetic or MaleCNS-derived.
