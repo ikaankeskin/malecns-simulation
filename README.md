@@ -14,6 +14,17 @@ python3 sim.py run demo.json --ticks 120 --out trace.json
 
 The output records position, heading, food location, motor activity, and collection events. A fixed seed makes runs repeatable.
 
+## Watch a run
+
+The viewer is a self-contained HTML file. It replays every tick: arena, heading, food, trail, collection events, motor output, and per-neuron activity. Pause, step, reset, and a tick slider are included. The page labels the circuit as synthetic or MaleCNS-derived.
+
+```bash
+python3 sim.py view demo.json --ticks 120 --out view.html
+python3 sim.py view circuits/dng13.json --ticks 500 --turn-sign -1 --turn-gain 1 --out view.html
+```
+
+Open `view.html` in a browser. Add `--open` to launch it. Generated viewers are local outputs and are not committed. Default `sim.py run` traces stay JSON.
+
 ## Run the real-data circuit now
 
 No bulk download or third-party Python package is required to run the included extract:
@@ -53,7 +64,7 @@ The current controller is a toy continuous-activity model, with no neurotransmit
 python3 -m unittest discover -s tests -v
 ```
 
-Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. They require the packages in `requirements-data.txt`. Controller tests additionally check deterministic runs, stimulus responsiveness, malformed graphs, weight scaling, movement ablations, decoder validation, and a synthetic decoder-sweep split. These tests do not establish biological fidelity.
+Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. They require the packages in `requirements-data.txt`. Controller tests additionally check deterministic runs, stimulus responsiveness, malformed graphs, weight scaling, movement ablations, decoder validation, a synthetic decoder-sweep split, and HTML viewer playback payloads. These tests do not establish biological fidelity.
 
 ## Data attribution
 

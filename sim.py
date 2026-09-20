@@ -131,7 +131,8 @@ def simulate(path, ticks, seed, *, drive_enabled=True, disconnected=False,
                         'food_x': round(food[0], 6), 'food_y': round(food[1], 6),
                         'left_motor': round(left, 6), 'right_motor': round(right, 6),
                         'mean_activity': round(sum(activity)/len(activity), 6),
-                        'saturated_fraction': round(sum(a >= .999 for a in activity)/len(activity), 6), 'ate': ate})
+                        'saturated_fraction': round(sum(a >= .999 for a in activity)/len(activity), 6),
+                        'activity': [round(a, 6) for a in activity], 'ate': ate})
     return history
 
 
@@ -153,17 +154,23 @@ def import_csv(nodes_path, edges_path, output, limit):
     print(f'Saved {len(nodes)} neurons and {len(edges)} edges to {output}')
 
 
+def add_sim_args(parser, out_default):
+    parser.add_argument('graph')
+    parser.add_argument('--ticks', type=int, default=120)
+    parser.add_argument('--seed', type=int, default=4)
+    parser.add_argument('--out', default=out_default)
+    parser.add_argument('--turn-sign', type=float, default=1)
+    parser.add_argument('--turn-gain', type=float, default=0.15)
+    parser.add_argument('--sensory-sign', type=float, default=1)
+
+
 def main():
     p = argparse.ArgumentParser()
     sub = p.add_subparsers(dest='command', required=True)
-    run = sub.add_parser('run')
-    run.add_argument('graph')
-    run.add_argument('--ticks', type=int, default=120)
-    run.add_argument('--seed', type=int, default=4)
-    run.add_argument('--out', default='trace.json')
-    run.add_argument('--turn-sign', type=float, default=1)
-    run.add_argument('--turn-gain', type=float, default=0.15)
-    run.add_argument('--sensory-sign', type=float, default=1)
+    add_sim_args(sub.add_parser('run'), 'trace.json')
+    view = sub.add_parser('view')
+    add_sim_args(view, 'view.html')
+    view.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
     imp.add_argument('--limit', type=int, default=1000)
@@ -174,6 +181,14 @@ def main():
                                turn_gain=a.turn_gain, sensory_sign=a.sensory_sign)
             Path(a.out).write_text(json.dumps(history, indent=2, allow_nan=False))
             print(f'{len(history)} ticks written to {a.out}; food collected: {sum(h["ate"] for h in history)}')
+        elif a.command == 'view':
+            from view import write_viewer
+            import webbrowser
+            output = write_viewer(a.graph, a.ticks, a.seed, a.out, turn_sign=a.turn_sign,
+                                  turn_gain=a.turn_gain, sensory_sign=a.sensory_sign)
+            print(f'Viewer written to {output}')
+            if a.open:
+                webbrowser.open(output.resolve().as_uri())
         else:
             import_csv(a.nodes, a.edges, a.output, a.limit)
     except (ValueError, KeyError, OSError) as exc:

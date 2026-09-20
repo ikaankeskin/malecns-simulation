@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MaleCNS simulation viewer</title>
+  <style>
+    :root {
+      --bg: #12141a;
+      --panel: #1b1f29;
+      --line: #2c3342;
+      --text: #ece7dc;
+      --muted: #9aa3b5;
+      --food: #e6c15a;
+      --trail: #6fbfa3;
+      --agent: #f4f1ea;
+      --left: #7eb6ff;
+      --right: #ff8b7a;
+      --synth: #d4a24c;
+      --real: #7eb6ff;
+      --warn: #c9846a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+      font: 14px/1.45 "IBM Plex Sans", "Source Sans 3", "Segoe UI", sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    header, footer { padding: 12px 18px; border-bottom: 1px solid var(--line); background: var(--panel); }
+    footer { border-bottom: 0; border-top: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    header h1 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+    .meta { color: var(--muted); font-size: 12px; }
+    .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; border: 1px solid; }
+    .badge.synthetic { color: var(--synth); border-color: var(--synth); }
+    .badge.malecns-derived { color: var(--real); border-color: var(--real); }
+    .badge.unverified { color: var(--warn); border-color: var(--warn); }
+    header, footer { flex: 0 0 auto; }
+    main { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; min-width: 0; }
+    canvas { width: 100%; height: 100%; min-height: 0; display: block; background: #0d0f14; }
+    aside { border-left: 1px solid var(--line); overflow: auto; padding: 14px 16px 24px; background: var(--panel); min-height: 0; }
+    h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 8px; }
+    h2:first-child { margin-top: 0; }
+    .stat { display: flex; justify-content: space-between; gap: 12px; font-variant-numeric: tabular-nums; }
+    .stat span { color: var(--muted); }
+    .bar { height: 8px; background: #10131a; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 4px 0 8px; }
+    .bar > i { display: block; height: 100%; width: 0; background: var(--left); }
+    .bar.right > i { background: var(--right); }
+    .neuron { display: grid; grid-template-columns: 92px 1fr 42px; gap: 8px; align-items: center; margin: 4px 0; font-size: 12px; }
+    .neuron .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+    .neuron .val { text-align: right; font-variant-numeric: tabular-nums; }
+    .fill { height: 7px; background: #10131a; border-radius: 4px; overflow: hidden; }
+    .fill > i { display: block; height: 100%; }
+    .fill.left > i { background: var(--left); }
+    .fill.right > i { background: var(--right); }
+    .fill.center > i { background: #b7c0d0; }
+    button, select { background: #262b38; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+    button:hover, select:hover { border-color: #4a5568; }
+    input[type=range] { flex: 1; min-width: 160px; }
+    .empty { padding: 48px 24px; color: var(--muted); }
+    @media (max-width: 860px) {
+      body { height: auto; overflow: auto; }
+      main { grid-template-columns: 1fr; }
+      aside { border-left: 0; border-top: 1px solid var(--line); }
+      canvas { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MaleCNS simulation viewer <span id="kind" class="badge"></span></h1>
+    <div class="meta" id="source"></div>
+    <div class="meta" id="decoder"></div>
+  </header>
+  <main>
+    <canvas id="arena" width="900" height="720" aria-label="Foraging arena"></canvas>
+    <aside>
+      <h2>Tick</h2>
+      <div class="stat"><span>index</span><strong id="tick">0</strong></div>
+      <div class="stat"><span>collected</span><strong id="collected">0</strong></div>
+      <div class="stat"><span>distance to food</span><strong id="distance">0</strong></div>
+      <div class="stat"><span>heading (rad)</span><strong id="heading">0</strong></div>
+      <h2>Motors</h2>
+      <div class="stat"><span>left</span><strong id="left-val">0</strong></div>
+      <div class="bar"><i id="left-bar"></i></div>
+      <div class="stat"><span>right</span><strong id="right-val">0</strong></div>
+      <div class="bar right"><i id="right-bar"></i></div>
+      <div class="stat"><span>mean activity</span><strong id="mean-act">0</strong></div>
+      <div class="stat"><span>saturated</span><strong id="sat">0</strong></div>
+      <h2>Neurons</h2>
+      <div id="neurons"></div>
+      <h2>Assumptions</h2>
+      <div class="meta" id="assumptions"></div>
+    </aside>
+  </main>
+  <footer>
+    <button type="button" id="reset">Reset</button>
+    <button type="button" id="back">Step back</button>
+    <button type="button" id="play">Play</button>
+    <button type="button" id="forward">Step forward</button>
+    <label class="meta">speed
+      <select id="speed" aria-label="Playback speed">
+        <option value="4">4 ticks/s</option>
+        <option value="12" selected>12 ticks/s</option>
+        <option value="30">30 ticks/s</option>
+        <option value="60">60 ticks/s</option>
+      </select>
+    </label>
+    <input id="slider" type="range" min="0" max="0" value="0" aria-label="Tick slider">
+  </footer>
+  <script type="application/json" id="playback">__PLAYBACK_JSON__</script>
+  <script>
+    let data = null;
+    try {
+      data = JSON.parse(document.getElementById('playback').textContent);
+    } catch (error) {
+      data = null;
+    }
+    const root = document.body;
+    if (!data || !Array.isArray(data.ticks)) {
+      root.innerHTML = '<div class="empty">No playback data. Generate a viewer with <code>python3 sim.py view graph.json --out view.html</code>.</div>';
+    } else {
+      const ticks = data.ticks || [];
+      const nodes = data.nodes || [];
+      let index = 0;
+      let playing = false;
+      let timer = null;
+      const canvas = document.getElementById('arena');
+      const ctx = canvas.getContext('2d');
+      const neuronRoot = document.getElementById('neurons');
+
+      document.getElementById('kind').textContent = data.kind || 'unverified';
+      document.getElementById('kind').classList.add(data.kind || 'unverified');
+      document.title = (data.kind === 'synthetic' ? 'Synthetic' : 'MaleCNS') + ' simulation viewer';
+      document.getElementById('source').textContent = data.source || 'Unknown source';
+      const d = data.decoder || {};
+      document.getElementById('decoder').textContent =
+        'seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · turn_gain ' + d.turn_gain +
+        ' · sensory_sign ' + d.sensory_sign + ' · ' + ticks.length + ' ticks';
+      document.getElementById('assumptions').textContent = (data.assumptions || []).join(' ');
+      document.getElementById('slider').max = Math.max(0, ticks.length - 1);
+
+      neuronRoot.innerHTML = nodes.map((node, i) => {
+        const label = node.label || node.id;
+        return '<div class="neuron"><div class="name" title="' + label + '">' + label +
+          '</div><div class="fill ' + node.side + '"><i id="n' + i + '"></i></div>' +
+          '<div class="val" id="nv' + i + '">0</div></div>';
+      }).join('');
+
+      const bounds = ticks.reduce((acc, tick) => ({
+        minX: Math.min(acc.minX, tick.x, tick.food_x),
+        maxX: Math.max(acc.maxX, tick.x, tick.food_x),
+        minY: Math.min(acc.minY, tick.y, tick.food_y),
+        maxY: Math.max(acc.maxY, tick.y, tick.food_y)
+      }), {minX: -2, maxX: 2, minY: -2, maxY: 2});
+      const padWorld = 1.5;
+      bounds.minX -= padWorld; bounds.maxX += padWorld; bounds.minY -= padWorld; bounds.maxY += padWorld;
+
+      function worldToCanvas(x, y) {
+        const w = canvas.width, h = canvas.height, m = 28;
+        const spanX = bounds.maxX - bounds.minX, spanY = bounds.maxY - bounds.minY;
+        const scale = Math.min((w - 2 * m) / spanX, (h - 2 * m) / spanY);
+        return [m + (x - bounds.minX) * scale, h - m - (y - bounds.minY) * scale, scale];
+      }
+
+      function collected() {
+        let n = 0;
+        for (let i = 0; i <= index; i += 1) if (ticks[i].ate) n += 1;
+        return n;
+      }
+
+      function draw() {
+        if (!ticks.length) return;
+        const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+        if (cssW < 2 || cssH < 2) return;
+        if (canvas.width !== cssW || canvas.height !== cssH) {
+          canvas.width = cssW;
+          canvas.height = cssH;
+        }
+        const tick = ticks[index];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const [, , scale] = worldToCanvas(0, 0);
+        ctx.strokeStyle = '#232836';
+        ctx.lineWidth = 1;
+        const x0g = Math.floor(bounds.minX), x1g = Math.ceil(bounds.maxX);
+        const y0g = Math.floor(bounds.minY), y1g = Math.ceil(bounds.maxY);
+        for (let g = x0g; g <= x1g; g += 1) {
+          const [x, yA] = worldToCanvas(g, bounds.minY);
+          const [, yB] = worldToCanvas(g, bounds.maxY);
+          ctx.beginPath(); ctx.moveTo(x, yA); ctx.lineTo(x, yB); ctx.stroke();
+        }
+        for (let g = y0g; g <= y1g; g += 1) {
+          const [xA, y] = worldToCanvas(bounds.minX, g);
+          const [xB] = worldToCanvas(bounds.maxX, g);
+          ctx.beginPath(); ctx.moveTo(xA, y); ctx.lineTo(xB, y); ctx.stroke();
+        }
+        ctx.strokeStyle = '#3b4254';
+        ctx.beginPath();
+        const [, originY] = worldToCanvas(0, 0);
+        const [originX] = worldToCanvas(0, 0);
+        ctx.moveTo(worldToCanvas(bounds.minX, 0)[0], originY);
+        ctx.lineTo(worldToCanvas(bounds.maxX, 0)[0], originY);
+        ctx.moveTo(originX, worldToCanvas(0, bounds.minY)[1]);
+        ctx.lineTo(originX, worldToCanvas(0, bounds.maxY)[1]);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#6fbfa3';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ticks.slice(0, index + 1).forEach((step, i) => {
+          const [x, y] = worldToCanvas(step.x, step.y);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ticks.slice(0, index + 1).forEach((step) => {
+          if (!step.ate) return;
+          const [x, y] = worldToCanvas(step.x, step.y);
+          ctx.fillStyle = '#e6c15a';
+          ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+        });
+
+        const [fx, fy] = worldToCanvas(tick.food_x, tick.food_y);
+        ctx.strokeStyle = '#e6c15a';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.arc(fx, fy, 0.4 * scale, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#e6c15a';
+        ctx.beginPath(); ctx.arc(fx, fy, 6, 0, Math.PI * 2); ctx.fill();
+
+        const [ax, ay] = worldToCanvas(tick.x, tick.y);
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.rotate(-tick.heading);
+        ctx.fillStyle = '#f4f1ea';
+        ctx.beginPath();
+        ctx.moveTo(12, 0); ctx.lineTo(-8, 7); ctx.lineTo(-5, 0); ctx.lineTo(-8, -7);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+
+        document.getElementById('tick').textContent = tick.tick;
+        document.getElementById('collected').textContent = collected();
+        const dist = Math.hypot(tick.food_x - tick.x, tick.food_y - tick.y);
+        document.getElementById('distance').textContent = dist.toFixed(3);
+        document.getElementById('heading').textContent = tick.heading.toFixed(3);
+        document.getElementById('left-val').textContent = tick.left_motor.toFixed(3);
+        document.getElementById('right-val').textContent = tick.right_motor.toFixed(3);
+        document.getElementById('left-bar').style.width = Math.min(100, tick.left_motor * 100) + '%';
+        document.getElementById('right-bar').style.width = Math.min(100, tick.right_motor * 100) + '%';
+        document.getElementById('mean-act').textContent = tick.mean_activity.toFixed(3);
+        document.getElementById('sat').textContent = (tick.saturated_fraction * 100).toFixed(1) + '%';
+        document.getElementById('slider').value = String(index);
+        (tick.activity || []).forEach((value, i) => {
+          const bar = document.getElementById('n' + i);
+          const label = document.getElementById('nv' + i);
+          if (bar) bar.style.width = (Math.max(0, Math.min(1, value)) * 100) + '%';
+          if (label) label.textContent = value.toFixed(2);
+        });
+      }
+
+      function setIndex(next) {
+        index = Math.max(0, Math.min(ticks.length - 1, next));
+        draw();
+      }
+      function stop() {
+        playing = false;
+        clearInterval(timer);
+        document.getElementById('play').textContent = 'Play';
+      }
+      function start() {
+        if (index >= ticks.length - 1) setIndex(0);
+        playing = true;
+        document.getElementById('play').textContent = 'Pause';
+        clearInterval(timer);
+        const ms = 1000 / Number(document.getElementById('speed').value);
+        timer = setInterval(() => {
+          if (index >= ticks.length - 1) { stop(); return; }
+          setIndex(index + 1);
+        }, ms);
+      }
+
+      document.getElementById('play').onclick = () => playing ? stop() : start();
+      document.getElementById('reset').onclick = () => { stop(); setIndex(0); };
+      document.getElementById('back').onclick = () => { stop(); setIndex(index - 1); };
+      document.getElementById('forward').onclick = () => { stop(); setIndex(index + 1); };
+      document.getElementById('slider').oninput = (event) => { stop(); setIndex(Number(event.target.value)); };
+      document.getElementById('speed').onchange = () => { if (playing) start(); };
+      document.addEventListener('keydown', (event) => {
+        if (event.key === ' ') { event.preventDefault(); playing ? stop() : start(); }
+        if (event.key === 'ArrowRight') { stop(); setIndex(index + 1); }
+        if (event.key === 'ArrowLeft') { stop(); setIndex(index - 1); }
+        if (event.key === 'Home') { stop(); setIndex(0); }
+      });
+      window.addEventListener('resize', draw);
+      draw();
+    }
+  </script>
+</body>
+</html>

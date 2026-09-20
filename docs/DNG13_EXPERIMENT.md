@@ -84,9 +84,13 @@ Compare the output with `circuits/dng13.json`. The JSON is deterministic for the
 
 Completed. Turn/sensory signs and turn gain were compared on seeds 0–9, then the selected mapping was tested on seeds 10–19 against shuffled, disconnected, and no-input controls. The default decoder still collects nothing. `turn_sign=-1`, `turn_gain=1.0` collected a mean of 4.0 items on held-out seeds versus 0.5 for shuffled wiring. Report: [DNG13_DECODER.md](DNG13_DECODER.md).
 
+## Viewer
+
+Completed. `python3 sim.py view` writes a self-contained HTML replay with pause, step, reset, a tick slider, motor traces, and per-neuron activity. The page labels synthetic vs MaleCNS-derived circuits. Generated HTML is a local output.
+
 ## Next experiment
 
-Add a visual viewer so trajectories, laterality, and saturation are inspectable. Neurotransmitter-aware dynamics and learning remain separate later milestones.
+Neurotransmitter-aware dynamics and learning remain separate later milestones.
 
 ## Attribution and license
 

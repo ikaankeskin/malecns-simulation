@@ -62,6 +62,7 @@ Bounded all-excitatory rate model; synapse counts divided by 100; no neurotransm
 ```bash
 python3 experiments.py circuits/dng13.json --ticks 500 --development-seeds 10 --held-out-seeds 10 --out docs/dng13-decoder-experiment.json
 python3 sim.py run circuits/dng13.json --ticks 500 --turn-sign -1 --turn-gain 1 --out trace.json
+python3 sim.py view circuits/dng13.json --ticks 500 --turn-sign -1 --turn-gain 1 --out view.html
 ```
 
 Default `sim.py` flags keep the original avoidance decoder. Controller tests cover decoder validation and sign reversal on the synthetic `demo.json` graph; those tests are not MaleCNS validation. Detailed values are in `docs/dng13-decoder-experiment.json`.
