@@ -302,8 +302,6 @@
     }
     return null;
   }
-    return null;
-  }
 
   function createWorld(graph, ui, seed) {
     const rules = rulesFrom(ui || {});
@@ -559,3 +557,4 @@
     randomize: randomize,
   };
 }(typeof window !== 'undefined' ? window : globalThis));
+

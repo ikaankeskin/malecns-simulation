@@ -61,3 +61,6 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Random food: a patch relocates when it leaves cooldown. Meals extend artificial lifespan.
 - Dashboard: living descendants per founder, generation histogram, contested meals.
 - GitHub Pages: `docs/index.html` runs the ecosystem in the browser; sliders and Randomize retune the world.
+
+
+- Browser-engine repair: remove a duplicated closing block that prevented JavaScript parsing; add a Node execution smoke test to the Python test suite.
