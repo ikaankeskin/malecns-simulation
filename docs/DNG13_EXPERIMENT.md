@@ -80,9 +80,13 @@ python3 malecns_data.py extract --out /tmp/dng13-reproduced.json
 
 Compare the output with `circuits/dng13.json`. The JSON is deterministic for the pinned release and config. Test fixtures are synthetic and cannot pass official-release checksum verification.
 
+## Decoder follow-up
+
+Completed. Turn/sensory signs and turn gain were compared on seeds 0–9, then the selected mapping was tested on seeds 10–19 against shuffled, disconnected, and no-input controls. The default decoder still collects nothing. `turn_sign=-1`, `turn_gain=1.0` collected a mean of 4.0 items on held-out seeds versus 0.5 for shuffled wiring. Report: [DNG13_DECODER.md](DNG13_DECODER.md).
+
 ## Next experiment
 
-Treat sensory encoding and output decoding as experimental parameters. Compare both turn signs and gain settings on development seeds, then evaluate against disconnected and shuffled controls on previously unused seeds. Inspect saturation and trajectories before selecting a mapping. Add a visual viewer to make these behaviours easy to inspect. Neurotransmitter-aware dynamics and learning remain separate later milestones.
+Add a visual viewer so trajectories, laterality, and saturation are inspectable. Neurotransmitter-aware dynamics and learning remain separate later milestones.
 
 ## Attribution and license
 

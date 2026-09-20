@@ -1,6 +1,6 @@
 # MaleCNS Simulation
 
-A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron graph, applies bounded continuous activity updates, maps sensory inputs and motor outputs, and records every tick. **This is an exploratory controller, not a biological reconstruction.** The included `demo.json` is synthetic. **`circuits/dng13.json` contains a verified MaleCNS v1.0 subgraph: 11 neurons and 32 connections.** It responds to input but has not demonstrated effective foraging. See [the experiment report](docs/DNG13_EXPERIMENT.md).
+A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron graph, applies bounded continuous activity updates, maps sensory inputs and motor outputs, and records every tick. **This is an exploratory controller, not a biological reconstruction.** The included `demo.json` is synthetic. **`circuits/dng13.json` contains a verified MaleCNS v1.0 subgraph: 11 neurons and 32 connections.** With the default decoder it turns away from the pellet. Reversing the turn sign is an interface choice that produces collection; it is not evidence that this pathway encodes food. See [the first experiment](docs/DNG13_EXPERIMENT.md) and [the decoder report](docs/DNG13_DECODER.md).
 
 ## Project plan
 
@@ -20,10 +20,11 @@ No bulk download or third-party Python package is required to run the included e
 
 ```bash
 python3 sim.py run circuits/dng13.json --ticks 500 --out trace.json
+python3 sim.py run circuits/dng13.json --ticks 500 --turn-sign -1 --turn-gain 1 --out trace.json
 python3 experiments.py circuits/dng13.json --out experiment.json
 ```
 
-The experiment compares the intact graph with disconnected, input-silenced, and shuffled-source controls. Raw traces are local outputs. `docs/dng13-experiment.json` is the checked-in evaluation report.
+The first command uses the original avoidance decoder. The second uses the selected attraction decoder from the mapping experiment. `experiments.py` sweeps turn/sensory signs and turn gains on development seeds, then compares the selected mapping with disconnected, input-silenced, and shuffled-source controls on held-out seeds. Raw traces are local outputs. Checked-in reports: `docs/dng13-experiment.json`, `docs/dng13-decoder-experiment.json`.
 
 ## Extract a real MaleCNS circuit
 
@@ -44,7 +45,7 @@ Downloads total approximately 1.07 GB. Extraction verifies pinned SHA-256 hashes
 
 DNg13 is shown in [Janelia's visual-to-movement example](https://male-cns.janelia.org/media/). This direct-input subgraph omits retinal and upstream processing. Simulator `sensory` and `motor` roles are interface assignments; the biological output class remains `descending_neuron`. Soma-side-to-world-side mapping is a hypothesis.
 
-The current controller is a toy continuous-activity model, with no neurotransmitter signs, spikes, physiological calibration, or plasticity. Wiring alone does not establish food-seeking behaviour. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
+The current controller is a toy continuous-activity model, with no neurotransmitter signs, spikes, physiological calibration, or plasticity. Wiring plus a tuned decoder can collect synthetic food in this world; that does not establish biological food-seeking. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
 
 ## Validation
 
@@ -52,7 +53,7 @@ The current controller is a toy continuous-activity model, with no neurotransmit
 python3 -m unittest discover -s tests -v
 ```
 
-Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. Controller tests additionally check deterministic runs, stimulus responsiveness, malformed graphs, weight scaling, and movement ablations. These tests do not establish biological fidelity.
+Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. They require the packages in `requirements-data.txt`. Controller tests additionally check deterministic runs, stimulus responsiveness, malformed graphs, weight scaling, movement ablations, decoder validation, and a synthetic decoder-sweep split. These tests do not establish biological fidelity.
 
 ## Data attribution
 

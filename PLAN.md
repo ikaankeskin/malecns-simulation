@@ -33,7 +33,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Checked-in real-data extract and controller experiment report: 11 neurons, 32 connections, 149 synapses.
 - [x] Real MaleCNS-derived circuit imported and run; directional response confirmed.
 - [x] Eleven focused tests pass; disconnected and no-input controls stay stationary.
-- [ ] Useful world behaviour: intact circuit collected no food in ten 500-tick runs. Compare decoder signs/gains on development and held-out seeds before claiming progress.
+- [x] Decoder mapping experiment: 12 sign/gain candidates on seeds 0–9; held-out seeds 10–19. Selected `turn_sign=-1`, `turn_gain=1.0` collected mean 4.0 food versus 0 baseline and 0.5 shuffled. Interface result, not biological foraging.
+- [ ] Visible simulation: render world and activity with pause, step, reset, and provenance.
 - [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
 ## First scientific decision
@@ -44,3 +45,4 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 
 - `348ee16`: streaming data importer, official-release checksums, selection config, and six extraction tests.
 - Follow-up experiment: include the real subgraph, circuit validation and ablations, remove independent locomotion, preserve unclipped synapse-count ratios, and report the negative foraging result. See `docs/DNG13_EXPERIMENT.md`.
+- Decoder experiment: parameterize turn/sensory signs and turn gain; select on development seeds; evaluate intact vs shuffled/disconnected/no-input on held-out seeds. See `docs/DNG13_DECODER.md`.

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from sim import Circuit, simulate, validate_graph
+from sim import Circuit, simulate, validate_decoder, validate_graph
 
 DEMO = Path(__file__).resolve().parents[1]/'demo.json'
 
@@ -37,5 +37,22 @@ class SimulationTests(unittest.TestCase):
 
     def test_invalid_ticks_rejected(self):
         with self.assertRaises(ValueError):simulate(DEMO,0,4)
+
+    def test_invalid_decoder_rejected(self):
+        for kwargs in [{'turn_sign': 0}, {'turn_sign': True}, {'sensory_sign': 2},
+                       {'turn_gain': 0}, {'turn_gain': float('nan')}, {'speed_gain': -1}]:
+            with self.assertRaises(ValueError):
+                validate_decoder(**kwargs)
+
+    def test_turn_sign_reverses_heading_on_synthetic_demo(self):
+        attract = simulate(DEMO, 40, 4)
+        avoid = simulate(DEMO, 40, 4, turn_sign=-1)
+        self.assertGreater(attract[-1]['heading'], 0)
+        self.assertLess(avoid[-1]['heading'], 0)
+        self.assertNotEqual([t['heading'] for t in attract], [t['heading'] for t in avoid])
+
+    def test_synthetic_demo_collects_food_with_default_decoder(self):
+        trace = simulate(DEMO, 120, 4)
+        self.assertGreaterEqual(sum(tick['ate'] for tick in trace), 1)
 
 if __name__ == '__main__':unittest.main()

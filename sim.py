@@ -74,10 +74,24 @@ class Circuit:
                      for side in ['left', 'right'])
 
 
+def validate_decoder(turn_sign=1, turn_gain=0.15, turn_clip=0.3, speed_gain=0.13, sensory_sign=1):
+    if isinstance(turn_sign, bool) or turn_sign not in (1, -1):
+        raise ValueError('turn_sign must be 1 or -1')
+    if isinstance(sensory_sign, bool) or sensory_sign not in (1, -1):
+        raise ValueError('sensory_sign must be 1 or -1')
+    for name, value in [('turn_gain', turn_gain), ('turn_clip', turn_clip), ('speed_gain', speed_gain)]:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise ValueError(f'{name} must be finite and positive')
+    return {'turn_sign': int(turn_sign), 'turn_gain': float(turn_gain), 'turn_clip': float(turn_clip),
+            'speed_gain': float(speed_gain), 'sensory_sign': int(sensory_sign)}
+
+
 def simulate(path, ticks, seed, *, drive_enabled=True, disconnected=False,
-             shuffle_seed=None, initial_food=(5.0, 3.0)):
+             shuffle_seed=None, initial_food=(5.0, 3.0), turn_sign=1, turn_gain=0.15,
+             turn_clip=0.3, speed_gain=0.13, sensory_sign=1):
     if type(ticks) is not int or ticks < 1:
         raise ValueError('ticks must be a positive integer')
+    decoder = validate_decoder(turn_sign, turn_gain, turn_clip, speed_gain, sensory_sign)
     graph = json.loads(Path(path).read_text())
     circuit = Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed)
     rng = random.Random(seed)
@@ -95,12 +109,19 @@ def simulate(path, ticks, seed, *, drive_enabled=True, disconnected=False,
         for i, n in enumerate(circuit.nodes):
             if n['role'] == 'sensory':
                 side = n['side']
-                drives[i] = stimulus * (1 + (math.sin(bearing) if side == 'left' else -math.sin(bearing) if side == 'right' else 0))
+                if side == 'left':
+                    laterality = decoder['sensory_sign'] * math.sin(bearing)
+                elif side == 'right':
+                    laterality = -decoder['sensory_sign'] * math.sin(bearing)
+                else:
+                    laterality = 0.0
+                drives[i] = stimulus * (1 + laterality)
         activity = circuit.step(drives)
         left, right = circuit.motors()
-        heading += max(-.3, min(.3, (right - left) * .15))
+        heading += max(-decoder['turn_clip'], min(decoder['turn_clip'],
+                                                 (right - left) * decoder['turn_sign'] * decoder['turn_gain']))
         # No independent locomotion bias: silencing the circuit stops movement.
-        speed = .13 * min(1, left + right)
+        speed = decoder['speed_gain'] * min(1, left + right)
         x += speed * math.cos(heading)
         y += speed * math.sin(heading)
         ate = math.hypot(food[0] - x, food[1] - y) < .4
@@ -140,13 +161,17 @@ def main():
     run.add_argument('--ticks', type=int, default=120)
     run.add_argument('--seed', type=int, default=4)
     run.add_argument('--out', default='trace.json')
+    run.add_argument('--turn-sign', type=float, default=1)
+    run.add_argument('--turn-gain', type=float, default=0.15)
+    run.add_argument('--sensory-sign', type=float, default=1)
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
     imp.add_argument('--limit', type=int, default=1000)
     a = p.parse_args()
     try:
         if a.command == 'run':
-            history = simulate(a.graph, a.ticks, a.seed)
+            history = simulate(a.graph, a.ticks, a.seed, turn_sign=a.turn_sign,
+                               turn_gain=a.turn_gain, sensory_sign=a.sensory_sign)
             Path(a.out).write_text(json.dumps(history, indent=2, allow_nan=False))
             print(f'{len(history)} ticks written to {a.out}; food collected: {sum(h["ate"] for h in history)}')
         else:

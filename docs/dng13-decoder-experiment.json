@@ -1,0 +1,2378 @@
+{
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "nodes": 11,
+  "connections": 32,
+  "retained_synapses": 149,
+  "ticks_per_run": 500,
+  "development_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "held_out_seeds": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "controller": {
+    "model": "bounded rate model",
+    "sign_policy": "all excitatory (assumption)",
+    "edge_gain": "raw synapse count / 100",
+    "update": "clip(0.75*old + 0.25*(input + recurrent), 0, 1)",
+    "movement": "speed = 0.13*min(1,L+R); turn = clip(turn_sign*turn_gain*(R-L), -0.3, 0.3)",
+    "sensory": "drive = stimulus * (1 + sensory_sign * side * sin(bearing))",
+    "learning": false
+  },
+  "static_probes": {
+    "left": {
+      "left_motor": 0.18864451345913555,
+      "right_motor": 0.07544453127996684,
+      "right_minus_left": -0.11319998217916871,
+      "saturated_neurons": 0
+    },
+    "right": {
+      "left_motor": 0.055269606533945234,
+      "right_motor": 0.19344973897500947,
+      "right_minus_left": 0.13818013244106425,
+      "saturated_neurons": 0
+    },
+    "both": {
+      "left_motor": 0.2439141199930807,
+      "right_motor": 0.26889427025497625,
+      "right_minus_left": 0.02498015026189554,
+      "saturated_neurons": 0
+    },
+    "none": {
+      "left_motor": 0.0,
+      "right_motor": 0.0,
+      "right_minus_left": 0.0,
+      "saturated_neurons": 0
+    }
+  },
+  "development_sweep": [
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 7.279841296124774,
+      "mean_min_distance_to_first_food": 5.743417192066044,
+      "mean_motor_activity": 0.111997555,
+      "mean_saturated_fraction": 0.0062545392,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.335873604337987,
+          "mean_motor_activity": 0.097474944,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.167929291492069,
+          "mean_motor_activity": 0.094891236,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.032625512752193,
+          "mean_motor_activity": 0.092809618,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.65147898132869,
+          "mean_motor_activity": 0.10233043,
+          "mean_saturated_fraction": 0.001454544,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.6384179712961,
+          "mean_motor_activity": 0.102129516,
+          "mean_saturated_fraction": 0.001454544,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 8.942442158622415,
+          "mean_motor_activity": 0.137576042,
+          "mean_saturated_fraction": 0.015818166,
+          "min_distance_to_first_food": 5.43855858673219,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.616495365203446,
+          "mean_motor_activity": 0.1017922,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.480039058735704,
+          "mean_motor_activity": 0.11507753,
+          "mean_saturated_fraction": 0.009818172,
+          "min_distance_to_first_food": 5.86848389101037,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.577424777598377,
+          "mean_motor_activity": 0.101191162,
+          "mean_saturated_fraction": 0.001272726,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 11.35568623988076,
+          "mean_motor_activity": 0.174702872,
+          "mean_saturated_fraction": 0.03272724,
+          "min_distance_to_first_food": 4.127129442917879,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn+1_gain0.15",
+        "turn_sign": 1,
+        "turn_gain": 0.15,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 6.50832383351405,
+      "mean_min_distance_to_first_food": 5.899499179767537,
+      "mean_motor_activity": 0.10012805179999999,
+      "mean_saturated_fraction": 0.001363635,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.104365467516078,
+          "mean_motor_activity": 0.093913322,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.088478162637386,
+          "mean_motor_activity": 0.09366888599999999,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.016404234768219,
+          "mean_motor_activity": 0.092560072,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.25829361320359,
+          "mean_motor_activity": 0.096281428,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.2538046310081405,
+          "mean_motor_activity": 0.096212356,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.102514828150191,
+          "mean_motor_activity": 0.109269432,
+          "mean_saturated_fraction": 0.003454542,
+          "min_distance_to_first_food": 5.794546920082102,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.19405016182279,
+          "mean_motor_activity": 0.095293074,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.554933179590864,
+          "mean_motor_activity": 0.100845144,
+          "mean_saturated_fraction": 0.0016363620000000001,
+          "min_distance_to_first_food": 5.957253984030368,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.2328586456193,
+          "mean_motor_activity": 0.09589012,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 8.277535410823935,
+          "mean_motor_activity": 0.127346684,
+          "mean_saturated_fraction": 0.008545446,
+          "min_distance_to_first_food": 5.2431908935629,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn+1_gain0.50",
+        "turn_sign": 1,
+        "turn_gain": 0.5,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 6.401429907316208,
+      "mean_min_distance_to_first_food": 5.945737917744288,
+      "mean_motor_activity": 0.098483538,
+      "mean_saturated_fraction": 0.00030909059999999997,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.101881836930599,
+          "mean_motor_activity": 0.093875082,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.130706322341795,
+          "mean_motor_activity": 0.094318574,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.01643421294577,
+          "mean_motor_activity": 0.092560538,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.29882940305987,
+          "mean_motor_activity": 0.096905062,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.295284031722789,
+          "mean_motor_activity": 0.096850502,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.701537554088134,
+          "mean_motor_activity": 0.10310057,
+          "mean_saturated_fraction": 0.000363636,
+          "min_distance_to_first_food": 5.895252981961017,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.173032155737545,
+          "mean_motor_activity": 0.094969734,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.491544511593442,
+          "mean_motor_activity": 0.099869954,
+          "mean_saturated_fraction": 0.000363636,
+          "min_distance_to_first_food": 5.979650933661643,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.278273136535899,
+          "mean_motor_activity": 0.096588826,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.526775908206237,
+          "mean_motor_activity": 0.115796538,
+          "mean_saturated_fraction": 0.002363634,
+          "min_distance_to_first_food": 5.582475261820219,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn+1_gain1.00",
+        "turn_sign": 1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 1.7,
+      "mean_distance_travelled": 30.04606675406549,
+      "mean_min_distance_to_first_food": 0.6007180633371714,
+      "mean_motor_activity": 0.462247183,
+      "mean_saturated_fraction": 0.149636214,
+      "runs": [
+        {
+          "food_collected": 1,
+          "distance_travelled": 34.60157783776082,
+          "mean_motor_activity": 0.532331968,
+          "mean_saturated_fraction": 0.076181742,
+          "min_distance_to_first_food": 0.3779213374344225,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 24.42740411526407,
+          "mean_motor_activity": 0.3758062,
+          "mean_saturated_fraction": 0.017090892,
+          "min_distance_to_first_food": 0.3146091107934515,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 16.27673487269702,
+          "mean_motor_activity": 0.250411318,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 2.7596886192938133,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 35.220715864806444,
+          "mean_motor_activity": 0.541857172,
+          "mean_saturated_fraction": 0.26090883,
+          "min_distance_to_first_food": 0.3301651230595964,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 34.817908209037434,
+          "mean_motor_activity": 0.535660122,
+          "mean_saturated_fraction": 0.38818143,
+          "min_distance_to_first_food": 0.37578776333622094,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 39.62158165993987,
+          "mean_motor_activity": 0.609562804,
+          "mean_saturated_fraction": 0.325817856,
+          "min_distance_to_first_food": 0.3914723624707044,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 38.45531939793563,
+          "mean_motor_activity": 0.591620286,
+          "mean_saturated_fraction": 0.173999826,
+          "min_distance_to_first_food": 0.3855687245529851,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 38.79222390242953,
+          "mean_motor_activity": 0.596803484,
+          "mean_saturated_fraction": 0.194363442,
+          "min_distance_to_first_food": 0.3369796394634528,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 8.239616118197198,
+          "mean_motor_activity": 0.12676334,
+          "mean_saturated_fraction": 0.020363616,
+          "min_distance_to_first_food": 0.39890227968963365,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 30.007585562586875,
+          "mean_motor_activity": 0.461655136,
+          "mean_saturated_fraction": 0.039454506,
+          "min_distance_to_first_food": 0.3360856732774334,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain0.15",
+        "turn_sign": -1,
+        "turn_gain": 0.15,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 3.8,
+      "mean_distance_travelled": 28.60171636712683,
+      "mean_min_distance_to_first_food": 0.34384022237197565,
+      "mean_motor_activity": 0.4400264034,
+      "mean_saturated_fraction": 0.0690544764,
+      "runs": [
+        {
+          "food_collected": 5,
+          "distance_travelled": 38.73050075248446,
+          "mean_motor_activity": 0.595853824,
+          "mean_saturated_fraction": 0.096727176,
+          "min_distance_to_first_food": 0.31809155463407895,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 24.877050033947732,
+          "mean_motor_activity": 0.382723852,
+          "mean_saturated_fraction": 0.018909072000000002,
+          "min_distance_to_first_food": 0.3149114268836099,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 10.27086620493888,
+          "mean_motor_activity": 0.158013296,
+          "mean_saturated_fraction": 0.007818174,
+          "min_distance_to_first_food": 0.3421507350239165,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 26.561618480502524,
+          "mean_motor_activity": 0.408640248,
+          "mean_saturated_fraction": 0.04999995,
+          "min_distance_to_first_food": 0.38594690858376185,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 27.914237092127035,
+          "mean_motor_activity": 0.429449814,
+          "mean_saturated_fraction": 0.104181714,
+          "min_distance_to_first_food": 0.3950928395528371,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 35.98434602064042,
+          "mean_motor_activity": 0.55360536,
+          "mean_saturated_fraction": 0.117090792,
+          "min_distance_to_first_food": 0.29148646433239356,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 41.19895774564428,
+          "mean_motor_activity": 0.633830128,
+          "mean_saturated_fraction": 0.07909083,
+          "min_distance_to_first_food": 0.3215459319723529,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 7,
+          "distance_travelled": 42.32707138987176,
+          "mean_motor_activity": 0.651185706,
+          "mean_saturated_fraction": 0.153272574,
+          "min_distance_to_first_food": 0.3476230670498155,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 6.954461827020956,
+          "mean_motor_activity": 0.106991732,
+          "mean_saturated_fraction": 0.009454536000000001,
+          "min_distance_to_first_food": 0.35467702828236713,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 31.198054124090252,
+          "mean_motor_activity": 0.479970074,
+          "mean_saturated_fraction": 0.053999946,
+          "min_distance_to_first_food": 0.36687626740462304,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain0.50",
+        "turn_sign": -1,
+        "turn_gain": 0.5,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 3.9,
+      "mean_distance_travelled": 28.72152728172948,
+      "mean_min_distance_to_first_food": 0.3617743479024179,
+      "mean_motor_activity": 0.441869634,
+      "mean_saturated_fraction": 0.0778362858,
+      "runs": [
+        {
+          "food_collected": 5,
+          "distance_travelled": 37.18926547796685,
+          "mean_motor_activity": 0.572142522,
+          "mean_saturated_fraction": 0.084909006,
+          "min_distance_to_first_food": 0.3973200617327946,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 29.29623506140634,
+          "mean_motor_activity": 0.450711302,
+          "mean_saturated_fraction": 0.043818138,
+          "min_distance_to_first_food": 0.37594728678055267,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 8.673502909948901,
+          "mean_motor_activity": 0.133438464,
+          "mean_saturated_fraction": 0.01272726,
+          "min_distance_to_first_food": 0.39576876838173963,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 29.525532254302686,
+          "mean_motor_activity": 0.454238934,
+          "mean_saturated_fraction": 0.075636288,
+          "min_distance_to_first_food": 0.3652326444112664,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 24.377986408675064,
+          "mean_motor_activity": 0.375045932,
+          "mean_saturated_fraction": 0.126181692,
+          "min_distance_to_first_food": 0.3661083014669564,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 27.443012159188125,
+          "mean_motor_activity": 0.422200162,
+          "mean_saturated_fraction": 0.090363546,
+          "min_distance_to_first_food": 0.31057381656277766,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 39.38559459335562,
+          "mean_motor_activity": 0.605932206,
+          "mean_saturated_fraction": 0.060727212,
+          "min_distance_to_first_food": 0.30536104343670367,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 7,
+          "distance_travelled": 39.79376715297135,
+          "mean_motor_activity": 0.612211822,
+          "mean_saturated_fraction": 0.169454376,
+          "min_distance_to_first_food": 0.3728084213413232,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 23.214296408745064,
+          "mean_motor_activity": 0.357143014,
+          "mean_saturated_fraction": 0.058727214,
+          "min_distance_to_first_food": 0.3733282640776936,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 28.316080390734783,
+          "mean_motor_activity": 0.435631982,
+          "mean_saturated_fraction": 0.055818126,
+          "min_distance_to_first_food": 0.3552948708323713,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    },
+    {
+      "mean_food_collected": 1.5,
+      "mean_distance_travelled": 27.226181895515964,
+      "mean_min_distance_to_first_food": 0.37299321280123077,
+      "mean_motor_activity": 0.4188643234,
+      "mean_saturated_fraction": 0.1058544396,
+      "runs": [
+        {
+          "food_collected": 1,
+          "distance_travelled": 13.259934939351798,
+          "mean_motor_activity": 0.20399901,
+          "mean_saturated_fraction": 0.013999986,
+          "min_distance_to_first_food": 0.3969888172380895,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 25.040081577932412,
+          "mean_motor_activity": 0.38523203,
+          "mean_saturated_fraction": 0.03545451,
+          "min_distance_to_first_food": 0.3918306062688786,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 14.46843130029063,
+          "mean_motor_activity": 0.222591218,
+          "mean_saturated_fraction": 0.00999999,
+          "min_distance_to_first_food": 0.3834374463610971,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 30.923874029571714,
+          "mean_motor_activity": 0.475751876,
+          "mean_saturated_fraction": 0.12799987200000001,
+          "min_distance_to_first_food": 0.39277469397111847,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 38.59611646405325,
+          "mean_motor_activity": 0.593786406,
+          "mean_saturated_fraction": 0.24181794,
+          "min_distance_to_first_food": 0.39797414838872913,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 38.014695499817876,
+          "mean_motor_activity": 0.584841434,
+          "mean_saturated_fraction": 0.35727237,
+          "min_distance_to_first_food": 0.30919488505294096,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 21.016479646244917,
+          "mean_motor_activity": 0.32333044,
+          "mean_saturated_fraction": 0.019636344,
+          "min_distance_to_first_food": 0.33077485550541325,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 32.23983171003765,
+          "mean_motor_activity": 0.4959974,
+          "mean_saturated_fraction": 0.088363548,
+          "min_distance_to_first_food": 0.37556987224859206,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 27.449273025474238,
+          "mean_motor_activity": 0.422296494,
+          "mean_saturated_fraction": 0.118363518,
+          "min_distance_to_first_food": 0.39363196635149356,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 31.25310076238516,
+          "mean_motor_activity": 0.480816926,
+          "mean_saturated_fraction": 0.045636318,
+          "min_distance_to_first_food": 0.3577548366259548,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn+1_gain0.15",
+        "turn_sign": 1,
+        "turn_gain": 0.15,
+        "sensory_sign": -1
+      }
+    },
+    {
+      "mean_food_collected": 3.7,
+      "mean_distance_travelled": 28.435253251237988,
+      "mean_min_distance_to_first_food": 0.341678424378594,
+      "mean_motor_activity": 0.4374654424,
+      "mean_saturated_fraction": 0.0667453878,
+      "runs": [
+        {
+          "food_collected": 5,
+          "distance_travelled": 39.04573539604899,
+          "mean_motor_activity": 0.600703636,
+          "mean_saturated_fraction": 0.089636274,
+          "min_distance_to_first_food": 0.34049468998902044,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 2,
+          "distance_travelled": 27.03570065431244,
+          "mean_motor_activity": 0.41593389000000003,
+          "mean_saturated_fraction": 0.017090892,
+          "min_distance_to_first_food": 0.29016612026198496,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 8.910162766606675,
+          "mean_motor_activity": 0.137079406,
+          "mean_saturated_fraction": 0.009636354,
+          "min_distance_to_first_food": 0.39655834115132976,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 26.28449674650907,
+          "mean_motor_activity": 0.404376912,
+          "mean_saturated_fraction": 0.045636318,
+          "min_distance_to_first_food": 0.39614402631522017,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 25.689582851560836,
+          "mean_motor_activity": 0.395224356,
+          "mean_saturated_fraction": 0.076727196,
+          "min_distance_to_first_food": 0.29594688362716176,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 34.55684868638204,
+          "mean_motor_activity": 0.531643834,
+          "mean_saturated_fraction": 0.135272592,
+          "min_distance_to_first_food": 0.3134438159468828,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 41.88142360763866,
+          "mean_motor_activity": 0.644329628,
+          "mean_saturated_fraction": 0.069636294,
+          "min_distance_to_first_food": 0.37873715045959916,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 7,
+          "distance_travelled": 42.43168615983874,
+          "mean_motor_activity": 0.65279514,
+          "mean_saturated_fraction": 0.162181656,
+          "min_distance_to_first_food": 0.30937877332472263,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 7.012660071529179,
+          "mean_motor_activity": 0.107887036,
+          "mean_saturated_fraction": 0.0090909,
+          "min_distance_to_first_food": 0.3686434191612621,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 31.504235571953267,
+          "mean_motor_activity": 0.484680586,
+          "mean_saturated_fraction": 0.052545402,
+          "min_distance_to_first_food": 0.3272710235487566,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn+1_gain0.50",
+        "turn_sign": 1,
+        "turn_gain": 0.5,
+        "sensory_sign": -1
+      }
+    },
+    {
+      "mean_food_collected": 3.8,
+      "mean_distance_travelled": 27.884480424585014,
+      "mean_min_distance_to_first_food": 0.36036682174593754,
+      "mean_motor_activity": 0.428991999,
+      "mean_saturated_fraction": 0.07976355660000001,
+      "runs": [
+        {
+          "food_collected": 5,
+          "distance_travelled": 40.06182521690125,
+          "mean_motor_activity": 0.616335778,
+          "mean_saturated_fraction": 0.146727126,
+          "min_distance_to_first_food": 0.3915203892169144,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 30.68728355832786,
+          "mean_motor_activity": 0.472112026,
+          "mean_saturated_fraction": 0.04363632,
+          "min_distance_to_first_food": 0.364134782026675,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 8.376685488533399,
+          "mean_motor_activity": 0.128872092,
+          "mean_saturated_fraction": 0.01727271,
+          "min_distance_to_first_food": 0.3668375610659342,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 25.96290190672475,
+          "mean_motor_activity": 0.399429236,
+          "mean_saturated_fraction": 0.052909038,
+          "min_distance_to_first_food": 0.3699813026847952,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 30.373913302334504,
+          "mean_motor_activity": 0.467290954,
+          "mean_saturated_fraction": 0.089818092,
+          "min_distance_to_first_food": 0.37852047036967557,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 24.987480946360975,
+          "mean_motor_activity": 0.384422782,
+          "mean_saturated_fraction": 0.100545354,
+          "min_distance_to_first_food": 0.37613449133361687,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 40.75398764014298,
+          "mean_motor_activity": 0.626984386,
+          "mean_saturated_fraction": 0.117636246,
+          "min_distance_to_first_food": 0.3847109969470751,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 7,
+          "distance_travelled": 41.36739547908482,
+          "mean_motor_activity": 0.636421496,
+          "mean_saturated_fraction": 0.152908938,
+          "min_distance_to_first_food": 0.32328279906021395,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 7.686130531468273,
+          "mean_motor_activity": 0.118248198,
+          "mean_saturated_fraction": 0.014909076,
+          "min_distance_to_first_food": 0.3158467505768053,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 28.587200175971343,
+          "mean_motor_activity": 0.439803042,
+          "mean_saturated_fraction": 0.061272666,
+          "min_distance_to_first_food": 0.33269867417766985,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn+1_gain1.00",
+        "turn_sign": 1,
+        "turn_gain": 1.0,
+        "sensory_sign": -1
+      }
+    },
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 7.478378733831814,
+      "mean_min_distance_to_first_food": 5.674970087276885,
+      "mean_motor_activity": 0.1150519806,
+      "mean_saturated_fraction": 0.0058909032,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.235788556719798,
+          "mean_motor_activity": 0.095935192,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.249438230219864,
+          "mean_motor_activity": 0.096145204,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.0101741970946465,
+          "mean_motor_activity": 0.092464234,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.850800757072167,
+          "mean_motor_activity": 0.10539691600000001,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.834842785924325,
+          "mean_motor_activity": 0.105151444,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 8.361788889551487,
+          "mean_motor_activity": 0.128642892,
+          "mean_saturated_fraction": 0.017636346,
+          "min_distance_to_first_food": 5.549770367787728,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.460514075724753,
+          "mean_motor_activity": 0.099392542,
+          "mean_saturated_fraction": 0.000363636,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.857963342473315,
+          "mean_motor_activity": 0.120891768,
+          "mean_saturated_fraction": 0.008727264,
+          "min_distance_to_first_food": 5.838121481293379,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.760208764938988,
+          "mean_motor_activity": 0.1040032,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 13.1622677385988,
+          "mean_motor_activity": 0.20249641399999999,
+          "mean_saturated_fraction": 0.032181786000000004,
+          "min_distance_to_first_food": 3.361809023687744,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn-1_gain0.15",
+        "turn_sign": -1,
+        "turn_gain": 0.15,
+        "sensory_sign": -1
+      }
+    },
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 6.609882774942456,
+      "mean_min_distance_to_first_food": 5.856470906313979,
+      "mean_motor_activity": 0.1016904942,
+      "mean_saturated_fraction": 0.001363635,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.113508346194917,
+          "mean_motor_activity": 0.094053966,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.077759479323345,
+          "mean_motor_activity": 0.093503972,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.022268712801406,
+          "mean_motor_activity": 0.092650242,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.27232468455309,
+          "mean_motor_activity": 0.096497314,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.266896870806777,
+          "mean_motor_activity": 0.09641381,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.904537674924027,
+          "mean_motor_activity": 0.106223638,
+          "mean_saturated_fraction": 0.00272727,
+          "min_distance_to_first_food": 5.844033856310207,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.1926541358814156,
+          "mean_motor_activity": 0.095271602,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.6444583050818995,
+          "mean_motor_activity": 0.102222438,
+          "mean_saturated_fraction": 0.000727272,
+          "min_distance_to_first_food": 5.945095199507264,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.241698216005344,
+          "mean_motor_activity": 0.096026114,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 9.36272132385234,
+          "mean_motor_activity": 0.144041846,
+          "mean_saturated_fraction": 0.010181808,
+          "min_distance_to_first_food": 4.77558000732232,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn-1_gain0.50",
+        "turn_sign": -1,
+        "turn_gain": 0.5,
+        "sensory_sign": -1
+      }
+    },
+    {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 6.4442563737248815,
+      "mean_min_distance_to_first_food": 5.917792244324387,
+      "mean_motor_activity": 0.09914240440000001,
+      "mean_saturated_fraction": 0.0005090904,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.1612113450998525,
+          "mean_motor_activity": 0.094787854,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 0,
+          "initial_food": [
+            -3.354451268366563,
+            4.974701668256495
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.077710631383941,
+          "mean_motor_activity": 0.093503258,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 1,
+          "initial_food": [
+            -3.9858177235811727,
+            -4.484780604933333
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.035191998784265,
+          "mean_motor_activity": 0.09284909,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 2,
+          "initial_food": [
+            -5.772518554987796,
+            1.6364686163570659
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.226379750760055,
+          "mean_motor_activity": 0.095790442,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 3,
+          "initial_food": [
+            -0.4532905605290444,
+            -5.982852803448808
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.222858972358228,
+          "mean_motor_activity": 0.09573633,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 4,
+          "initial_food": [
+            -0.525301224415941,
+            -5.976960651002072
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.68941337846176,
+          "mean_motor_activity": 0.10291402200000001,
+          "mean_saturated_fraction": 0.000545454,
+          "min_distance_to_first_food": 5.921882849330323,
+          "seed": 5,
+          "initial_food": [
+            4.29820549030253,
+            4.186338443453083
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.2431421302598045,
+          "mean_motor_activity": 0.096048346,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 6,
+          "initial_food": [
+            -1.6137640328129677,
+            5.778906959486303
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.4422598165547384,
+          "mean_motor_activity": 0.099111684,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.9728744074868585,
+          "seed": 7,
+          "initial_food": [
+            2.684662484305988,
+            -5.3658724682347785
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.206207841737984,
+          "mean_motor_activity": 0.095480112,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 8,
+          "initial_food": [
+            -0.8750364647456909,
+            -5.935849659936256
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 8.138187871848185,
+          "mean_motor_activity": 0.125202906,
+          "mean_saturated_fraction": 0.00454545,
+          "min_distance_to_first_food": 5.28316518642669,
+          "seed": 9,
+          "initial_food": [
+            5.838654965784842,
+            -1.3820666375092054
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory-1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": -1
+      }
+    }
+  ],
+  "selection": {
+    "decoder": {
+      "name": "sensory+1_turn-1_gain1.00",
+      "turn_sign": -1,
+      "turn_gain": 1.0,
+      "sensory_sign": 1
+    },
+    "development_food_collected": 3.9,
+    "development_min_distance": 0.3617743479024179,
+    "eligible": true,
+    "saturation_limit": 0.25,
+    "rule": "Among candidates with mean saturation <= 0.25, maximize mean food, then minimize mean closest approach to the first pellet. Name is the deterministic tie-break."
+  },
+  "held_out": {
+    "intact_baseline": {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 9.01097647705711,
+      "mean_min_distance_to_first_food": 5.044705314456085,
+      "mean_motor_activity": 0.1386303974,
+      "mean_saturated_fraction": 0.0152181666,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 10.757255400469852,
+          "mean_motor_activity": 0.165496238,
+          "mean_saturated_fraction": 0.024727248,
+          "min_distance_to_first_food": 4.5995876410748116,
+          "seed": 10,
+          "initial_food": [
+            5.406238037743362,
+            2.6024200812429967
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 10.766848397228827,
+          "mean_motor_activity": 0.165643802,
+          "mean_saturated_fraction": 0.029999969999999997,
+          "min_distance_to_first_food": 4.424614624254533,
+          "seed": 11,
+          "initial_food": [
+            5.733421290227751,
+            -1.7685814396750694
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 12.154473650511301,
+          "mean_motor_activity": 0.186991878,
+          "mean_saturated_fraction": 0.034727238,
+          "min_distance_to_first_food": 3.716896438823735,
+          "seed": 12,
+          "initial_food": [
+            5.923576588963682,
+            -0.9545891234878952
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.808045565041222,
+          "mean_motor_activity": 0.104739144,
+          "mean_saturated_fraction": 0.002909088,
+          "min_distance_to_first_food": 5.998458953601067,
+          "seed": 13,
+          "initial_food": [
+            0.3394308248287157,
+            -5.990391198841365
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.098684096669191,
+          "mean_motor_activity": 0.093825924,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 14,
+          "initial_food": [
+            -4.6983678239538005,
+            -3.7316671597069897
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.022263724676175,
+          "mean_motor_activity": 0.092650194,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.000000000000001,
+          "seed": 15,
+          "initial_food": [
+            -5.857485119204155,
+            1.2999492598951305
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 8.061279520625071,
+          "mean_motor_activity": 0.124019644,
+          "mean_saturated_fraction": 0.01545453,
+          "min_distance_to_first_food": 5.668946695508665,
+          "seed": 16,
+          "initial_food": [
+            3.8686012628559534,
+            -4.586275642504419
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 15.261270647642911,
+          "mean_motor_activity": 0.234788784,
+          "mean_saturated_fraction": 0.035818146,
+          "min_distance_to_first_food": 2.195995317961836,
+          "seed": 17,
+          "initial_food": [
+            5.942852105959856,
+            0.8261409363350185
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.337003348177051,
+          "mean_motor_activity": 0.097492372,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 18,
+          "initial_food": [
+            -2.511449550355016,
+            -5.449093608667554
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.842640419529489,
+          "mean_motor_activity": 0.120655994,
+          "mean_saturated_fraction": 0.008545446,
+          "min_distance_to_first_food": 5.842553473336199,
+          "seed": 19,
+          "initial_food": [
+            2.6522952871393723,
+            5.381944788811779
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn+1_gain0.15",
+        "turn_sign": 1,
+        "turn_gain": 0.15,
+        "sensory_sign": 1
+      }
+    },
+    "intact_selected": {
+      "mean_food_collected": 4,
+      "mean_distance_travelled": 32.624623213117474,
+      "mean_min_distance_to_first_food": 0.348933473380799,
+      "mean_motor_activity": 0.5019172792,
+      "mean_saturated_fraction": 0.073909017,
+      "runs": [
+        {
+          "food_collected": 4,
+          "distance_travelled": 33.32719091299853,
+          "mean_motor_activity": 0.512726004,
+          "mean_saturated_fraction": 0.044363592,
+          "min_distance_to_first_food": 0.32131051667696225,
+          "seed": 10,
+          "initial_food": [
+            5.406238037743362,
+            2.6024200812429967
+          ]
+        },
+        {
+          "food_collected": 5,
+          "distance_travelled": 39.85299095250876,
+          "mean_motor_activity": 0.613122922,
+          "mean_saturated_fraction": 0.075818106,
+          "min_distance_to_first_food": 0.38125244403211317,
+          "seed": 11,
+          "initial_food": [
+            5.733421290227751,
+            -1.7685814396750694
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 37.89636104047307,
+          "mean_motor_activity": 0.583020986,
+          "mean_saturated_fraction": 0.043818138,
+          "min_distance_to_first_food": 0.332036343111935,
+          "seed": 12,
+          "initial_food": [
+            5.923576588963682,
+            -0.9545891234878952
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 29.590461131241472,
+          "mean_motor_activity": 0.455237874,
+          "mean_saturated_fraction": 0.051818130000000004,
+          "min_distance_to_first_food": 0.3976619723502356,
+          "seed": 13,
+          "initial_food": [
+            0.3394308248287157,
+            -5.990391198841365
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 29.4162656694227,
+          "mean_motor_activity": 0.452557922,
+          "mean_saturated_fraction": 0.051999948000000004,
+          "min_distance_to_first_food": 0.3881548471067203,
+          "seed": 14,
+          "initial_food": [
+            -4.6983678239538005,
+            -3.7316671597069897
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 9.186884624040935,
+          "mean_motor_activity": 0.14133667,
+          "mean_saturated_fraction": 0.010545444,
+          "min_distance_to_first_food": 0.3038410130034708,
+          "seed": 15,
+          "initial_food": [
+            -5.857485119204155,
+            1.2999492598951305
+          ]
+        },
+        {
+          "food_collected": 6,
+          "distance_travelled": 41.94104297569685,
+          "mean_motor_activity": 0.645246802,
+          "mean_saturated_fraction": 0.176727096,
+          "min_distance_to_first_food": 0.36338867704916644,
+          "seed": 16,
+          "initial_food": [
+            3.8686012628559534,
+            -4.586275642504419
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 35.943161915676484,
+          "mean_motor_activity": 0.552971696,
+          "mean_saturated_fraction": 0.043454502,
+          "min_distance_to_first_food": 0.30950039190662637,
+          "seed": 17,
+          "initial_food": [
+            5.942852105959856,
+            0.8261409363350185
+          ]
+        },
+        {
+          "food_collected": 6,
+          "distance_travelled": 41.292329386539485,
+          "mean_motor_activity": 0.635266626,
+          "mean_saturated_fraction": 0.13090896,
+          "min_distance_to_first_food": 0.3649883255367918,
+          "seed": 18,
+          "initial_food": [
+            -2.511449550355016,
+            -5.449093608667554
+          ]
+        },
+        {
+          "food_collected": 4,
+          "distance_travelled": 27.799543522576425,
+          "mean_motor_activity": 0.42768529,
+          "mean_saturated_fraction": 0.109636254,
+          "min_distance_to_first_food": 0.3272002030339684,
+          "seed": 19,
+          "initial_food": [
+            2.6522952871393723,
+            5.381944788811779
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    },
+    "shuffled_selected": {
+      "mean_food_collected": 0.5,
+      "mean_distance_travelled": 19.497950758604777,
+      "mean_min_distance_to_first_food": 3.6915433720285704,
+      "mean_motor_activity": 0.2999684748,
+      "mean_saturated_fraction": 0.0607453938,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.1035148910403,
+          "mean_motor_activity": 0.109284846,
+          "mean_saturated_fraction": 0.00272727,
+          "min_distance_to_first_food": 5.732563889019446,
+          "seed": 10,
+          "initial_food": [
+            5.406238037743362,
+            2.6024200812429967
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 25.51943739502422,
+          "mean_motor_activity": 0.392606738,
+          "mean_saturated_fraction": 0.014181804000000001,
+          "min_distance_to_first_food": 5.42508454594033,
+          "seed": 11,
+          "initial_food": [
+            5.733421290227751,
+            -1.7685814396750694
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 44.721199630681255,
+          "mean_motor_activity": 0.68801845,
+          "mean_saturated_fraction": 0.428363208,
+          "min_distance_to_first_food": 1.5202946974689608,
+          "seed": 12,
+          "initial_food": [
+            5.923576588963682,
+            -0.9545891234878952
+          ]
+        },
+        {
+          "food_collected": 3,
+          "distance_travelled": 29.140046485123555,
+          "mean_motor_activity": 0.448308408,
+          "mean_saturated_fraction": 0.092908998,
+          "min_distance_to_first_food": 0.39613191331934045,
+          "seed": 13,
+          "initial_food": [
+            0.3394308248287157,
+            -5.990391198841365
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.096381035000753,
+          "mean_motor_activity": 0.093790484,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 14,
+          "initial_food": [
+            -4.6983678239538005,
+            -3.7316671597069897
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 12.728111103331608,
+          "mean_motor_activity": 0.195817084,
+          "mean_saturated_fraction": 0.010727262,
+          "min_distance_to_first_food": 0.3749639624846183,
+          "seed": 15,
+          "initial_food": [
+            -5.857485119204155,
+            1.2999492598951305
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 6.986237944618253,
+          "mean_motor_activity": 0.10748059,
+          "mean_saturated_fraction": 0.0016363620000000001,
+          "min_distance_to_first_food": 5.858572819807107,
+          "seed": 16,
+          "initial_food": [
+            3.8686012628559534,
+            -4.586275642504419
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 7.840591594030164,
+          "mean_motor_activity": 0.120624482,
+          "mean_saturated_fraction": 0.0032727240000000003,
+          "min_distance_to_first_food": 5.408757014914818,
+          "seed": 17,
+          "initial_food": [
+            5.942852105959856,
+            0.8261409363350185
+          ]
+        },
+        {
+          "food_collected": 1,
+          "distance_travelled": 35.11500863462725,
+          "mean_motor_activity": 0.540230916,
+          "mean_saturated_fraction": 0.047636316,
+          "min_distance_to_first_food": 0.3318881545234262,
+          "seed": 18,
+          "initial_food": [
+            -2.511449550355016,
+            -5.449093608667554
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 19.728978872570423,
+          "mean_motor_activity": 0.30352275,
+          "mean_saturated_fraction": 0.005999994,
+          "min_distance_to_first_food": 5.867176722807657,
+          "seed": 19,
+          "initial_food": [
+            2.6522952871393723,
+            5.381944788811779
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    },
+    "disconnected_selected": {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 0.0,
+      "mean_min_distance_to_first_food": 6.0,
+      "mean_motor_activity": 0.0,
+      "mean_saturated_fraction": 0.042818139,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.000000000000001,
+          "seed": 10,
+          "initial_food": [
+            5.406238037743362,
+            2.6024200812429967
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 11,
+          "initial_food": [
+            5.733421290227751,
+            -1.7685814396750694
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 12,
+          "initial_food": [
+            5.923576588963682,
+            -0.9545891234878952
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.42818139,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 13,
+          "initial_food": [
+            0.3394308248287157,
+            -5.990391198841365
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 14,
+          "initial_food": [
+            -4.6983678239538005,
+            -3.7316671597069897
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.000000000000001,
+          "seed": 15,
+          "initial_food": [
+            -5.857485119204155,
+            1.2999492598951305
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 16,
+          "initial_food": [
+            3.8686012628559534,
+            -4.586275642504419
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 17,
+          "initial_food": [
+            5.942852105959856,
+            0.8261409363350185
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 18,
+          "initial_food": [
+            -2.511449550355016,
+            -5.449093608667554
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 19,
+          "initial_food": [
+            2.6522952871393723,
+            5.381944788811779
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    },
+    "no_input_selected": {
+      "mean_food_collected": 0,
+      "mean_distance_travelled": 0.0,
+      "mean_min_distance_to_first_food": 6.0,
+      "mean_motor_activity": 0.0,
+      "mean_saturated_fraction": 0.0,
+      "runs": [
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.000000000000001,
+          "seed": 10,
+          "initial_food": [
+            5.406238037743362,
+            2.6024200812429967
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 11,
+          "initial_food": [
+            5.733421290227751,
+            -1.7685814396750694
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 12,
+          "initial_food": [
+            5.923576588963682,
+            -0.9545891234878952
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 13,
+          "initial_food": [
+            0.3394308248287157,
+            -5.990391198841365
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 14,
+          "initial_food": [
+            -4.6983678239538005,
+            -3.7316671597069897
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.000000000000001,
+          "seed": 15,
+          "initial_food": [
+            -5.857485119204155,
+            1.2999492598951305
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 16,
+          "initial_food": [
+            3.8686012628559534,
+            -4.586275642504419
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 17,
+          "initial_food": [
+            5.942852105959856,
+            0.8261409363350185
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 6.0,
+          "seed": 18,
+          "initial_food": [
+            -2.511449550355016,
+            -5.449093608667554
+          ]
+        },
+        {
+          "food_collected": 0,
+          "distance_travelled": 0.0,
+          "mean_motor_activity": 0.0,
+          "mean_saturated_fraction": 0.0,
+          "min_distance_to_first_food": 5.999999999999999,
+          "seed": 19,
+          "initial_food": [
+            2.6522952871393723,
+            5.381944788811779
+          ]
+        }
+      ],
+      "decoder": {
+        "name": "sensory+1_turn-1_gain1.00",
+        "turn_sign": -1,
+        "turn_gain": 1.0,
+        "sensory_sign": 1
+      }
+    }
+  }
+}
