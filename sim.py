@@ -199,6 +199,13 @@ def main():
     contest.add_argument('--foods', type=int, default=3)
     contest.add_argument('--map', dest='map_half', type=float, default=20)
     contest.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
+    eco = sub.add_parser('ecosystem')
+    add_sim_args(eco, 'view.html', ticks=2000)
+    eco.add_argument('--agents', type=int, default=8)
+    eco.add_argument('--patches', type=int, default=6)
+    eco.add_argument('--map', dest='map_half', type=float, default=20)
+    eco.add_argument('--max-age', dest='max_age', type=int, default=1200)
+    eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
     imp.add_argument('--limit', type=int, default=1000)
@@ -208,12 +215,15 @@ def main():
             history = simulate(a.graph, a.ticks, a.seed, **decoder_kwargs(a))
             Path(a.out).write_text(json.dumps(history, indent=2, allow_nan=False))
             print(f'{len(history)} ticks written to {a.out}; food collected: {sum(h["ate"] for h in history)}')
-        elif a.command in ('view', 'contest'):
+        elif a.command in ('view', 'contest', 'ecosystem'):
             from view import write_viewer
             import webbrowser
             kwargs = decoder_kwargs(a)
             if a.command == 'contest':
                 kwargs.update(agents=a.agents, foods=a.foods, map_half=a.map_half)
+            elif a.command == 'ecosystem':
+                kwargs.update(mode='ecosystem', agents=a.agents, patches=a.patches,
+                              map_half=a.map_half, max_age=a.max_age)
             output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)
             print(f'Viewer written to {output}')
             if summary:

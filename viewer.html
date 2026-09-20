@@ -54,13 +54,15 @@
     button, select { background: #262b38; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
     button:hover, select:hover { border-color: #4a5568; }
     input[type=range] { flex: 1; min-width: 160px; }
-    #board button { width: 100%; text-align: left; background: transparent; padding: 4px 6px; }
+    #board button, #eco-board button { width: 100%; text-align: left; background: transparent; padding: 4px 6px; }
     #board button:hover { border-color: #4a5568; }
     .fly-row { display: grid; grid-template-columns: 12px 42px 1fr auto; gap: 8px; align-items: center; font-size: 12px; cursor: pointer; border-radius: 4px; }
     .fly-row.selected { background: #262b38; }
     .fly-row.dead { opacity: 0.45; }
     .swatch { width: 10px; height: 10px; border-radius: 50%; }
-    #winner-line { color: var(--food); margin: 6px 0 10px; }
+    #events { max-height: 140px; overflow: auto; font-size: 11px; color: var(--muted); }
+    .event { padding: 2px 0; border-bottom: 1px solid var(--line); }
+    #popchart { width: 100%; height: 72px; display: block; background: #10131a; border: 1px solid var(--line); border-radius: 4px; }
     @media (max-width: 860px) {
       body { height: auto; overflow: auto; }
       main { grid-template-columns: 1fr; }
@@ -93,6 +95,29 @@
         <div class="bar"><i id="sel-left-bar"></i></div>
         <div class="stat"><span>right motor</span><strong id="sel-right">0</strong></div>
         <div class="bar right"><i id="sel-right-bar"></i></div>
+      </div>
+      <div id="eco-wrap" hidden>
+        <h2>Ecosystem</h2>
+        <div class="stat"><span>tick</span><strong id="eco-tick">0</strong></div>
+        <div class="stat"><span>alive</span><strong id="eco-alive">0</strong></div>
+        <div class="stat"><span>mature food</span><strong id="eco-food">0</strong></div>
+        <div class="stat"><span>corpses</span><strong id="eco-corpses">0</strong></div>
+        <canvas id="popchart" width="280" height="72" aria-label="Population and food chart"></canvas>
+        <div class="meta" id="chart-legend">white population · gold mature food · teal energy</div>
+        <h2>Timeline</h2>
+        <div id="events"></div>
+        <h2>Agents</h2>
+        <div id="eco-board"></div>
+        <h2>Inspector</h2>
+        <div class="stat"><span>id</span><strong id="eco-id">0</strong></div>
+        <div class="stat"><span>age</span><strong id="eco-age">0</strong></div>
+        <div class="stat"><span>energy</span><strong id="eco-energy">0</strong></div>
+        <div class="stat"><span>meals</span><strong id="eco-meals">0</strong></div>
+        <div class="stat"><span>status</span><strong id="eco-status">alive</strong></div>
+        <div class="stat"><span>left motor</span><strong id="eco-left">0</strong></div>
+        <div class="bar"><i id="eco-left-bar"></i></div>
+        <div class="stat"><span>right motor</span><strong id="eco-right">0</strong></div>
+        <div class="bar right"><i id="eco-right-bar"></i></div>
       </div>
       <div id="solo-wrap">
       <h2>Tick</h2>
@@ -143,23 +168,29 @@
     } else {
       const ticks = data.ticks || [];
       const nodes = data.nodes || [];
-      const contest = !!(ticks[0] && ticks[0].agents);
+      const contest = data.mode === 'contest' || !!(ticks[0] && ticks[0].agents && !ticks[0].patches);
+      const ecosystem = data.mode === 'ecosystem' || !!(ticks[0] && ticks[0].patches);
+      const world = contest || ecosystem;
       const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
       let index = 0;
       let playing = false;
       let timer = null;
-      let selected = contest && data.winner ? data.winner.id : 0;
+      let selected = (contest && data.winner) ? data.winner.id : 0;
       const canvas = document.getElementById('arena');
       const ctx = canvas.getContext('2d');
       const neuronRoot = document.getElementById('neurons');
 
       document.getElementById('kind').textContent = data.kind || 'unverified';
       document.getElementById('kind').classList.add(data.kind || 'unverified');
-      document.title = (data.kind === 'synthetic' ? 'Synthetic' : 'MaleCNS') + (contest ? ' contest' : ' simulation') + ' viewer';
+      document.title = (data.kind === 'synthetic' ? 'Synthetic' : 'MaleCNS') +
+        (ecosystem ? ' ecosystem' : contest ? ' contest' : ' simulation') + ' viewer';
       document.getElementById('source').textContent = data.source || 'Unknown source';
       const d = data.decoder || {};
       const rules = data.rules || {};
-      document.getElementById('decoder').textContent = contest
+      document.getElementById('decoder').textContent = ecosystem
+        ? (rules.agents + ' flies · ' + rules.patches + ' patches · map ±' + rules.map_half +
+           ' · seed ' + data.seed + ' · ' + ticks.length + ' ticks')
+        : contest
         ? (rules.agents + ' flies · ' + rules.foods + ' pellets · map ±' + rules.map_half +
            ' · seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · ' + ticks.length + ' ticks')
         : ('seed ' + data.seed + ' · turn_sign ' + d.turn_sign + ' · turn_gain ' + d.turn_gain +
@@ -167,7 +198,8 @@
       document.getElementById('assumptions').textContent = (data.assumptions || []).join(' ');
       document.getElementById('slider').max = Math.max(0, ticks.length - 1);
       document.getElementById('contest-wrap').hidden = !contest;
-      document.getElementById('solo-wrap').hidden = contest;
+      document.getElementById('eco-wrap').hidden = !ecosystem;
+      document.getElementById('solo-wrap').hidden = world;
       if (contest && data.winner) {
         document.getElementById('winner-line').textContent =
           'Winner fly ' + data.winner.id + ' · ' + data.winner.meals + ' meals · energy ' +
@@ -195,6 +227,12 @@
             bounds.maxX = Math.max(bounds.maxX, food.x);
             bounds.minY = Math.min(bounds.minY, food.y);
             bounds.maxY = Math.max(bounds.maxY, food.y);
+          });
+          (tick.patches || []).forEach((patch) => {
+            bounds.minX = Math.min(bounds.minX, patch.x);
+            bounds.maxX = Math.max(bounds.maxX, patch.x);
+            bounds.minY = Math.min(bounds.minY, patch.y);
+            bounds.maxY = Math.max(bounds.maxY, patch.y);
           });
         } else {
           bounds.minX = Math.min(bounds.minX, tick.x, tick.food_x);
@@ -274,6 +312,117 @@
           ctx.fillStyle = '#e6c15a';
           ctx.beginPath(); ctx.arc(fx, fy, 6, 0, Math.PI * 2); ctx.fill();
         });
+      }
+
+      function drawPatches(patches, scale) {
+        const look = {seed: ['#6a5340', 3], growing: ['#7a9a4a', 5], mature: ['#e6c15a', 7], cooldown: ['#3b4254', 3]};
+        patches.forEach((patch) => {
+          const style = look[patch.stage] || look.cooldown;
+          const [x, y] = worldToCanvas(patch.x, patch.y);
+          ctx.fillStyle = style[0];
+          ctx.globalAlpha = patch.stage === 'cooldown' ? 0.45 : 1;
+          ctx.beginPath(); ctx.arc(x, y, style[1], 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+          if (patch.stage === 'mature') {
+            ctx.strokeStyle = '#e6c15a';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.arc(x, y, 0.4 * scale, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        });
+      }
+
+      function drawChart(upto) {
+        const chart = document.getElementById('popchart');
+        if (!chart) return;
+        const c = chart.getContext('2d');
+        const w = chart.width, h = chart.height;
+        c.clearRect(0, 0, w, h);
+        const slice = ticks.slice(0, upto + 1);
+        const step = Math.max(1, Math.floor(slice.length / 80));
+        const series = [];
+        for (let i = 0; i < slice.length; i += step) series.push(slice[i]);
+        if (!series.length) return;
+        const maxPop = Math.max(1, ...series.map((row) => row.alive || 0));
+        const maxFood = Math.max(1, ...series.map((row) => row.mature_food || 0));
+        const maxE = Math.max(0.01, ...series.map((row) => row.mean_energy || 0));
+        function line(values, color, peak) {
+          c.beginPath();
+          values.forEach((value, i) => {
+            const x = 4 + (i / Math.max(1, values.length - 1)) * (w - 8);
+            const y = h - 4 - (value / peak) * (h - 8);
+            if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+          });
+          c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
+        }
+        line(series.map((row) => row.alive || 0), '#ece7dc', maxPop);
+        line(series.map((row) => row.mature_food || 0), '#e6c15a', maxFood);
+        line(series.map((row) => row.mean_energy || 0), '#6fbfa3', maxE);
+      }
+
+      function drawEco(tick) {
+        const [, , scale] = worldToCanvas(0, 0);
+        tick.agents.forEach((agent) => {
+          ctx.strokeStyle = flyColor(agent.id);
+          ctx.globalAlpha = agent.id === selected ? 0.9 : 0.35;
+          ctx.lineWidth = agent.id === selected ? 2.4 : 1.1;
+          ctx.beginPath();
+          let started = false;
+          ticks.slice(0, index + 1).forEach((step) => {
+            const body = step.agents[agent.id];
+            if (!body) return;
+            const [x, y] = worldToCanvas(body.x, body.y);
+            if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
+        drawPatches(tick.patches || [], scale);
+        (tick.corpses || []).forEach((corpse) => {
+          const [x, y] = worldToCanvas(corpse.x, corpse.y);
+          ctx.fillStyle = '#8a8580';
+          ctx.globalAlpha = 0.55;
+          ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        });
+        tick.agents.forEach((agent) => {
+          const show = agent.alive || (tick.corpses || []).some((corpse) => corpse.id === agent.id);
+          if (!show) return;
+          const [ax, ay] = worldToCanvas(agent.x, agent.y);
+          drawTriangle(ax, ay, agent.heading, flyColor(agent.id), !agent.alive);
+          ctx.fillStyle = '#ece7dc';
+          ctx.font = '11px sans-serif';
+          ctx.fillText('F' + agent.id, ax + 8, ay - 8);
+        });
+        document.getElementById('eco-tick').textContent = tick.tick;
+        document.getElementById('eco-alive').textContent = tick.alive;
+        document.getElementById('eco-food').textContent = tick.mature_food;
+        document.getElementById('eco-corpses').textContent = String((tick.corpses || []).length);
+        const board = tick.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.meals - a.meals) || (b.energy - a.energy) || (a.id - b.id));
+        document.getElementById('eco-board').innerHTML = board.map((agent) => {
+          const klass = 'fly-row' + (agent.id === selected ? ' selected' : '') + (agent.alive ? '' : ' dead');
+          return '<button type="button" class="' + klass + '" data-fly="' + agent.id + '">' +
+            '<span class="swatch" style="background:' + flyColor(agent.id) + '"></span>' +
+            '<span>F' + agent.id + '</span><span>' + agent.meals + ' meals</span><span>' +
+            (agent.alive ? agent.energy.toFixed(2) : (agent.cause_of_death || 'dead')) + '</span></button>';
+        }).join('');
+        Array.from(document.querySelectorAll('#eco-board [data-fly]')).forEach((button) => {
+          button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
+        });
+        const sel = tick.agents[selected] || tick.agents[0];
+        document.getElementById('eco-id').textContent = 'F' + sel.id;
+        document.getElementById('eco-age').textContent = sel.age;
+        document.getElementById('eco-energy').textContent = sel.energy.toFixed(3);
+        document.getElementById('eco-meals').textContent = sel.meals;
+        document.getElementById('eco-status').textContent = sel.alive ? 'alive' : (sel.cause_of_death || 'dead');
+        document.getElementById('eco-left').textContent = sel.left_motor.toFixed(3);
+        document.getElementById('eco-right').textContent = sel.right_motor.toFixed(3);
+        document.getElementById('eco-left-bar').style.width = Math.min(100, sel.left_motor * 100) + '%';
+        document.getElementById('eco-right-bar').style.width = Math.min(100, sel.right_motor * 100) + '%';
+        const recent = (data.events || []).filter((event) => event.tick <= tick.tick).slice(-8).reverse();
+        document.getElementById('events').innerHTML = recent.map((event) =>
+          '<div class="event">t' + event.tick + ' · ' + event.text + '</div>').join('') || '<div class="event">no events yet</div>';
+        drawChart(index);
       }
 
       function drawContest(tick) {
@@ -378,7 +527,7 @@
         }
         const tick = ticks[index];
         drawGrid();
-        if (contest) drawContest(tick); else drawSolo(tick);
+        if (ecosystem) drawEco(tick); else if (contest) drawContest(tick); else drawSolo(tick);
         document.getElementById('slider').value = String(index);
       }
 

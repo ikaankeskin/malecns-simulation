@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from sim import simulate, validate_decoder
 from contest import simulate_contest, summarize_contest
+from ecosystem import simulate_ecosystem, summarize_ecosystem
 
 TEMPLATE = Path(__file__).with_name('viewer.html')
 PLACEHOLDER = '__PLAYBACK_JSON__'
@@ -26,6 +27,32 @@ def playback_document(path, ticks, seed, **decoder_args):
                                  if key in {'turn_sign', 'turn_gain', 'turn_clip', 'speed_gain', 'sensory_sign'}})
     history = simulate(path, ticks, seed, **decoder)
     return _document(path, graph, decoder, seed, history)
+
+
+def ecosystem_document(path, ticks, seed, **kwargs):
+    path = Path(path)
+    graph = json.loads(path.read_text())
+    decoder_keys = {key: kwargs[key] for key in kwargs
+                    if key in {'turn_sign', 'turn_gain', 'turn_clip', 'speed_gain', 'sensory_sign'}}
+    decoder = validate_decoder(**decoder_keys)
+    eco_keys = {key: kwargs[key] for key in kwargs
+                if key in {'agents', 'patches', 'map_half', 'max_age', 'drive_enabled',
+                           'disconnected', 'shuffle_seed', 'base_drain', 'move_cost', 'meal',
+                           'seed_ticks', 'grow_ticks', 'cooldown_ticks', 'corpse_ticks'}}
+    result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
+    document = _document(path, graph, decoder, seed, result['ticks'])
+    document.update({
+        'mode': 'ecosystem',
+        'rules': result['rules'],
+        'events': result['events'],
+        'final': result['final'],
+        'assumptions': (graph.get('assumptions') or []) + [
+            'Energy, age, patch growth, and corpses are simulation abstractions, not fly physiology.',
+            'MaleCNS topology is fixed; only spawn pose differs across agents.',
+            'v0.1 has no reproduction, combat, or learning.',
+        ],
+    })
+    return document
 
 
 def contest_document(path, ticks, seed, **kwargs):
@@ -87,7 +114,10 @@ def render_viewer(payload):
 
 
 def write_viewer(path, ticks, seed, output, **kwargs):
-    if kwargs.get('agents', 1) > 1:
+    if kwargs.get('mode') == 'ecosystem':
+        payload = ecosystem_document(path, ticks, seed, **kwargs)
+        summary = summarize_ecosystem(payload)
+    elif kwargs.get('agents', 1) > 1:
         payload = contest_document(path, ticks, seed, **kwargs)
         summary = summarize_contest(payload)
     else:

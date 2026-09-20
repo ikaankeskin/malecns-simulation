@@ -4,7 +4,7 @@ A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron gra
 
 ## Project plan
 
-See [PLAN.md](PLAN.md) for milestones, scientific controls, current status, and the commit workflow. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
+See [PLAN.md](PLAN.md) for current status and [ROADMAP.md](ROADMAP.md) for the artificial-life sequence. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
 
 ## Run now (Python 3.9+, standard library)
 
@@ -23,6 +23,16 @@ python3 sim.py contest circuits/dng13.json --ticks 800 --turn-sign -1 --turn-gai
 ```
 
 Default: 10 flies, 3 pellets, map ±20. The command prints a leaderboard and writes `view.html`. Click a fly in the sidebar to highlight its trail.
+
+## Watch ecosystem v0.1
+
+A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Energy is an artificial budget (base drain plus movement). No reproduction yet.
+
+```bash
+python3 sim.py ecosystem circuits/dng13.json --ticks 2000 --turn-sign -1 --turn-gain 1 --out view.html --open
+```
+
+The viewer shows patch stages, a population/food/energy chart, an event timeline, and an agent inspector. Rules and scientific labels are in [ROADMAP.md](ROADMAP.md).
 
 ## Watch a run
 
