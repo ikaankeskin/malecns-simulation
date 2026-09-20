@@ -10,3 +10,5 @@ trace.json
 *.feather
 *.parquet
 .DS_Store
+
+experiment.json

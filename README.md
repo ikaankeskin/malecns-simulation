@@ -1,6 +1,6 @@
 # MaleCNS Simulation
 
-A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron graph, applies bounded continuous activity updates, maps sensory inputs and motor outputs, and records every tick. **This is an exploratory controller, not a biological reconstruction.** The included `demo.json` is synthetic and is explicitly not MaleCNS data.
+A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron graph, applies bounded continuous activity updates, maps sensory inputs and motor outputs, and records every tick. **This is an exploratory controller, not a biological reconstruction.** The included `demo.json` is synthetic. **`circuits/dng13.json` contains a verified MaleCNS v1.0 subgraph: 11 neurons and 32 connections.** It responds to input but has not demonstrated effective foraging. See [the experiment report](docs/DNG13_EXPERIMENT.md).
 
 ## Project plan
 
@@ -13,6 +13,17 @@ python3 sim.py run demo.json --ticks 120 --out trace.json
 ```
 
 The output records position, heading, food location, motor activity, and collection events. A fixed seed makes runs repeatable.
+
+## Run the real-data circuit now
+
+No bulk download or third-party Python package is required to run the included extract:
+
+```bash
+python3 sim.py run circuits/dng13.json --ticks 500 --out trace.json
+python3 experiments.py circuits/dng13.json --out experiment.json
+```
+
+The experiment compares the intact graph with disconnected, input-silenced, and shuffled-source controls. Raw traces are local outputs. `docs/dng13-experiment.json` is the checked-in evaluation report.
 
 ## Extract a real MaleCNS circuit
 
@@ -41,8 +52,8 @@ The current controller is a toy continuous-activity model, with no neurotransmit
 python3 -m unittest discover -s tests -v
 ```
 
-Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. These tests do not establish biological fidelity.
+Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. Controller tests additionally check deterministic runs, stimulus responsiveness, malformed graphs, weight scaling, and movement ablations. These tests do not establish biological fidelity.
 
 ## Data attribution
 
-MaleCNS is produced by FlyEM (HHMI Janelia), the University of Cambridge Department of Zoology, the MRC Laboratory of Molecular Biology, and Google Research. Official data is distributed under CC BY; retain the specific release license and citation with derived extracts. No real MaleCNS data is included in the current baseline. Source: https://male-cns.janelia.org/download/.
+MaleCNS is produced by FlyEM (HHMI Janelia), the University of Cambridge Department of Zoology, the MRC Laboratory of Molecular Biology, and Google Research. Official data is distributed under CC BY; retain the specific release license and citation with derived extracts. The derived circuit is adapted from this data: selected nodes and induced connections, plus experimental interface roles. Its original IDs and integer synapse counts are retained; the derived data remains under CC BY 4.0. Source: https://male-cns.janelia.org/download/.

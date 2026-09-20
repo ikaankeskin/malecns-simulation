@@ -30,9 +30,17 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] README, implementation plan, contributor instructions, and synthetic starter committed to `main`.
 - [x] Official data acquisition and circuit selection: bilateral DNg13 plus direct visual-projection inputs.
 - [x] Streaming Arrow importer, SHA-256 release verification, documented assumptions, and six focused extraction tests.
-- [ ] Checked-in real-data extract and controller experiment report.
-- [ ] Real MaleCNS-derived circuit imported and run.
+- [x] Checked-in real-data extract and controller experiment report: 11 neurons, 32 connections, 149 synapses.
+- [x] Real MaleCNS-derived circuit imported and run; directional response confirmed.
+- [x] Eleven focused tests pass; disconnected and no-input controls stay stationary.
+- [ ] Useful world behaviour: intact circuit collected no food in ten 500-tick runs. Compare decoder signs/gains on development and held-out seeds before claiming progress.
+- [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
 ## First scientific decision
 
 Choose an annotated visual-to-descending-neuron pathway using official MaleCNS annotations. Do not assign biological roles from arbitrary node order. Define the virtual stimulus and motor decoding explicitly, then test whether neural output responds to changes in input. Food-seeking performance is an engineered experiment, not evidence that this pathway naturally represents food or goals.
+
+## Development record
+
+- `348ee16`: streaming data importer, official-release checksums, selection config, and six extraction tests.
+- Follow-up experiment: include the real subgraph, circuit validation and ablations, remove independent locomotion, preserve unclipped synapse-count ratios, and report the negative foraging result. See `docs/DNG13_EXPERIMENT.md`.
