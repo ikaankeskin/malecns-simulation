@@ -1,0 +1,9 @@
+{
+  "dataset": "male-cns:v1.0",
+  "output_type": "DNg13",
+  "input_superclass": "visual_projection",
+  "top_k_per_output": 8,
+  "min_selection_weight": 5,
+  "rationale": "DNg13 is featured in the official MaleCNS visual-to-movement pathway. Select direct annotated visual-projection inputs as a small experimental boundary, not the complete retinal pathway.",
+  "reference": "https://male-cns.janelia.org/media/"
+}

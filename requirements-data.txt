@@ -1,0 +1,2 @@
+# Only extraction needs Arrow; simulation remains standard-library Python.
+pyarrow>=15,<24

@@ -28,7 +28,9 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Repository documentation and step-by-step commit policy prepared.
 - [x] Private repository created: `ikaankeskin/malecns-simulation`.
 - [x] README, implementation plan, contributor instructions, and synthetic starter committed to `main`.
-- [ ] Official data acquisition and circuit selection.
+- [x] Official data acquisition and circuit selection: bilateral DNg13 plus direct visual-projection inputs.
+- [x] Streaming Arrow importer, SHA-256 release verification, documented assumptions, and six focused extraction tests.
+- [ ] Checked-in real-data extract and controller experiment report.
 - [ ] Real MaleCNS-derived circuit imported and run.
 
 ## First scientific decision

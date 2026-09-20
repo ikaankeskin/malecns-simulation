@@ -14,22 +14,34 @@ python3 sim.py run demo.json --ticks 120 --out trace.json
 
 The output records position, heading, food location, motor activity, and collection events. A fixed seed makes runs repeatable.
 
-## Insert a real MaleCNS circuit
+## Extract a real MaleCNS circuit
 
-Janelia publishes MaleCNS v1.0 annotations (~13 MB), neuron neurotransmitter predictions (~42 MB), and full connectome weights (~1.1 GB) at https://male-cns.janelia.org/download/ under CC BY. Export a *selected* circuit to CSV with these columns:
-
-- `nodes.csv`: `id,role,side` with `role` set to `sensory`, `interneuron`, or `motor`, and `side` set to `left`, `right`, or `center`. IDs must be actual MaleCNS segment IDs. The assigned roles and mapping to the virtual world are hypotheses to document.
-- `edges.csv`: `body_pre,body_post,weight` with real directed synapse counts for those IDs.
+The new importer streams the official Arrow connection table in batches. It selects the left/right DNg13 descending neurons and up to eight direct visual-projection inputs per output, with at least five synapses. It then retains **every** connection within the selected neurons, including weaker and recurrent connections. Neuron IDs, annotations, and raw synapse counts are preserved.
 
 ```bash
-python3 sim.py import-csv nodes.csv edges.csv circuit.json --limit 1000
-python3 sim.py run circuit.json --ticks 120 --out trace.json
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements-data.txt
+python3 malecns_data.py download
+python3 malecns_data.py extract
+python3 sim.py run circuits/dng13.json --ticks 120 --out trace.json
 ```
 
-**Current boundary:** The importer does not fetch or choose biological circuits. A real-data run requires the official dataset export and a justified sensory/motor mapping. It does not infer inhibitory signs from neurotransmitter annotations, implement spikes, or learn via plasticity. The toy activity equation is `next = clip(0.75*activity + 0.25*(weighted input + stimulus), 0, 1)`; edge weights are scaled by 100 and clipped. These are engineering assumptions, not measured physiological parameters.
+Downloads total approximately 1.07 GB. Extraction verifies pinned SHA-256 hashes before writing a real-data-labelled circuit. Existing downloads are reused; an incomplete or different release fails verification. No API token is needed. Run from the repository directory. Simulation alone requires no third-party dependencies.
 
-Next experiment: choose a small annotated visual-to-descending-neuron pathway in neuPrint, export the selected edges and IDs, run an ablation against the synthetic controller, and evaluate whether the real topology yields responsive movement. Keep data attribution and dataset version with every exported circuit.
+[configs/dng13.json](configs/dng13.json) contains the selection rule and its scientific rationale. Provenance in each extracted graph includes source URLs, byte sizes, SHA-256 hashes, release, license, attribution, chosen inputs, and modelling assumptions. The hashes were measured from official public downloads; they are not publisher-signed checksums. Bulk data stays outside git.
 
+DNg13 is shown in [Janelia's visual-to-movement example](https://male-cns.janelia.org/media/). This direct-input subgraph omits retinal and upstream processing. Simulator `sensory` and `motor` roles are interface assignments; the biological output class remains `descending_neuron`. Soma-side-to-world-side mapping is a hypothesis.
+
+The current controller is a toy continuous-activity model, with no neurotransmitter signs, spikes, physiological calibration, or plasticity. Wiring alone does not establish food-seeking behaviour. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
+
+## Validation
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Extraction tests use synthetic Arrow fixtures, test deterministic selection and retained weights, and reject missing bilateral outputs, malformed schemas, negative connections, and unverified source hashes. These tests do not establish biological fidelity.
 
 ## Data attribution
 
