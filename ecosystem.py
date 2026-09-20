@@ -20,7 +20,14 @@ DEFAULTS = {
     'seed_ticks': 12,
     'grow_ticks': 40,
     'cooldown_ticks': 50,
-    'corpse_ticks': 70,
+    'corpse_ticks': 180,
+    'seasons': True,
+    'season_length': 400,
+    'scavenging': True,
+    'scavenge_below': 1.1,
+    'corpse_meal': 0.35,
+    'compost_radius': 5.0,
+    'compost_boost': 12.0,
     'max_population': 48,
     'mate_radius': 6.0,
     'min_repro_age': 36,
@@ -40,7 +47,7 @@ DEFAULTS = {
 
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
-            'meal_life', 'meal_life_cap', 'record_every')
+            'meal_life', 'meal_life_cap', 'record_every', 'season_length')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -121,6 +128,11 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
+    for key in ('seasons', 'scavenging'):
+        if type(rules[key]) is not bool:
+            raise ValueError(f'{key} must be boolean')
+    for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost'):
+        _positive_number(key, rules[key], allow_zero=True)
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 60:
@@ -132,6 +144,68 @@ def rules_from(overrides):
     if not rules.get('repro_enabled', True):
         rules['repro_enabled'] = False
     return rules
+
+
+SEASONS = [('Bloom', 1.65), ('Abundance', 1.0), ('Drought', 0.3), ('Recovery', 0.8)]
+
+
+def season_at(tick, rules):
+    if not rules['seasons']:
+        return {'name': 'Stable', 'index': -1, 'growth': 1.0, 'progress': 0.0,
+                'remaining': 0, 'cycle': 0}
+    length = rules['season_length']
+    index = (tick // length) % len(SEASONS)
+    name, growth = SEASONS[index]
+    return {'name': name, 'index': index, 'growth': growth, 'progress': (tick % length) / length,
+            'remaining': length - tick % length, 'cycle': tick // (length * len(SEASONS)) + 1}
+
+
+def corpse_freshness(agent, tick, rules):
+    until = agent.get('corpse_until')
+    if agent['alive'] or until is None or tick >= until:
+        return 0.0
+    return max(0.0, min(1.0, (until - tick) / rules['corpse_ticks']))
+
+
+def scavenge_corpses(agents, tick, rules, events):
+    if not rules['scavenging']:
+        return 0
+    count = 0
+    for corpse in sorted(agents, key=lambda a: a['id']):
+        freshness = corpse_freshness(corpse, tick, rules)
+        if not freshness or corpse.get('death_tick', tick) >= tick:
+            continue
+        eligible = [a for a in agents if a['alive'] and not a.get('ate', False)
+                    and a['energy'] < rules['scavenge_below']
+                    and math.hypot(a['x']-corpse['x'], a['y']-corpse['y']) < rules['eat_radius']]
+        if not eligible:
+            continue
+        eater = min(eligible, key=lambda a: (math.hypot(a['x']-corpse['x'], a['y']-corpse['y']), a['id']))
+        gained = min(rules['energy_max']-eater['energy'], rules['corpse_meal'] * freshness)
+        if gained <= 0:
+            continue
+        eater['energy'] += gained
+        eater['ate'] = True
+        eater['scavenges'] = eater.get('scavenges', 0) + 1
+        corpse['corpse_until'] = None  # One finite meal; cannot also fertilize a patch.
+        events.append({'tick': tick, 'kind': 'scavenged', 'agent': eater['id'], 'corpse': corpse['id'],
+                       'energy': round(gained, 6), 'x': corpse['x'], 'y': corpse['y'],
+                       'text': f'F{eater["id"]} scavenged F{corpse["id"]} (+{gained:.2f} energy)'})
+        count += 1
+    return count
+
+
+def compost_corpse(corpse, patches, tick, rules, events):
+    growing = [p for p in patches if p['stage'] in ('seed', 'growing') and
+               math.hypot(p['x']-corpse['x'], p['y']-corpse['y']) <= rules['compost_radius']]
+    if not growing or rules['compost_boost'] <= 0:
+        return False
+    patch = min(growing, key=lambda p: (math.hypot(p['x']-corpse['x'], p['y']-corpse['y']), p['id']))
+    patch['timer'] = max(0.0, patch['timer'] - rules['compost_boost'])
+    events.append({'tick': tick, 'kind': 'composted', 'agent': corpse['id'], 'patch': patch['id'],
+                   'x': patch['x'], 'y': patch['y'],
+                   'text': f'F{corpse["id"]} returned nutrients to patch {patch["id"]}'})
+    return True
 
 
 def spawn_agents(count, radius, energy):
@@ -161,6 +235,7 @@ def spawn_agents(count, radius, energy):
             'lineage': index,
             'contested': 0,
             'displaced': 0,
+            'scavenges': 0,
         })
     return agents
 
@@ -218,11 +293,11 @@ def claim_patches(agents, patches, eat_radius):
     return claimed, contests
 
 
-def advance_patch(patch, rules, rng=None):
+def advance_patch(patch, rules, rng=None, growth=1.0):
     event = None
     if patch['stage'] == 'mature':
         return event
-    patch['timer'] -= 1
+    patch['timer'] -= growth
     if patch['timer'] > 0:
         return event
     if patch['stage'] == 'cooldown':
@@ -468,6 +543,9 @@ def snapshot_agent(agent, left, right, speed):
         'lineage': agent.get('lineage', agent['id']),
         'contested': agent.get('contested', 0),
         'displaced': agent.get('displaced', 0),
+        'scavenges': agent.get('scavenges', 0),
+        'intent': agent.get('intent', 'searching'),
+        'target': agent.get('target'),
         'left_motor': round(left, 6),
         'right_motor': round(right, 6),
         'speed': round(speed, 6),
@@ -483,7 +561,7 @@ def snapshot_patch(patch):
     }
 
 
-def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
+def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0):
     motors = []
     for agent, circuit in zip(agents, circuits):
         agent['ate'] = False
@@ -492,7 +570,15 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
             motors.append((0.0, 0.0, speed))
             continue
         agent['age'] += 1
-        target, distance = nearest_point(agent['x'], agent['y'], edible)
+        options = [{'x': x, 'y': y, 'kind': 'foraging'} for x, y in edible]
+        if rules['scavenging'] and agent['energy'] < rules['scavenge_below']:
+            options += [{'x': a['x'], 'y': a['y'], 'kind': 'scavenging', 'id': a['id']}
+                        for a in agents if corpse_freshness(a, tick, rules) > 0]
+        choice = min(options, key=lambda p: math.hypot(p['x']-agent['x'], p['y']-agent['y']), default=None)
+        distance = math.hypot(choice['x']-agent['x'], choice['y']-agent['y']) if choice else math.inf
+        target = (choice['x'], choice['y']) if choice else None
+        agent['intent'] = choice['kind'] if choice and distance < rules['sense_range'] and drive_enabled else 'searching'
+        agent['target'] = choice if agent['intent'] != 'searching' else None
         bearing = 0.0
         stimulus = 0.0
         if target is not None and drive_enabled:
@@ -504,6 +590,14 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
         left, right = circuit.motors()
         agent['x'], agent['y'], agent['heading'], speed = integrate_motion(
             body, agent['x'], agent['y'], agent['heading'], left, right)
+        # Reflect off the finite map boundary; no hidden teleportation across the map.
+        half = rules['map_half']
+        if abs(agent['x']) > half:
+            agent['x'] = max(-half, min(half, agent['x']))
+            agent['heading'] = math.pi - agent['heading']
+        if abs(agent['y']) > half:
+            agent['y'] = max(-half, min(half, agent['y']))
+            agent['heading'] = -agent['heading']
         agent['heading'] += 0.01 * agent['genome'].get('drift', 0.0) * math.sin(agent['age'] * 0.19)
         motors.append((left, right, speed))
     return motors
@@ -527,8 +621,12 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     peak = rules['agents']
     contested_meals = 0
     displaced = 0
+    scavenged = composted = 0
     for tick in range(ticks):
-        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled)
+        environment = season_at(tick, rules)
+        if rules['seasons'] and tick % rules['season_length'] == 0:
+            events.append({'tick': tick, 'kind': 'season', 'text': f'{environment["name"]}: plant growth ×{environment["growth"]:.2f}'})
+        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled, tick)
         claimed, contests = claim_patches(agents, patches, rules['eat_radius'])
         contested_meals += len(contests)
         displaced += sum(len(row['losers']) for row in contests)
@@ -548,10 +646,11 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 events.append({'tick': tick, 'kind': 'ate', 'agent': eater['id'], 'patch': patch['id'],
                                'text': f'F{eater["id"]} ate patch {patch["id"]}'})
             else:
-                matured = advance_patch(patch, rules, rng)
+                matured = advance_patch(patch, rules, rng, environment['growth'])
                 if matured:
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
+        scavenged += scavenge_corpses(agents, tick, rules, events)
         births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
         while len(motors) < len(agents):
             motors.append((0.0, 0.0, 0.0))
@@ -572,12 +671,13 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             if agent['corpse_until'] is None:
                 continue
             if tick >= agent['corpse_until']:
+                composted += int(compost_corpse(agent, patches, tick, rules, events))
                 events.append({'tick': tick, 'kind': 'corpse_decayed', 'agent': agent['id'],
                                'text': f'F{agent["id"]} corpse decayed'})
                 agent['corpse_until'] = None
             else:
                 corpses.append({'id': agent['id'], 'x': round(agent['x'], 6), 'y': round(agent['y'], 6),
-                                'cause': agent['cause_of_death']})
+                                'cause': agent['cause_of_death'], 'freshness': round(corpse_freshness(agent, tick, rules), 6)})
         alive = [agent for agent in agents if agent['alive']]
         peak = max(peak, len(alive))
         means, stds = genome_stats(agents)
@@ -608,6 +708,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'living_by_gen': living_by_generation(agents),
                 'contested': contested_meals,
                 'displaced': displaced,
+                'environment': environment, 'scavenged': scavenged, 'composted': composted,
             })
     return {
         'mode': 'ecosystem',
@@ -625,6 +726,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'genome_std': genome_stats(agents)[1],
             'contested': contested_meals,
             'displaced': displaced,
+            'scavenged': scavenged, 'composted': composted,
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
         },
@@ -644,3 +746,4 @@ def summarize_ecosystem(result):
             f"mature food {last['mature_food']}, "
             f"mean speed {means.get('speed', 1):.2f}, life {means.get('lifespan', 1):.2f}, "
             f"fertility {means.get('fertility', 1):.2f}")
+

@@ -211,6 +211,9 @@ def main():
     eco.add_argument('--max-population', dest='max_population', type=int, default=48)
     eco.add_argument('--mutation-rate', dest='mutation_rate', type=float, default=0.9)
     eco.add_argument('--mutation-sigma', dest='mutation_sigma', type=float, default=0.14)
+    eco.add_argument('--no-seasons', dest='seasons', action='store_false')
+    eco.add_argument('--no-scavenging', dest='scavenging', action='store_false')
+    eco.add_argument('--season-length', type=int, default=400)
     eco.add_argument('--record-every', dest='record_every', type=int, default=6)
     eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
@@ -234,7 +237,8 @@ def main():
                               aging_rate=a.aging_rate, repro_rate=a.repro_rate,
                               max_population=a.max_population,
                               mutation_rate=a.mutation_rate, mutation_sigma=a.mutation_sigma,
-                              record_every=a.record_every)
+                              record_every=a.record_every, seasons=a.seasons,
+                              scavenging=a.scavenging, season_length=a.season_length)
                 if a.max_age is not None:
                     kwargs['max_age'] = a.max_age
             output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)
@@ -250,3 +254,4 @@ def main():
 
 
 if __name__ == '__main__': main()
+

@@ -105,3 +105,10 @@ Extraction tests use synthetic Arrow fixtures, test deterministic selection and 
 ## Data attribution
 
 MaleCNS is produced by FlyEM (HHMI Janelia), the University of Cambridge Department of Zoology, the MRC Laboratory of Molecular Biology, and Google Research. Official data is distributed under CC BY; retain the specific release license and citation with derived extracts. The derived circuit is adapted from this data: selected nodes and induced connections, plus experimental interface roles. Its original IDs and integer synapse counts are retained; the derived data remains under CC BY 4.0. Source: https://male-cns.janelia.org/download/.
+
+
+### Seasonal ecology
+
+The ecosystem now cycles through Bloom (1.65× plant lifecycle speed), Abundance (1×), Drought (0.3×), and Recovery (0.8×), each lasting 400 ticks by default. Hungry agents can sense and consume fresh corpses. Each body yields one freshness-scaled energy meal; unlike plants, it grants no lifespan bonus. Uneaten bodies decay after 180 ticks and can advance one nearby seed or growing patch by 12 timer units. These engineered rules are not claims about fly biology. The MaleCNS-derived circuit topology remains fixed.
+
+Use `--season-length 200` to accelerate seasons, `--no-seasons` for stable growth, and `--no-scavenging` to disable corpse feeding with the `ecosystem` command. Bodies can still compost when scavenging is disabled. Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.

@@ -64,3 +64,11 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 
 
 - Browser-engine repair: remove a duplicated closing block that prevented JavaScript parsing; add a Node execution smoke test to the Python test suite.
+
+### Seasonal ecology and nutrient recycling
+- Added deterministic Bloom → Abundance → Drought → Recovery cycles; seasonal multipliers scale plant lifecycle timers.
+- Hungry agents sense fresh corpses through the existing controller. Scavenging consumes one corpse, restores freshness-scaled energy, and does not extend lifespan.
+- Unconsumed corpses can accelerate the nearest immature plant within five map units when they decay. Consumed bodies cannot compost.
+- Enforced reflecting finite map boundaries in both engines. Added CLI season/scavenging switches and playback rule forwarding.
+- Validation: 44 tests pass, including synthetic cross-engine ecology fixtures, meal eligibility, deterministic replay, and map bounds. These are software checks, not biological validation.
+- Next step: expose environment, nutrient events, and target intent in live and replay views.

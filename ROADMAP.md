@@ -44,17 +44,18 @@ These are simulation abstractions unless noted.
 | MaleCNS topology | Fixed for every agent |
 | Food spawn | Random relocation after each cooldown, not fixed patches |
 | Food availability | Lifecycle with cooldown; can deplete if eaten faster than growth |
-| Perception | Nearest **mature** patch, limited sense range |
+| Perception | Nearest mature patch or, when hungry, fresh corpse; limited sense range |
 | Nutrition | Equal for every patch |
 | Map | Finite, non-wrapping |
 | Energy | Artificial budget: base drain + movement cost. Not fly metabolism |
 | Death | Starvation or old age |
-| Corpses | Visible, then decay. Not edible yet |
+| Corpses | Freshness-scaled scavenging; uneaten remains can fertilize one nearby immature patch |
 | Reproduction | Two-parent proximity, energy cost, population cap. Same controller topology |
 | Evolution | Inherit and mutate simulation multipliers. Not connectome evolution |
 
 ## Next after lineages
 
-Corpses as food, then optional predation. LLM cognition only after a non-LLM social baseline exists.
+Scavenging and seasonal food cycles are implemented. Next: measure survival and lineage outcomes across seeds with ecology enabled/disabled, then add a non-LLM social baseline and optional predation. LLM cognition follows the social baseline.
 
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.
+

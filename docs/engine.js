@@ -15,7 +15,9 @@
     seed_ticks: 12,
     grow_ticks: 40,
     cooldown_ticks: 50,
-    corpse_ticks: 70,
+    corpse_ticks: 180,
+    seasons: true, season_length: 400, scavenging: true,
+    scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
     min_repro_age: 36,
@@ -162,12 +164,21 @@
   }
 
   function rulesFrom(ui) {
+    ['seasons', 'scavenging'].forEach(key => {
+      if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
+    });
+    if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
+      throw new Error('season_length must be a positive integer');
+    }
     const food = Math.max(0.2, Number(ui.food_rate) || 1);
     const aging = Math.max(0.2, Number(ui.aging_rate) || 1);
     const repro = Math.max(0, Number(ui.repro_rate) || 0);
     const agents = clamp(Math.round(Number(ui.agents) || 8), 2, 24);
     const patches = clamp(Math.round(Number(ui.patches) || 6), 2, 12);
     return Object.assign({}, DEFAULTS, {
+      seasons: ui.seasons == null ? true : ui.seasons,
+      scavenging: ui.scavenging == null ? true : ui.scavenging,
+      season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
       food_rate: food,
@@ -283,9 +294,9 @@
     return patches;
   }
 
-  function advancePatch(patch, rules, random) {
+  function advancePatch(patch, rules, random, growth = 1) {
     if (patch.stage === 'mature') return null;
-    patch.timer -= 1;
+    patch.timer -= growth;
     if (patch.timer > 0) return null;
     if (patch.stage === 'cooldown') {
       patch.stage = 'seed';
@@ -303,6 +314,56 @@
     return null;
   }
 
+  const SEASONS = [['Bloom', 1.65], ['Abundance', 1], ['Drought', 0.3], ['Recovery', 0.8]];
+
+  function seasonAt(tick, rules) {
+    if (!rules.seasons) return {name: 'Stable', index: -1, growth: 1, progress: 0, remaining: 0, cycle: 0};
+    const index = Math.floor(tick / rules.season_length) % SEASONS.length;
+    return {name: SEASONS[index][0], index: index, growth: SEASONS[index][1],
+      progress: (tick % rules.season_length) / rules.season_length,
+      remaining: rules.season_length - tick % rules.season_length,
+      cycle: Math.floor(tick / (rules.season_length * SEASONS.length)) + 1};
+  }
+
+  function corpseFreshness(agent, tick, rules) {
+    if (agent.alive || agent.corpse_until == null || tick >= agent.corpse_until) return 0;
+    return clamp((agent.corpse_until - tick) / rules.corpse_ticks, 0, 1);
+  }
+
+  function scavengeCorpses(agents, tick, rules, events) {
+    if (!rules.scavenging) return 0;
+    let count = 0;
+    agents.slice().sort((a,b) => a.id-b.id).forEach(corpse => {
+      const freshness = corpseFreshness(corpse, tick, rules);
+      if (!freshness || corpse.death_tick >= tick) return;
+      const eligible = agents.filter(a => a.alive && !a.ate && a.energy < rules.scavenge_below &&
+        Math.hypot(a.x-corpse.x, a.y-corpse.y) < rules.eat_radius);
+      eligible.sort((a,b) => Math.hypot(a.x-corpse.x,a.y-corpse.y)-Math.hypot(b.x-corpse.x,b.y-corpse.y) || a.id-b.id);
+      const eater = eligible[0];
+      if (!eater) return;
+      const gain = Math.min(rules.energy_max-eater.energy, rules.corpse_meal*freshness);
+      if (gain <= 0) return;
+      eater.energy += gain; eater.ate = true; eater.scavenges = (eater.scavenges || 0)+1;
+      corpse.corpse_until = null;
+      events.push({tick: tick, kind: 'scavenged', agent: eater.id, corpse: corpse.id, energy: Number(gain.toFixed(6)),
+        x: corpse.x, y: corpse.y, text: 'F'+eater.id+' scavenged F'+corpse.id+' (+'+gain.toFixed(2)+' energy)'});
+      count += 1;
+    });
+    return count;
+  }
+
+  function compostCorpse(corpse, patches, tick, rules, events) {
+    const growing = patches.filter(p => ['seed','growing'].includes(p.stage) &&
+      Math.hypot(p.x-corpse.x,p.y-corpse.y) <= rules.compost_radius);
+    growing.sort((a,b) => Math.hypot(a.x-corpse.x,a.y-corpse.y)-Math.hypot(b.x-corpse.x,b.y-corpse.y) || a.id-b.id);
+    const patch = growing[0];
+    if (!patch || rules.compost_boost <= 0) return false;
+    patch.timer = Math.max(0,patch.timer-rules.compost_boost);
+    events.push({tick:tick, kind:'composted', agent:corpse.id, patch:patch.id, x:patch.x, y:patch.y,
+      text:'F'+corpse.id+' returned nutrients to patch '+patch.id});
+    return true;
+  }
+
   function createWorld(graph, ui, seed) {
     const rules = rulesFrom(ui || {});
     const decoder = Object.assign({}, DECODER);
@@ -317,7 +378,7 @@
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
       circuits: [],
       events: [],
-      births: 0,
+      births: 0, scavenged: 0, composted: 0,
       peak: rules.agents,
       contested: 0,
       displaced: 0,
@@ -405,13 +466,25 @@
   function step(world) {
     const rules = world.rules;
     const decoder = world.decoder;
-    const edible = world.patches.filter((patch) => patch.stage === 'mature').map((patch) => [patch.x, patch.y]);
+    const environment = seasonAt(world.tick, rules);
+    if (rules.seasons && world.tick % rules.season_length === 0) {
+      world.events.push({tick: world.tick, kind: 'season', text: environment.name+': plant growth ×'+environment.growth.toFixed(2)});
+    }
+    const edible = world.patches.filter(p => p.stage === 'mature').map(p => ({x:p.x, y:p.y, kind:'foraging'}));
     world.agents.forEach((agent, index) => {
       agent.ate = false;
       agent.speed = 0;
       if (!agent.alive) { agent.left = 0; agent.right = 0; return; }
       agent.age += 1;
-      const found = nearest(agent.x, agent.y, edible);
+      const options = edible.slice();
+      if (rules.scavenging && agent.energy < rules.scavenge_below) {
+        world.agents.forEach(a => { if (corpseFreshness(a,world.tick,rules)>0) options.push({x:a.x,y:a.y,kind:'scavenging',id:a.id}); });
+      }
+      options.sort((a,b) => Math.hypot(a.x-agent.x,a.y-agent.y)-Math.hypot(b.x-agent.x,b.y-agent.y));
+      const choice = options[0];
+      const found = choice ? [[choice.x,choice.y],Math.hypot(choice.x-agent.x,choice.y-agent.y)] : [null,Infinity];
+      agent.intent = choice && found[1] < rules.sense_range ? choice.kind : 'searching';
+      agent.target = agent.intent !== 'searching' ? choice : null;
       let bearing = 0;
       let stimulus = 0;
       if (found[0]) {
@@ -425,6 +498,9 @@
       const motors = circuit.motors();
       const moved = integrateMotion(body, agent.x, agent.y, agent.heading, motors[0], motors[1]);
       agent.x = moved[0]; agent.y = moved[1]; agent.heading = moved[2]; agent.speed = moved[3];
+      const half = rules.map_half;
+      if (Math.abs(agent.x)>half) {agent.x=clamp(agent.x,-half,half);agent.heading=Math.PI-agent.heading;}
+      if (Math.abs(agent.y)>half) {agent.y=clamp(agent.y,-half,half);agent.heading=-agent.heading;}
       agent.heading += 0.01 * (agent.genome.drift || 0) * Math.sin(agent.age * 0.19);
       agent.left = motors[0]; agent.right = motors[1];
       agent.trail.push([agent.x, agent.y]);
@@ -433,7 +509,7 @@
     const taken = {};
     world.patches.forEach((patch) => {
       if (patch.stage !== 'mature') {
-        if (advancePatch(patch, rules, world.random) === 'food_mature') {
+        if (advancePatch(patch, rules, world.random, environment.growth) === 'food_mature') {
           world.events.push({ tick: world.tick, kind: 'food_mature', text: 'patch ' + patch.id + ' matured' });
         }
         return;
@@ -462,6 +538,7 @@
       patch.consumed_by = winner.id;
       world.events.push({ tick: world.tick, kind: 'ate', text: 'F' + winner.id + ' ate patch ' + patch.id });
     });
+    world.scavenged += scavengeCorpses(world.agents, world.tick, rules, world.events);
     reproduce(world);
     world.agents.forEach((agent) => {
       if (!agent.alive) return;
@@ -476,6 +553,7 @@
     });
     world.agents.forEach((agent) => {
       if (agent.corpse_until != null && world.tick >= agent.corpse_until) {
+        world.composted += Number(compostCorpse(agent, world.patches, world.tick, rules, world.events));
         world.events.push({ tick: world.tick, kind: 'corpse_decayed', text: 'F' + agent.id + ' corpse decayed' });
         agent.corpse_until = null;
       }
@@ -518,11 +596,14 @@
       mean_metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
       mean_lifespan: living.length ? living.reduce((sum, agent) => sum + agent.genome.lifespan, 0) / living.length : 1,
       mean_fertility: living.length ? living.reduce((sum, agent) => sum + agent.genome.fertility, 0) / living.length : 1,
+      environment: seasonAt(Math.max(0,world.tick-1),world.rules),
+      scavenged: world.scavenged, composted: world.composted,
       contested: world.contested || 0,
       displaced: world.displaced || 0,
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
-      corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null),
+      corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null)
+        .map(agent => Object.assign({}, agent, {freshness: corpseFreshness(agent, world.tick, world.rules)})),
       agents: world.agents,
       patches: world.patches,
       events: world.events,
@@ -546,6 +627,8 @@
   }
 
   root.MaleCNSEco = {
+    seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
+    lifespanOf,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,
     DECODER: DECODER,

@@ -42,7 +42,8 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'max_population', 'mate_radius', 'min_repro_age', 'min_repro_energy',
                            'repro_cost', 'repro_cooldown', 'offspring_energy',
                            'food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma',
-                           'meal_life', 'meal_life_cap', 'record_every'}}
+                           'meal_life', 'meal_life_cap', 'record_every', 'seasons', 'season_length',
+                           'scavenging', 'scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({
@@ -54,7 +55,8 @@ def ecosystem_document(path, ticks, seed, **kwargs):
         'assumptions': (graph.get('assumptions') or []) + [
             'Energy, age, patch growth, corpses, reproduction, and genomes are simulation abstractions, not fly physiology.',
             'MaleCNS topology is fixed. Offspring inherit and mutate body/decoder multipliers, not connectivity.',
-            'Food respawns at a new random location after cooldown. Meals extend artificial lifespan.',
+            'Food respawns after cooldown. Plant meals extend artificial lifespan; scavenging only restores energy.',
+            'Seasons scale plant lifecycle timers. Unconsumed corpses can accelerate one nearby immature patch.',
             'Reproduction is a proximity rule with an energy cost. Contested meals are scored, not combat.',
         ],
     })
@@ -132,3 +134,4 @@ def write_viewer(path, ticks, seed, output, **kwargs):
     output = Path(output)
     output.write_text(render_viewer(payload))
     return output, summary
+
