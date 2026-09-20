@@ -7,36 +7,40 @@ from sim import Circuit, integrate_motion, nearest_point, sensory_drives, valida
 
 DEFAULTS = {
     'agents': 8,
-    'patches': 6,
+    'patches': 8,
     'map_half': 20.0,
     'energy_start': 1.0,
     'energy_max': 2.0,
     'base_drain': 0.0012,
     'move_cost': 0.003,
     'meal': 0.55,
-    'eat_radius': 0.4,
+    'eat_radius': 0.55,
     'sense_range': 24.0,
-    'max_age': 1200,
-    'seed_ticks': 20,
-    'grow_ticks': 70,
-    'cooldown_ticks': 110,
-    'corpse_ticks': 80,
-    'max_population': 36,
-    'mate_radius': 3.0,
-    'min_repro_age': 80,
-    'min_repro_energy': 1.15,
-    'repro_cost': 0.4,
-    'repro_cooldown': 90,
-    'offspring_energy': 0.75,
+    'max_age': 520,
+    'seed_ticks': 12,
+    'grow_ticks': 40,
+    'cooldown_ticks': 50,
+    'corpse_ticks': 70,
+    'max_population': 48,
+    'mate_radius': 6.0,
+    'min_repro_age': 36,
+    'min_repro_energy': 1.05,
+    'repro_cost': 0.35,
+    'repro_cooldown': 40,
+    'offspring_energy': 0.8,
     'food_rate': 1.0,
     'aging_rate': 1.0,
-    'repro_rate': 1.0,
-    'mutation_rate': 0.85,
-    'mutation_sigma': 0.08,
+    'repro_rate': 1.2,
+    'mutation_rate': 0.9,
+    'mutation_sigma': 0.14,
+    'meal_life': 90,
+    'meal_life_cap': 900,
+    'record_every': 1,
 }
 
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
-            'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown')
+            'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
+            'meal_life', 'meal_life_cap', 'record_every')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -45,12 +49,33 @@ BASE_GENOME = {
     'sensory_gain': 1.0,
     'metabolism': 1.0,
     'speed': 1.0,
+    'lifespan': 1.0,
+    'fertility': 1.0,
+    'spot': 0.0,
+    'echo': 0.0,
+    'drift': 0.0,
 }
 GENE_BOUNDS = {
     'turn_gain': (0.45, 2.0),
-    'sensory_gain': (0.45, 2.0),
+    'sensory_gain': (0.45, 2.2),
     'metabolism': (0.5, 1.8),
-    'speed': (0.55, 1.75),
+    'speed': (0.55, 1.9),
+    'lifespan': (0.65, 1.9),
+    'fertility': (0.6, 2.2),
+    'spot': (0.0, 1.0),
+    'echo': (0.0, 1.0),
+    'drift': (0.0, 1.0),
+}
+MUTATION_LABELS = {
+    'speed': ('speed boost', 'sluggish'),
+    'lifespan': ('long life', 'short life'),
+    'fertility': ('litter +1', 'low fertility'),
+    'metabolism': ('hungry', 'thrifty'),
+    'sensory_gain': ('keen', 'dim'),
+    'turn_gain': ('sharp turn', 'wide turn'),
+    'spot': ('speckled', 'speckled'),
+    'echo': ('echo', 'echo'),
+    'drift': ('wobble', 'wobble'),
 }
 
 
@@ -90,14 +115,16 @@ def rules_from(overrides):
         if key not in explicit:
             rules[key] = value
     for key in INT_KEYS:
-        if type(rules[key]) is not int or rules[key] < 1:
+        if type(rules[key]) is not int or rules[key] < 0:
+            raise ValueError(f'{key} must be a nonnegative integer')
+        if rules[key] < 1 and key not in ('meal_life',):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
-    if rules['max_population'] > 50:
-        raise ValueError('max_population must be 50 or fewer on the CPU path')
+    if rules['max_population'] > 60:
+        raise ValueError('max_population must be 60 or fewer on the CPU path')
     if rules['agents'] > rules['max_population']:
         raise ValueError('agents cannot exceed max_population')
     if rules['map_half'] < 4:
@@ -131,25 +158,34 @@ def spawn_agents(count, radius, energy):
             'offspring': 0,
             'genome': dict(BASE_GENOME),
             'mutations': {},
+            'lineage': index,
+            'contested': 0,
+            'displaced': 0,
         })
     return agents
+
+
+def relocate_patch(patch, rng, rules):
+    half = rules['map_half'] * 0.82
+    patch['x'] = rng.uniform(-half, half)
+    patch['y'] = rng.uniform(-half, half)
 
 
 def spawn_patches(count, radius, rng, rules):
     patches = []
     for index in range(count):
-        angle = 2 * math.pi * index / count + rng.uniform(-0.15, 0.15)
-        r = radius * rng.uniform(0.7, 1.0)
         mature = index % 2 == 0
-        patches.append({
+        patch = {
             'id': index,
-            'x': r * math.cos(angle),
-            'y': r * math.sin(angle),
+            'x': 0.0,
+            'y': 0.0,
             'stage': 'mature' if mature else 'growing',
             'timer': 0 if mature else rules['grow_ticks'] // 2,
             'nutrition': 1.0,
             'consumed_by': None,
-        })
+        }
+        relocate_patch(patch, rng, rules)
+        patches.append(patch)
     return patches
 
 
@@ -159,6 +195,7 @@ def mature_locations(patches):
 
 def claim_patches(agents, patches, eat_radius):
     claimed = {}
+    contests = []
     taken = set()
     for patch in patches:
         if patch['stage'] != 'mature':
@@ -171,10 +208,17 @@ def claim_patches(agents, patches, eat_radius):
         winner = min(contenders, key=lambda agent: agent['id'])
         claimed[patch['id']] = winner['id']
         taken.add(winner['id'])
-    return claimed
+        if len(contenders) > 1:
+            losers = [agent['id'] for agent in contenders if agent['id'] != winner['id']]
+            contests.append({'patch': patch['id'], 'winner': winner['id'], 'losers': losers})
+            winner['contested'] = winner.get('contested', 0) + 1
+            for agent in contenders:
+                if agent['id'] != winner['id']:
+                    agent['displaced'] = agent.get('displaced', 0) + 1
+    return claimed, contests
 
 
-def advance_patch(patch, rules):
+def advance_patch(patch, rules, rng=None):
     event = None
     if patch['stage'] == 'mature':
         return event
@@ -185,6 +229,8 @@ def advance_patch(patch, rules):
         patch['stage'] = 'seed'
         patch['timer'] = rules['seed_ticks']
         patch['consumed_by'] = None
+        if rng is not None:
+            relocate_patch(patch, rng, rules)
     elif patch['stage'] == 'seed':
         patch['stage'] = 'growing'
         patch['timer'] = rules['grow_ticks']
@@ -213,14 +259,68 @@ def inherit_genome(mother, father, rng, rules):
     rate = rules.get('mutation_rate', DEFAULTS['mutation_rate'])
     sigma = rules.get('mutation_sigma', DEFAULTS['mutation_sigma'])
     for gene, (lo, hi) in GENE_BOUNDS.items():
-        mid = 0.5 * (mother[gene] + father[gene])
+        mid = 0.5 * (mother.get(gene, BASE_GENOME[gene]) + father.get(gene, BASE_GENOME[gene]))
         value = mid
         if rate > 0 and sigma > 0 and rng.random() < rate:
-            value = max(lo, min(hi, mid * (1.0 + rng.gauss(0.0, sigma))))
+            if gene in ('spot', 'echo', 'drift'):
+                value = max(lo, min(hi, mid + rng.gauss(0.0, sigma)))
+            else:
+                value = max(lo, min(hi, mid * (1.0 + rng.gauss(0.0, sigma))))
         child[gene] = value
         if abs(value - mid) > 1e-6:
             mutations[gene] = round(value - mid, 4)
     return child, mutations
+
+
+def describe_mutations(mutations):
+    names = []
+    for gene, delta in mutations.items():
+        labels = MUTATION_LABELS.get(gene)
+        if not labels:
+            names.append(gene)
+            continue
+        if gene == 'metabolism':
+            names.append(labels[0] if delta > 0 else labels[1])
+        else:
+            names.append(labels[0] if delta >= 0 else labels[1])
+    return names
+
+
+def litter_size(genome):
+    return 2 if genome.get('fertility', 1.0) >= 1.35 else 1
+
+
+def lifespan_of(agent, rules):
+    bonus = min(rules['meal_life_cap'], agent['meals'] * rules['meal_life'])
+    return max(1, int(round(rules['max_age'] * agent['genome'].get('lifespan', 1.0) + bonus)))
+
+
+def lineage_table(agents):
+    table = {}
+    for agent in agents:
+        lid = agent.get('lineage', agent['id'])
+        row = table.setdefault(lid, {
+            'founder': lid, 'born': 0, 'living': 0, 'max_gen': 0,
+            'meals': 0, 'contested': 0, 'displaced': 0,
+        })
+        row['born'] += 1
+        if agent['alive']:
+            row['living'] += 1
+        row['max_gen'] = max(row['max_gen'], agent['generation'])
+        row['meals'] += agent['meals']
+        row['contested'] += agent.get('contested', 0)
+        row['displaced'] += agent.get('displaced', 0)
+    return table
+
+
+def living_by_generation(agents):
+    counts = {}
+    for agent in agents:
+        if not agent['alive']:
+            continue
+        gen = agent['generation']
+        counts[str(gen)] = counts.get(str(gen), 0) + 1
+    return counts
 
 
 def decoder_for(base, genome):
@@ -291,44 +391,58 @@ def reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, s
         partner['last_repro'] = tick
         parent['offspring'] += 1
         partner['offspring'] += 1
-        angle = rng.random() * 2 * math.pi
-        half = rules['map_half']
-        x = max(-half, min(half, (parent['x'] + partner['x']) / 2 + 0.35 * math.cos(angle)))
-        y = max(-half, min(half, (parent['y'] + partner['y']) / 2 + 0.35 * math.sin(angle)))
-        child_id = max(agent['id'] for agent in agents) + 1
-        genome, mutations = inherit_genome(parent['genome'], partner['genome'], rng, rules)
-        agents.append({
-            'id': child_id,
-            'x': x,
-            'y': y,
-            'heading': angle,
-            'energy': rules['offspring_energy'],
-            'age': 0,
-            'alive': True,
-            'meals': 0,
-            'ate': False,
-            'birth_tick': tick,
-            'death_tick': None,
-            'cause_of_death': None,
-            'corpse_until': None,
-            'last_repro': tick,
-            'generation': max(parent['generation'], partner['generation']) + 1,
-            'parents': (parent['id'], partner['id']),
-            'offspring': 0,
-            'genome': genome,
-            'mutations': mutations,
-        })
-        circuits.append(Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed))
-        mutated = ', '.join(f'{gene} {genome[gene]:.2f}' for gene in mutations) if mutations else 'no mutation'
-        events.append({
-            'tick': tick,
-            'kind': 'born',
-            'agent': child_id,
-            'parents': [parent['id'], partner['id']],
-            'mutations': mutations,
-            'text': f'F{child_id} born to F{parent["id"]} and F{partner["id"]} · {mutated}',
-        })
-        births += 1
+        first_genome, first_mutations = inherit_genome(parent['genome'], partner['genome'], rng, rules)
+        extra = 1 if litter_size(first_genome) > 1 else 0
+        for sibling in range(1 + extra):
+            if sibling and sum(agent['alive'] for agent in agents) >= rules['max_population']:
+                break
+            genome, mutations = (first_genome, first_mutations) if sibling == 0 else inherit_genome(
+                parent['genome'], partner['genome'], rng, rules)
+            angle = rng.random() * 2 * math.pi
+            half = rules['map_half']
+            x = max(-half, min(half, (parent['x'] + partner['x']) / 2 + 0.35 * math.cos(angle)))
+            y = max(-half, min(half, (parent['y'] + partner['y']) / 2 + 0.35 * math.sin(angle)))
+            child_id = max(agent['id'] for agent in agents) + 1
+            agents.append({
+                'id': child_id,
+                'x': x,
+                'y': y,
+                'heading': angle,
+                'energy': rules['offspring_energy'],
+                'age': 0,
+                'alive': True,
+                'meals': 0,
+                'ate': False,
+                'birth_tick': tick,
+                'death_tick': None,
+                'cause_of_death': None,
+                'corpse_until': None,
+                'last_repro': tick,
+                'generation': max(parent['generation'], partner['generation']) + 1,
+                'parents': (parent['id'], partner['id']),
+                'offspring': 0,
+                'genome': genome,
+                'mutations': mutations,
+                'lineage': parent['lineage'],
+                'contested': 0,
+                'displaced': 0,
+            })
+            circuits.append(Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed))
+            labels = describe_mutations(mutations)
+            mutated = ', '.join(labels) if labels else 'no mutation'
+            events.append({
+                'tick': tick,
+                'kind': 'born',
+                'agent': child_id,
+                'parents': [parent['id'], partner['id']],
+                'mutations': mutations,
+                'labels': labels,
+                'text': f'F{child_id} born to F{parent["id"]} and F{partner["id"]} · {mutated}',
+            })
+            births += 1
+            if sibling:
+                parent['offspring'] += 1
+                partner['offspring'] += 1
     return births
 
 
@@ -351,6 +465,9 @@ def snapshot_agent(agent, left, right, speed):
         'offspring': agent['offspring'],
         'genome': round_genome(agent['genome']),
         'mutations': dict(agent.get('mutations') or {}),
+        'lineage': agent.get('lineage', agent['id']),
+        'contested': agent.get('contested', 0),
+        'displaced': agent.get('displaced', 0),
         'left_motor': round(left, 6),
         'right_motor': round(right, 6),
         'speed': round(speed, 6),
@@ -387,6 +504,7 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
         left, right = circuit.motors()
         agent['x'], agent['y'], agent['heading'], speed = integrate_motion(
             body, agent['x'], agent['y'], agent['heading'], left, right)
+        agent['heading'] += 0.01 * agent['genome'].get('drift', 0.0) * math.sin(agent['age'] * 0.19)
         motors.append((left, right, speed))
     return motors
 
@@ -407,9 +525,17 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     history = []
     births = 0
     peak = rules['agents']
+    contested_meals = 0
+    displaced = 0
     for tick in range(ticks):
         motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled)
-        claimed = claim_patches(agents, patches, rules['eat_radius'])
+        claimed, contests = claim_patches(agents, patches, rules['eat_radius'])
+        contested_meals += len(contests)
+        displaced += sum(len(row['losers']) for row in contests)
+        for row in contests:
+            events.append({'tick': tick, 'kind': 'contested', 'patch': row['patch'],
+                           'winner': row['winner'], 'losers': row['losers'],
+                           'text': f'F{row["winner"]} beat {len(row["losers"])} rival(s) to patch {row["patch"]}'})
         for patch in patches:
             if patch['id'] in claimed:
                 eater = next(agent for agent in agents if agent['id'] == claimed[patch['id']])
@@ -422,10 +548,10 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 events.append({'tick': tick, 'kind': 'ate', 'agent': eater['id'], 'patch': patch['id'],
                                'text': f'F{eater["id"]} ate patch {patch["id"]}'})
             else:
-                matured = advance_patch(patch, rules)
+                matured = advance_patch(patch, rules, rng)
                 if matured:
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
-                                   'text': f'patch {patch["id"]} matured'})
+                                   'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
         births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
         while len(motors) < len(agents):
             motors.append((0.0, 0.0, 0.0))
@@ -433,7 +559,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             if not agent['alive']:
                 continue
             agent['energy'] -= rules['base_drain'] * agent['genome']['metabolism'] + rules['move_cost'] * speed
-            if agent['age'] >= rules['max_age']:
+            if agent['age'] >= lifespan_of(agent, rules):
                 kill(agent, tick, 'old_age', rules['corpse_ticks'])
                 events.append({'tick': tick, 'kind': 'died', 'agent': agent['id'], 'cause': 'old_age',
                                'text': f'F{agent["id"]} died of old age'})
@@ -455,21 +581,34 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         alive = [agent for agent in agents if agent['alive']]
         peak = max(peak, len(alive))
         means, stds = genome_stats(agents)
-        history.append({
-            'tick': tick,
-            'agents': [snapshot_agent(agent, left, right, speed)
-                       for agent, (left, right, speed) in zip(agents, motors)],
-            'patches': [snapshot_patch(patch) for patch in patches],
-            'corpses': corpses,
-            'alive': len(alive),
-            'born': births,
-            'mature_food': sum(patch['stage'] == 'mature' for patch in patches),
-            'mean_energy': round(sum(agent['energy'] for agent in alive) / len(alive), 6) if alive else 0.0,
-            'mean_speed': means['speed'],
-            'mean_metabolism': means['metabolism'],
-            'genome_mean': means,
-            'genome_std': stds,
-        })
+        record = (tick % rules['record_every'] == 0) or (tick == ticks - 1)
+        if record:
+            motor_by_id = {agent['id']: motor for agent, motor in zip(agents, motors)}
+            visible = [agent for agent in agents if agent['alive'] or agent['corpse_until'] is not None]
+            frames = []
+            for agent in visible:
+                row = snapshot_agent(agent, *motor_by_id.get(agent['id'], (0.0, 0.0, 0.0)))
+                row['life_span'] = lifespan_of(agent, rules)
+                frames.append(row)
+            history.append({
+                'tick': tick,
+                'agents': frames,
+                'patches': [snapshot_patch(patch) for patch in patches],
+                'corpses': corpses,
+                'alive': len(alive),
+                'born': births,
+                'mature_food': sum(patch['stage'] == 'mature' for patch in patches),
+                'mean_energy': round(sum(agent['energy'] for agent in alive) / len(alive), 6) if alive else 0.0,
+                'mean_speed': means['speed'],
+                'mean_metabolism': means['metabolism'],
+                'mean_lifespan': means['lifespan'],
+                'mean_fertility': means['fertility'],
+                'genome_mean': means,
+                'genome_std': stds,
+                'living_by_gen': living_by_generation(agents),
+                'contested': contested_meals,
+                'displaced': displaced,
+            })
     return {
         'mode': 'ecosystem',
         'rules': rules,
@@ -484,6 +623,10 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'generation': max((agent['generation'] for agent in agents), default=0),
             'genome_mean': genome_stats(agents)[0],
             'genome_std': genome_stats(agents)[1],
+            'contested': contested_meals,
+            'displaced': displaced,
+            'lineages': lineage_table(agents),
+            'living_by_gen': living_by_generation(agents),
         },
         'ticks': history,
     }
@@ -494,8 +637,10 @@ def summarize_ecosystem(result):
     rules = result['rules']
     last = result['ticks'][-1]
     means = final.get('genome_mean') or {}
-    return (f"ecosystem {rules['agents']} start, {rules['patches']} patches, {len(result['ticks'])} ticks; "
+    return (f"ecosystem {rules['agents']} start, {rules['patches']} patches, {last['tick'] + 1} ticks; "
             f"alive {final['alive']}, births {final['births']}, gen {final['generation']}, "
             f"starved {final['starved']}, old_age {final['old_age']}, "
-            f"meals {final['meals']}, mature food {last['mature_food']}, "
-            f"mean speed {means.get('speed', 1):.2f}, metabolism {means.get('metabolism', 1):.2f}")
+            f"meals {final['meals']}, contested {final.get('contested', 0)}, "
+            f"mature food {last['mature_food']}, "
+            f"mean speed {means.get('speed', 1):.2f}, life {means.get('lifespan', 1):.2f}, "
+            f"fertility {means.get('fertility', 1):.2f}")

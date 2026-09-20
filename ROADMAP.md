@@ -42,7 +42,7 @@ These are simulation abstractions unless noted.
 |---|---|
 | Agent identity | Artificial organisms with a MaleCNS-derived **controller**, not reconstructed flies |
 | MaleCNS topology | Fixed for every agent |
-| Food spawn | Fixed patches, not random rain |
+| Food spawn | Random relocation after each cooldown, not fixed patches |
 | Food availability | Lifecycle with cooldown; can deplete if eaten faster than growth |
 | Perception | Nearest **mature** patch, limited sense range |
 | Nutrition | Equal for every patch |
@@ -53,8 +53,8 @@ These are simulation abstractions unless noted.
 | Reproduction | Two-parent proximity, energy cost, population cap. Same controller topology |
 | Evolution | Inherit and mutate simulation multipliers. Not connectome evolution |
 
-## Next after parameter evolution
+## Next after lineages
 
-Competition metrics, then corpses as food / optional predation. LLM cognition only after a non-LLM social baseline exists.
+Corpses as food, then optional predation. LLM cognition only after a non-LLM social baseline exists.
 
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.

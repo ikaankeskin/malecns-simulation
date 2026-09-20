@@ -14,7 +14,7 @@ class EcosystemTests(unittest.TestCase):
             {'id': 0, 'x': 0.0, 'y': 0.0, 'stage': 'growing'},
             {'id': 1, 'x': 0.1, 'y': 0.0, 'stage': 'mature'},
         ]
-        self.assertEqual(claim_patches(agents, patches, 0.4), {1: 0})
+        self.assertEqual(claim_patches(agents, patches, 0.4)[0], {1: 0})
 
     def test_patches_regrow_after_being_eaten(self):
         from ecosystem import advance_patch, rules_from
@@ -37,7 +37,7 @@ class EcosystemTests(unittest.TestCase):
                                      base_drain=0.2, move_cost=0.0, max_age=1000)
         self.assertTrue(any(event.get('cause') == 'starvation' for event in starved['events']))
         aged = simulate_ecosystem(DEMO, 20, 1, agents=2, patches=1, map_half=12, disconnected=True,
-                                  max_age=5, base_drain=0.0001, corpse_ticks=3)
+                                  max_age=5, base_drain=0.0001, corpse_ticks=3, meal_life=0)
         self.assertTrue(any(event.get('cause') == 'old_age' for event in aged['events']))
         self.assertTrue(any(frame['corpses'] for frame in aged['ticks']))
         last = aged['ticks'][-1]
@@ -111,6 +111,26 @@ class EcosystemTests(unittest.TestCase):
         self.assertLess(fast['grow_ticks'], slow['grow_ticks'])
         self.assertLess(fast['max_age'], slow['max_age'])
         self.assertLess(fast['repro_cooldown'], slow['repro_cooldown'])
+
+    def test_food_relocates_and_meals_extend_life(self):
+        import random
+        from ecosystem import relocate_patch, rules_from, litter_size
+        patch = {'x': 0.0, 'y': 0.0}
+        relocate_patch(patch, random.Random(2), {'map_half': 20.0})
+        self.assertNotEqual((patch['x'], patch['y']), (0.0, 0.0))
+        self.assertEqual(litter_size({'fertility': 1.0}), 1)
+        self.assertEqual(litter_size({'fertility': 1.4}), 2)
+        fed = simulate_ecosystem(DEMO, 16, 1, agents=2, patches=1, map_half=8, disconnected=True,
+                                 eat_radius=40, max_age=6, meal_life=40, meal_life_cap=80,
+                                 base_drain=0.0001, move_cost=0.0, repro_rate=0)
+        self.assertGreater(fed['ticks'][-1]['alive'], 0)
+        two = [{'id': 0, 'x': 0.0, 'y': 0.0, 'alive': True, 'contested': 0, 'displaced': 0},
+               {'id': 1, 'x': 0.05, 'y': 0.0, 'alive': True, 'contested': 0, 'displaced': 0}]
+        claimed, contests = claim_patches(two, [{'id': 0, 'x': 0.0, 'y': 0.0, 'stage': 'mature'}], 0.4)
+        self.assertEqual(claimed, {0: 0})
+        self.assertEqual(len(contests), 1)
+        self.assertEqual(two[0]['contested'], 1)
+        self.assertEqual(two[1]['displaced'], 1)
 
 
 if __name__ == '__main__':

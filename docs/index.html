@@ -52,6 +52,10 @@
     .fly.dead { opacity: .45; }
     .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     .warn { color: #d4a24c; font-size: 12px; }
+    .bar-row { display: grid; grid-template-columns: 52px 1fr 36px; gap: 6px; align-items: center; font-size: 11px; margin: 3px 0; color: var(--muted); }
+    .bar-row .track { height: 7px; background: #10131a; border-radius: 3px; overflow: hidden; }
+    .bar-row i { display: block; height: 100%; background: var(--teal); }
+    .bar-row i.gold { background: var(--gold); }
     @media (max-width: 900px) {
       main { grid-template-columns: 1fr; }
       .stage { min-height: 52vh; }
@@ -87,10 +91,10 @@
         <input id="aging-rate" type="range" min="0.25" max="2.5" step="0.05" value="1" aria-label="Aging rate">
       </label>
       <label class="ctrl"><span>reproduction rate</span><strong id="repro-val">1.00</strong>
-        <input id="repro-rate" type="range" min="0" max="2.5" step="0.05" value="1" aria-label="Reproduction rate">
+        <input id="repro-rate" type="range" min="0" max="2.5" step="0.05" value="1.2" aria-label="Reproduction rate">
       </label>
       <label class="ctrl"><span>mutation rate</span><strong id="mut-val">0.85</strong>
-        <input id="mutation-rate" type="range" min="0" max="1" step="0.05" value="0.85" aria-label="Mutation rate">
+        <input id="mutation-rate" type="range" min="0" max="1" step="0.05" value="0.9" aria-label="Mutation rate">
       </label>
       <div class="actions">
         <button type="button" id="randomize" class="primary">Randomize</button>
@@ -108,9 +112,17 @@
       <div class="row"><span>generation</span><strong id="generation">0</strong></div>
       <div class="row"><span>mean speed</span><strong id="mean-speed">1.00</strong></div>
       <div class="row"><span>mean metabolism</span><strong id="mean-metab">1.00</strong></div>
+      <div class="row"><span>mean life</span><strong id="mean-life">1.00</strong></div>
+      <div class="row"><span>mean fertility</span><strong id="mean-fert">1.00</strong></div>
       <div class="row"><span>mature food</span><strong id="food">0</strong></div>
+      <div class="row"><span>contested</span><strong id="contested">0</strong></div>
+      <div class="row"><span>displaced</span><strong id="displaced">0</strong></div>
       <canvas id="popchart" width="300" height="64" aria-label="Population chart"></canvas>
       <div class="meta">white population · gold food · teal energy</div>
+      <h2>Lineages</h2>
+      <div id="lineage-board"></div>
+      <h2>Generations alive</h2>
+      <div id="gen-board"></div>
 
       <h2>Timeline</h2>
       <div id="events"></div>
@@ -124,13 +136,16 @@
       <div class="row"><span>sensory</span><strong id="sel-sense">1.00</strong></div>
       <div class="row"><span>metabolism</span><strong id="sel-metab">1.00</strong></div>
       <div class="row"><span>speed gene</span><strong id="sel-speedg">1.00</strong></div>
+      <div class="row"><span>lifespan</span><strong id="sel-life">1.00</strong></div>
+      <div class="row"><span>fertility</span><strong id="sel-fert">1.00</strong></div>
       <div class="row"><span>mutations</span><strong id="sel-mut">none</strong></div>
-      <div class="row"><span>age</span><strong id="sel-age">0</strong></div>
+      <div class="row"><span>lineage</span><strong id="sel-line">F0</strong></div>
+      <div class="row"><span>age / span</span><strong id="sel-age">0</strong></div>
       <div class="row"><span>energy</span><strong id="sel-energy">0</strong></div>
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
       <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
       <h2>Assumptions</h2>
-      <div class="meta">Energy is an artificial budget. Reproduction is proximity plus energy, with a population cap. Offspring inherit and mutate speed, metabolism, and decoder gains. MaleCNS topology does not change. The attraction decoder is an experimental interface mapping, not a biological feeding circuit. MaleCNS data: CC BY 4.0, FlyEM / Janelia, Cambridge, MRC LMB, Google Research.</div>
+      <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Meals extend lifespan. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology does not change.</div>
     </aside>
   </main>
   <script src="engine.js"></script>
@@ -213,6 +228,27 @@
       line(series.map((row) => row.energy), '#6fbfa3', maxE);
     }
 
+    function followSelection(agents, currentId) {
+      const current = (agents || []).find((row) => row.id === currentId);
+      if (current && current.alive) return currentId;
+      const kids = (agents || []).filter((row) => row.alive && row.parents && row.parents.indexOf(currentId) >= 0);
+      if (kids.length) return kids.sort((a, b) => b.generation - a.generation || b.energy - a.energy)[0].id;
+      const lineage = current ? current.lineage : currentId;
+      const line = (agents || []).filter((row) => row.alive && row.lineage === lineage);
+      if (line.length) return line.sort((a, b) => b.generation - a.generation || b.energy - a.energy)[0].id;
+      const living = (agents || []).filter((row) => row.alive);
+      return living.length ? living.sort((a, b) => b.generation - a.generation)[0].id : currentId;
+    }
+
+    function barList(root, rows, gold) {
+      if (!root) return;
+      const max = Math.max(1, ...rows.map((row) => row.value));
+      root.innerHTML = rows.map((row) =>
+        '<div class="bar-row"><span>' + row.label + '</span><div class="track"><i class="' +
+        (gold ? 'gold' : '') + '" style="width:' + Math.round(100 * row.value / max) + '%"></i></div><span>' +
+        row.value + '</span></div>').join('') || '<div class="meta">none yet</div>';
+    }
+
     function draw() {
       if (!world) return;
       const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
@@ -220,6 +256,7 @@
         canvas.width = cssW; canvas.height = cssH;
       }
       const snap = Eco.snapshot(world);
+      selected = followSelection(snap.agents || [], selected);
       const half = world.rules.map_half;
       const bounds = { min: -half - 1, max: half + 1 };
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -276,7 +313,11 @@
       document.getElementById('generation').textContent = snap.generation;
       document.getElementById('mean-speed').textContent = Number(snap.mean_speed || 1).toFixed(2);
       document.getElementById('mean-metab').textContent = Number(snap.mean_metabolism || 1).toFixed(2);
+      document.getElementById('mean-life').textContent = Number(snap.mean_lifespan || 1).toFixed(2);
+      document.getElementById('mean-fert').textContent = Number(snap.mean_fertility || 1).toFixed(2);
       document.getElementById('food').textContent = snap.mature_food;
+      document.getElementById('contested').textContent = snap.contested || 0;
+      document.getElementById('displaced').textContent = snap.displaced || 0;
       document.getElementById('seed-val').textContent = seed;
       const rules = world.rules;
       document.getElementById('rule-readout').textContent =
@@ -304,9 +345,13 @@
         document.getElementById('sel-sense').textContent = Number(genome.sensory_gain || 1).toFixed(2);
         document.getElementById('sel-metab').textContent = Number(genome.metabolism || 1).toFixed(2);
         document.getElementById('sel-speedg').textContent = Number(genome.speed || 1).toFixed(2);
+        document.getElementById('sel-life').textContent = Number(genome.lifespan || 1).toFixed(2);
+        document.getElementById('sel-fert').textContent = Number(genome.fertility || 1).toFixed(2);
         const mut = sel.mutations || {};
         document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
-        document.getElementById('sel-age').textContent = sel.age;
+        document.getElementById('sel-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);
+        const span = Eco.snapshot && sel.life_span ? sel.life_span : Math.round((world.rules.max_age * (genome.lifespan || 1)) + sel.meals * (world.rules.meal_life || 90));
+        document.getElementById('sel-age').textContent = sel.age + ' / ' + span;
         document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('sel-meals').textContent = sel.meals;
         document.getElementById('sel-status').textContent = sel.alive ? 'alive' : (sel.cause_of_death || 'dead');
@@ -314,6 +359,14 @@
       const recent = snap.events.slice(-8).reverse();
       document.getElementById('events').innerHTML = recent.map((event) =>
         '<div class="event">t' + event.tick + ' · ' + event.text + '</div>').join('') || '<div class="event">no events yet</div>';
+      const genCounts = snap.living_by_gen || {};
+      barList(document.getElementById('gen-board'), Object.keys(genCounts).sort((a, b) => Number(a) - Number(b))
+        .map((key) => ({ label: 'g' + key, value: genCounts[key] })));
+      const lineageSource = snap.lineages || {};
+      barList(document.getElementById('lineage-board'), Object.keys(lineageSource).map((key) => lineageSource[key])
+        .sort((a, b) => (b.living - a.living) || (b.max_gen - a.max_gen) || (a.founder - b.founder))
+        .slice(0, 8)
+        .map((row) => ({ label: 'F' + row.founder, value: row.living })), true);
       drawChart(snap.series);
     }
 
@@ -321,8 +374,8 @@
       clearInterval(handle);
       handle = setInterval(() => {
         if (!playing || !world) return;
-        Eco.step(world);
-        if (world.tick % 2 === 0) draw();
+        for (let n = 0; n < 4; n += 1) Eco.step(world);
+        draw();
       }, 1000 / 32);
     }
 

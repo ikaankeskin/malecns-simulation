@@ -41,7 +41,8 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'seed_ticks', 'grow_ticks', 'cooldown_ticks', 'corpse_ticks',
                            'max_population', 'mate_radius', 'min_repro_age', 'min_repro_energy',
                            'repro_cost', 'repro_cooldown', 'offspring_energy',
-                           'food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma'}}
+                           'food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma',
+                           'meal_life', 'meal_life_cap', 'record_every'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({
@@ -49,10 +50,12 @@ def ecosystem_document(path, ticks, seed, **kwargs):
         'rules': result['rules'],
         'events': result['events'],
         'final': result['final'],
+        'lineages': (result.get('final') or {}).get('lineages') or {},
         'assumptions': (graph.get('assumptions') or []) + [
             'Energy, age, patch growth, corpses, reproduction, and genomes are simulation abstractions, not fly physiology.',
             'MaleCNS topology is fixed. Offspring inherit and mutate body/decoder multipliers, not connectivity.',
-            'Reproduction is a proximity rule with an energy cost. No combat or learning.',
+            'Food respawns at a new random location after cooldown. Meals extend artificial lifespan.',
+            'Reproduction is a proximity rule with an energy cost. Contested meals are scored, not combat.',
         ],
     })
     return document

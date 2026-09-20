@@ -39,7 +39,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Ecosystem v0.1: renewable patches, age, starvation/old-age death, decaying corpses, event timeline, inspector. See `ROADMAP.md` and `python3 sim.py ecosystem`.
 - [x] Reproduction: proximity + energy cost, parent IDs, generation, population cap. Topology stays fixed.
 - [x] GitHub Pages live ecosystem with agent/food/aging/reproduction controls and randomize.
-- [x] Evolution of simulation parameters: offspring blend parent genomes and mutate turn/sensory/metabolism/speed multipliers. Connectome topology remains fixed.
+- [x] Evolution of simulation parameters: offspring blend parent genomes and mutate turn/sensory/metabolism/speed/lifespan/fertility, plus weak quirks. Connectome topology remains fixed.
+- [x] Random food respawn, meal-extended lifespan, inspector follow-on, competition metrics, and a lineage dashboard.
 - [ ] Combat, social, and LLM layers (not started).
 - [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
@@ -56,5 +57,7 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Multi-agent contest: independent circuit copies, three non-respawning pellets, energy drain, deterministic leaderboard. Engineered scoring, not fly physiology.
 - Ecosystem v0.1: persistent patches with a growth lifecycle, age, labelled deaths, decaying corpses, charts, and timeline.
 - Reproduction: two nearby adults that meet age and energy thresholds produce an offspring with a new circuit copy. Population is capped.
-- Parameter evolution: genomes are relative multipliers on decoder/metabolism/speed. Mutation does not edit MaleCNS connectivity.
+- Parameter evolution: genomes include speed, lifespan, fertility, metabolism, decoder gains, and nearly-neutral quirks. Mutation does not edit MaleCNS connectivity.
+- Random food: a patch relocates when it leaves cooldown. Meals extend artificial lifespan.
+- Dashboard: living descendants per founder, generation histogram, contested meals.
 - GitHub Pages: `docs/index.html` runs the ecosystem in the browser; sliders and Randomize retune the world.

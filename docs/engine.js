@@ -2,40 +2,54 @@
 (function (root) {
   const DEFAULTS = {
     agents: 8,
-    patches: 6,
+    patches: 8,
     map_half: 20,
     energy_start: 1,
     energy_max: 2,
     base_drain: 0.0012,
     move_cost: 0.003,
     meal: 0.55,
-    eat_radius: 0.4,
+    eat_radius: 0.55,
     sense_range: 24,
-    max_age: 1200,
-    seed_ticks: 20,
-    grow_ticks: 70,
-    cooldown_ticks: 110,
-    corpse_ticks: 80,
-    max_population: 36,
-    mate_radius: 3,
-    min_repro_age: 80,
-    min_repro_energy: 1.15,
-    repro_cost: 0.4,
-    repro_cooldown: 90,
-    offspring_energy: 0.75,
+    max_age: 520,
+    seed_ticks: 12,
+    grow_ticks: 40,
+    cooldown_ticks: 50,
+    corpse_ticks: 70,
+    max_population: 48,
+    mate_radius: 6,
+    min_repro_age: 36,
+    min_repro_energy: 1.05,
+    repro_cost: 0.35,
+    repro_cooldown: 40,
+    offspring_energy: 0.8,
     food_rate: 1,
     aging_rate: 1,
-    repro_rate: 1,
-    mutation_rate: 0.85,
-    mutation_sigma: 0.08,
+    repro_rate: 1.2,
+    mutation_rate: 0.9,
+    mutation_sigma: 0.14,
+    meal_life: 90,
+    meal_life_cap: 900,
   };
 
-  const BASE_GENOME = { turn_gain: 1, sensory_gain: 1, metabolism: 1, speed: 1 };
+  const BASE_GENOME = {
+    turn_gain: 1, sensory_gain: 1, metabolism: 1, speed: 1,
+    lifespan: 1, fertility: 1, spot: 0, echo: 0, drift: 0,
+  };
   const GENE_BOUNDS = {
-    turn_gain: [0.45, 2],
-    sensory_gain: [0.45, 2],
-    metabolism: [0.5, 1.8],
-    speed: [0.55, 1.75],
+    turn_gain: [0.45, 2], sensory_gain: [0.45, 2.2], metabolism: [0.5, 1.8], speed: [0.55, 1.9],
+    lifespan: [0.65, 1.9], fertility: [0.6, 2.2], spot: [0, 1], echo: [0, 1], drift: [0, 1],
+  };
+  const MUTATION_LABELS = {
+    speed: ['speed boost', 'sluggish'],
+    lifespan: ['long life', 'short life'],
+    fertility: ['litter +1', 'low fertility'],
+    metabolism: ['hungry', 'thrifty'],
+    sensory_gain: ['keen', 'dim'],
+    turn_gain: ['sharp turn', 'wide turn'],
+    spot: ['speckled', 'speckled'],
+    echo: ['echo', 'echo'],
+    drift: ['wobble', 'wobble'],
   };
 
   const PRESETS = {
@@ -80,12 +94,61 @@
       let value = mid;
       if (rate > 0 && sigma > 0 && random() < rate) {
         const bounds = GENE_BOUNDS[gene];
-        value = clamp(mid * (1 + gauss(random, sigma)), bounds[0], bounds[1]);
+        if (gene === 'spot' || gene === 'echo' || gene === 'drift') {
+          value = clamp(mid + gauss(random, sigma), bounds[0], bounds[1]);
+        } else {
+          value = clamp(mid * (1 + gauss(random, sigma)), bounds[0], bounds[1]);
+        }
       }
       child[gene] = value;
       if (Math.abs(value - mid) > 1e-6) mutations[gene] = value - mid;
     });
     return [child, mutations];
+  }
+
+  function describeMutations(mutations) {
+    return Object.keys(mutations).map((gene) => {
+      const labels = MUTATION_LABELS[gene] || [gene, gene];
+      const delta = mutations[gene];
+      if (gene === 'metabolism') return delta > 0 ? labels[0] : labels[1];
+      return delta >= 0 ? labels[0] : labels[1];
+    });
+  }
+
+  function lifespanOf(agent, rules) {
+    const bonus = Math.min(rules.meal_life_cap, agent.meals * rules.meal_life);
+    return Math.max(1, Math.round(rules.max_age * (agent.genome.lifespan || 1) + bonus));
+  }
+
+  function lineageTable(agents) {
+    const table = {};
+    agents.forEach((agent) => {
+      const lid = agent.lineage;
+      if (!table[lid]) table[lid] = { founder: lid, born: 0, living: 0, max_gen: 0, meals: 0, contested: 0, displaced: 0 };
+      table[lid].born += 1;
+      if (agent.alive) table[lid].living += 1;
+      table[lid].max_gen = Math.max(table[lid].max_gen, agent.generation);
+      table[lid].meals += agent.meals;
+      table[lid].contested += agent.contested || 0;
+      table[lid].displaced += agent.displaced || 0;
+    });
+    return table;
+  }
+
+  function livingByGen(agents) {
+    const counts = {};
+    agents.forEach((agent) => {
+      if (!agent.alive) return;
+      const key = String(agent.generation);
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function relocatePatch(patch, random, rules) {
+    const half = rules.map_half * 0.82;
+    patch.x = (random() * 2 - 1) * half;
+    patch.y = (random() * 2 - 1) * half;
   }
 
   function decoderFor(base, genome) {
@@ -118,9 +181,11 @@
       repro_cooldown: repro <= 0 ? 1e9 : Math.max(12, Math.round(DEFAULTS.repro_cooldown / repro)),
       min_repro_energy: repro <= 0 ? 99 : Math.max(0.55, DEFAULTS.min_repro_energy - 0.15 * (repro - 1)),
       mate_radius: repro <= 0 ? DEFAULTS.mate_radius : DEFAULTS.mate_radius * (0.75 + 0.25 * repro),
-      max_population: clamp(Math.round(Number(ui.max_population) || 36), agents, 40),
+      max_population: clamp(Math.round(Number(ui.max_population) || 48), agents, 50),
       mutation_rate: clamp(Number(ui.mutation_rate == null ? DEFAULTS.mutation_rate : ui.mutation_rate), 0, 1),
       mutation_sigma: Math.max(0, Number(ui.mutation_sigma == null ? DEFAULTS.mutation_sigma : ui.mutation_sigma)),
+      meal_life: DEFAULTS.meal_life,
+      meal_life_cap: DEFAULTS.meal_life_cap,
     });
   }
 
@@ -196,6 +261,7 @@
         death_tick: null, cause_of_death: null, corpse_until: null, last_repro: -1e6,
         generation: 0, parents: null, offspring: 0, left: 0, right: 0, speed: 0,
         genome: Object.assign({}, BASE_GENOME), mutations: {}, trail: [],
+        lineage: i, contested: 0, displaced: 0,
       });
     }
     return agents;
@@ -204,20 +270,20 @@
   function spawnPatches(count, radius, random, rules) {
     const patches = [];
     for (let i = 0; i < count; i += 1) {
-      const angle = 2 * Math.PI * i / count + (random() * 0.3 - 0.15);
-      const r = radius * (0.7 + random() * 0.3);
       const mature = i % 2 === 0;
-      patches.push({
-        id: i, x: r * Math.cos(angle), y: r * Math.sin(angle),
+      const patch = {
+        id: i, x: 0, y: 0,
         stage: mature ? 'mature' : 'growing',
         timer: mature ? 0 : Math.floor(rules.grow_ticks / 2),
         nutrition: 1, consumed_by: null,
-      });
+      };
+      relocatePatch(patch, random, rules);
+      patches.push(patch);
     }
     return patches;
   }
 
-  function advancePatch(patch, rules) {
+  function advancePatch(patch, rules, random) {
     if (patch.stage === 'mature') return null;
     patch.timer -= 1;
     if (patch.timer > 0) return null;
@@ -225,6 +291,7 @@
       patch.stage = 'seed';
       patch.timer = rules.seed_ticks;
       patch.consumed_by = null;
+      if (random) relocatePatch(patch, random, rules);
     } else if (patch.stage === 'seed') {
       patch.stage = 'growing';
       patch.timer = rules.grow_ticks;
@@ -233,6 +300,8 @@
       patch.timer = 0;
       return 'food_mature';
     }
+    return null;
+  }
     return null;
   }
 
@@ -252,6 +321,8 @@
       events: [],
       births: 0,
       peak: rules.agents,
+      contested: 0,
+      displaced: 0,
       series: [],
       random: random,
     };
@@ -302,28 +373,34 @@
       partner.last_repro = tick;
       parent.offspring += 1;
       partner.offspring += 1;
-      const angle = world.random() * 2 * Math.PI;
-      const half = rules.map_half;
-      const inherited = inheritGenome(parent.genome, partner.genome, world.random, rules);
-      const child = {
-        id: world.agents.reduce((max, agent) => Math.max(max, agent.id), 0) + 1,
-        x: clamp((parent.x + partner.x) / 2 + 0.35 * Math.cos(angle), -half, half),
-        y: clamp((parent.y + partner.y) / 2 + 0.35 * Math.sin(angle), -half, half),
-        heading: angle, energy: rules.offspring_energy, age: 0, alive: true, meals: 0, ate: false,
-        birth_tick: tick, death_tick: null, cause_of_death: null, corpse_until: null,
-        last_repro: tick, generation: Math.max(parent.generation, partner.generation) + 1,
-        parents: [parent.id, partner.id], offspring: 0, left: 0, right: 0, speed: 0, trail: [],
-        genome: inherited[0], mutations: inherited[1],
-      };
-      world.agents.push(child);
-      world.circuits.push(new Circuit(world.graph));
-      world.births += 1;
-      const mutated = Object.keys(inherited[1]);
-      world.events.push({
-        tick: tick, kind: 'born', agent: child.id, parents: child.parents, mutations: inherited[1],
-        text: 'F' + child.id + ' born to F' + parent.id + ' and F' + partner.id + ' · ' +
-          (mutated.length ? mutated.map((gene) => gene + ' ' + child.genome[gene].toFixed(2)).join(', ') : 'no mutation'),
-      });
+      const first = inheritGenome(parent.genome, partner.genome, world.random, rules);
+      const extra = first[0].fertility >= 1.35 ? 1 : 0;
+      for (let sibling = 0; sibling < 1 + extra; sibling += 1) {
+        if (sibling && world.agents.filter((agent) => agent.alive).length >= rules.max_population) break;
+        const inherited = sibling === 0 ? first : inheritGenome(parent.genome, partner.genome, world.random, rules);
+        const angle = world.random() * 2 * Math.PI;
+        const half = rules.map_half;
+        const child = {
+          id: world.agents.reduce((max, agent) => Math.max(max, agent.id), 0) + 1,
+          x: clamp((parent.x + partner.x) / 2 + 0.35 * Math.cos(angle), -half, half),
+          y: clamp((parent.y + partner.y) / 2 + 0.35 * Math.sin(angle), -half, half),
+          heading: angle, energy: rules.offspring_energy, age: 0, alive: true, meals: 0, ate: false,
+          birth_tick: tick, death_tick: null, cause_of_death: null, corpse_until: null,
+          last_repro: tick, generation: Math.max(parent.generation, partner.generation) + 1,
+          parents: [parent.id, partner.id], offspring: 0, left: 0, right: 0, speed: 0, trail: [],
+          genome: inherited[0], mutations: inherited[1], lineage: parent.lineage, contested: 0, displaced: 0,
+        };
+        world.agents.push(child);
+        world.circuits.push(new Circuit(world.graph));
+        world.births += 1;
+        if (sibling) { parent.offspring += 1; partner.offspring += 1; }
+        const labels = describeMutations(inherited[1]);
+        world.events.push({
+          tick: tick, kind: 'born', agent: child.id, parents: child.parents, mutations: inherited[1],
+          text: 'F' + child.id + ' born to F' + parent.id + ' and F' + partner.id + ' · ' +
+            (labels.length ? labels.join(', ') : 'no mutation'),
+        });
+      }
     }
   }
 
@@ -350,6 +427,7 @@
       const motors = circuit.motors();
       const moved = integrateMotion(body, agent.x, agent.y, agent.heading, motors[0], motors[1]);
       agent.x = moved[0]; agent.y = moved[1]; agent.heading = moved[2]; agent.speed = moved[3];
+      agent.heading += 0.01 * (agent.genome.drift || 0) * Math.sin(agent.age * 0.19);
       agent.left = motors[0]; agent.right = motors[1];
       agent.trail.push([agent.x, agent.y]);
       if (agent.trail.length > 90) agent.trail.shift();
@@ -357,7 +435,7 @@
     const taken = {};
     world.patches.forEach((patch) => {
       if (patch.stage !== 'mature') {
-        if (advancePatch(patch, rules) === 'food_mature') {
+        if (advancePatch(patch, rules, world.random) === 'food_mature') {
           world.events.push({ tick: world.tick, kind: 'food_mature', text: 'patch ' + patch.id + ' matured' });
         }
         return;
@@ -367,6 +445,17 @@
       if (!contenders.length) return;
       const winner = contenders.reduce((best, agent) => agent.id < best.id ? agent : best);
       taken[winner.id] = true;
+      if (contenders.length > 1) {
+        world.contested += 1;
+        winner.contested += 1;
+        contenders.forEach((agent) => {
+          if (agent.id === winner.id) return;
+          agent.displaced += 1;
+          world.displaced += 1;
+        });
+        world.events.push({ tick: world.tick, kind: 'contested',
+          text: 'F' + winner.id + ' beat ' + (contenders.length - 1) + ' rival(s) to patch ' + patch.id });
+      }
       winner.ate = true;
       winner.meals += 1;
       winner.energy = Math.min(rules.energy_max, winner.energy + rules.meal * patch.nutrition);
@@ -379,7 +468,7 @@
     world.agents.forEach((agent) => {
       if (!agent.alive) return;
       agent.energy -= rules.base_drain * agent.genome.metabolism + rules.move_cost * agent.speed;
-      if (agent.age >= rules.max_age) {
+      if (agent.age >= lifespanOf(agent, rules)) {
         kill(agent, world.tick, 'old_age', rules.corpse_ticks);
         world.events.push({ tick: world.tick, kind: 'died', text: 'F' + agent.id + ' died of old age' });
       } else if (agent.energy <= 0) {
@@ -405,6 +494,9 @@
         energy: living.length ? living.reduce((sum, agent) => sum + agent.energy, 0) / living.length : 0,
         speed: living.length ? living.reduce((sum, agent) => sum + agent.genome.speed, 0) / living.length : 1,
         metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
+        lifespan: living.length ? living.reduce((sum, agent) => sum + agent.genome.lifespan, 0) / living.length : 1,
+        fertility: living.length ? living.reduce((sum, agent) => sum + agent.genome.fertility, 0) / living.length : 1,
+        generation: living.length ? Math.max.apply(null, living.map((agent) => agent.generation)) : 0,
       });
       if (world.series.length > 180) world.series.shift();
     }
@@ -426,6 +518,12 @@
       mean_energy: living.length ? living.reduce((sum, agent) => sum + agent.energy, 0) / living.length : 0,
       mean_speed: living.length ? living.reduce((sum, agent) => sum + agent.genome.speed, 0) / living.length : 1,
       mean_metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
+      mean_lifespan: living.length ? living.reduce((sum, agent) => sum + agent.genome.lifespan, 0) / living.length : 1,
+      mean_fertility: living.length ? living.reduce((sum, agent) => sum + agent.genome.fertility, 0) / living.length : 1,
+      contested: world.contested || 0,
+      displaced: world.displaced || 0,
+      lineages: lineageTable(world.agents),
+      living_by_gen: livingByGen(world.agents),
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null),
       agents: world.agents,
       patches: world.patches,

@@ -62,7 +62,10 @@
     .swatch { width: 10px; height: 10px; border-radius: 50%; }
     #events { max-height: 140px; overflow: auto; font-size: 11px; color: var(--muted); }
     .event { padding: 2px 0; border-bottom: 1px solid var(--line); }
-    #popchart { width: 100%; height: 72px; display: block; background: #10131a; border: 1px solid var(--line); border-radius: 4px; }
+    .bar-row { display: grid; grid-template-columns: 52px 1fr 36px; gap: 6px; align-items: center; font-size: 11px; margin: 3px 0; color: var(--muted); }
+    .bar-row i { display: block; height: 7px; background: var(--teal); border-radius: 3px; }
+    .bar-row i.gold { background: var(--food); }
+    #lineage-board, #gen-board { margin-bottom: 8px; }
     @media (max-width: 860px) {
       body { height: auto; overflow: auto; }
       main { grid-template-columns: 1fr; }
@@ -105,8 +108,14 @@
         <div class="stat"><span>mean metabolism</span><strong id="eco-mean-metab">1</strong></div>
         <div class="stat"><span>mature food</span><strong id="eco-food">0</strong></div>
         <div class="stat"><span>corpses</span><strong id="eco-corpses">0</strong></div>
+        <div class="stat"><span>contested meals</span><strong id="eco-contested">0</strong></div>
+        <div class="stat"><span>displaced</span><strong id="eco-displaced">0</strong></div>
         <canvas id="popchart" width="280" height="72" aria-label="Population and food chart"></canvas>
         <div class="meta" id="chart-legend">white population · gold mature food · teal energy · faint births</div>
+        <h2>Lineages</h2>
+        <div id="lineage-board"></div>
+        <h2>Generations alive</h2>
+        <div id="gen-board"></div>
         <h2>Timeline</h2>
         <div id="events"></div>
         <h2>Agents</h2>
@@ -119,8 +128,11 @@
         <div class="stat"><span>sensory</span><strong id="eco-sense">1</strong></div>
         <div class="stat"><span>metabolism</span><strong id="eco-metab">1</strong></div>
         <div class="stat"><span>speed gene</span><strong id="eco-speedg">1</strong></div>
+        <div class="stat"><span>lifespan</span><strong id="eco-life">1</strong></div>
+        <div class="stat"><span>fertility</span><strong id="eco-fert">1</strong></div>
         <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
-        <div class="stat"><span>age</span><strong id="eco-age">0</strong></div>
+        <div class="stat"><span>lineage</span><strong id="eco-line">F0</strong></div>
+        <div class="stat"><span>age / span</span><strong id="eco-age">0</strong></div>
         <div class="stat"><span>energy</span><strong id="eco-energy">0</strong></div>
         <div class="stat"><span>meals</span><strong id="eco-meals">0</strong></div>
         <div class="stat"><span>status</span><strong id="eco-status">alive</strong></div>
@@ -371,7 +383,28 @@
         line(series.map((row) => row.mean_energy || 0), '#6fbfa3', maxE);
       }
 
+      function followSelection(agents, currentId) {
+        const current = (agents || []).find((row) => row.id === currentId);
+        if (current && current.alive) return currentId;
+        const kids = (agents || []).filter((row) => row.alive && row.parents && row.parents.indexOf(currentId) >= 0);
+        if (kids.length) return kids.sort((a, b) => b.generation - a.generation || b.energy - a.energy)[0].id;
+        const lineage = current ? current.lineage : currentId;
+        const line = (agents || []).filter((row) => row.alive && row.lineage === lineage);
+        if (line.length) return line.sort((a, b) => b.generation - a.generation || b.energy - a.energy)[0].id;
+        const living = (agents || []).filter((row) => row.alive);
+        return living.length ? living.sort((a, b) => b.generation - a.generation)[0].id : currentId;
+      }
+
+      function barList(root, rows, colorClass) {
+        const max = Math.max(1, ...rows.map((row) => row.value));
+        root.innerHTML = rows.map((row) =>
+          '<div class="bar-row"><span>' + row.label + '</span><div class="fill"><i class="' +
+          (colorClass || '') + '" style="width:' + Math.round(100 * row.value / max) + '%"></i></div><span>' +
+          row.value + '</span></div>').join('') || '<div class="meta">none yet</div>';
+      }
+
       function drawEco(tick) {
+        selected = followSelection(tick.agents || [], selected);
         const [, , scale] = worldToCanvas(0, 0);
         tick.agents.forEach((agent) => {
           ctx.strokeStyle = flyColor(agent.id);
@@ -412,6 +445,8 @@
         document.getElementById('eco-mean-metab').textContent = Number(tick.mean_metabolism || 1).toFixed(2);
         document.getElementById('eco-food').textContent = tick.mature_food;
         document.getElementById('eco-corpses').textContent = String((tick.corpses || []).length);
+        document.getElementById('eco-contested').textContent = tick.contested || 0;
+        document.getElementById('eco-displaced').textContent = tick.displaced || 0;
         const board = tick.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.meals - a.meals) || (b.energy - a.energy) || (a.id - b.id));
         document.getElementById('eco-board').innerHTML = board.map((agent) => {
           const klass = 'fly-row' + (agent.id === selected ? ' selected' : '') + (agent.alive ? '' : ' dead');
@@ -433,10 +468,13 @@
         document.getElementById('eco-sense').textContent = Number(genome.sensory_gain || 1).toFixed(2);
         document.getElementById('eco-metab').textContent = Number(genome.metabolism || 1).toFixed(2);
         document.getElementById('eco-speedg').textContent = Number(genome.speed || 1).toFixed(2);
+        document.getElementById('eco-life').textContent = Number(genome.lifespan || 1).toFixed(2);
+        document.getElementById('eco-fert').textContent = Number(genome.fertility || 1).toFixed(2);
         const mut = sel.mutations || {};
         document.getElementById('eco-mut').textContent = Object.keys(mut).length
           ? Object.keys(mut).join(', ') : 'none';
-        document.getElementById('eco-age').textContent = sel.age;
+        document.getElementById('eco-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);
+        document.getElementById('eco-age').textContent = sel.age + ' / ' + (sel.life_span || '?');
         document.getElementById('eco-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('eco-meals').textContent = sel.meals;
         document.getElementById('eco-status').textContent = sel.alive ? 'alive' : (sel.cause_of_death || 'dead');
@@ -447,6 +485,16 @@
         const recent = (data.events || []).filter((event) => event.tick <= tick.tick).slice(-8).reverse();
         document.getElementById('events').innerHTML = recent.map((event) =>
           '<div class="event">t' + event.tick + ' · ' + event.text + '</div>').join('') || '<div class="event">no events yet</div>';
+        const genCounts = tick.living_by_gen || {};
+        const genRows = Object.keys(genCounts).sort((a, b) => Number(a) - Number(b)).map((key) =>
+          ({ label: 'g' + key, value: genCounts[key] }));
+        barList(document.getElementById('gen-board'), genRows);
+        const lineageSource = (data.final && data.final.lineages) || {};
+        const lineageRows = Object.keys(lineageSource).map((key) => lineageSource[key])
+          .sort((a, b) => (b.living - a.living) || (b.max_gen - a.max_gen) || (a.founder - b.founder))
+          .slice(0, 8)
+          .map((row) => ({ label: 'F' + row.founder, value: row.living }));
+        barList(document.getElementById('lineage-board'), lineageRows, 'gold');
         drawChart(index);
       }
 

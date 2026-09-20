@@ -26,13 +26,13 @@ Default: 10 flies, 3 pellets, map ±20. The command prints a leaderboard and wri
 
 ## Watch ecosystem v0.1
 
-A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Nearby well-fed adults can reproduce. Offspring inherit and mutate **simulation** traits (turn gain, sensory gain, metabolism, speed); MaleCNS topology stays fixed.
+A persistent world: food respawns at a **new random location** after each meal, agents age, and eating extends artificial lifespan. Nearby adults reproduce; offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology stays fixed.
 
 ```bash
-python3 sim.py ecosystem circuits/dng13.json --ticks 2000 --turn-sign -1 --turn-gain 1 --out view.html --open
+python3 sim.py ecosystem circuits/dng13.json --ticks 12000 --turn-sign -1 --turn-gain 1 --out view.html --open
 ```
 
-Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate` (`0` disables birth), `--mutation-rate`, `--mutation-sigma`, `--max-population`. The local viewer shows genomes, mutations, generation, parents, and population means. This is parameter evolution in the toy world, not evolution of the fly connectome.
+Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate`, `--mutation-rate`, `--mutation-sigma`, `--max-population`, `--record-every`. Default runs are long enough for many generations; frames are stored every 6 ticks so the HTML stays usable. The inspector follows a living descendant when the selected agent dies. Lineage bars and contested-meal counts are on the dashboard.
 
 ## Try it in the browser
 
