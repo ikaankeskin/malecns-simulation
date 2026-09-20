@@ -37,7 +37,9 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Visible simulation: self-contained HTML playback with pause, step, reset, per-neuron activity, and synthetic vs MaleCNS-derived labels.
 - [x] Multi-agent CPU contest: 10 independent flies, scarce shared food, larger map, energy/survival ranking. Same circuit and decoder; spawn pose differs. See `python3 sim.py contest`.
 - [x] Ecosystem v0.1: renewable patches, age, starvation/old-age death, decaying corpses, event timeline, inspector. See `ROADMAP.md` and `python3 sim.py ecosystem`.
-- [ ] Reproduction and later social/LLM layers (not started).
+- [x] Reproduction: proximity + energy cost, parent IDs, generation, population cap. Topology stays fixed.
+- [x] GitHub Pages live ecosystem with agent/food/aging/reproduction controls and randomize.
+- [ ] Genetics, combat, social, and LLM layers (not started).
 - [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
 ## First scientific decision
@@ -51,4 +53,6 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Decoder experiment: parameterize turn/sensory signs and turn gain; select on development seeds; evaluate intact vs shuffled/disconnected/no-input on held-out seeds. See `docs/DNG13_DECODER.md`.
 - Viewer: `python3 sim.py view` writes a self-contained HTML replay of world state and neural activity. Generated `view.html` stays local.
 - Multi-agent contest: independent circuit copies, three non-respawning pellets, energy drain, deterministic leaderboard. Engineered scoring, not fly physiology.
-- Ecosystem v0.1: persistent patches with a growth lifecycle, age, labelled deaths, decaying corpses, charts, and timeline. Reproduction is the next stage.
+- Ecosystem v0.1: persistent patches with a growth lifecycle, age, labelled deaths, decaying corpses, charts, and timeline.
+- Reproduction: two nearby adults that meet age and energy thresholds produce an offspring with a new circuit copy. No mutation. Population is capped.
+- GitHub Pages: `docs/index.html` runs the ecosystem in the browser; sliders and Randomize retune the world.

@@ -17,14 +17,14 @@ Do not claim that food-seeking, survival, social behaviour, or evolution are pro
 
 - Synthetic foraging loop and official MaleCNS v1.0 DNg13 extract.
 - Toy rate controller; decoder signs/gains are experimental interface parameters.
-- HTML playback for one agent and a 10-fly one-shot contest with non-respawning pellets.
+- HTML playback for one agent, a 10-fly contest, and a persistent ecosystem with births.
 
 ## Phase sequence
 
-1. Persistent ecosystem (current): renewable food, age, death, corpses, metabolism, inspector.
-2. Living environment: depletion, hazards, cycles — still no reproduction.
+1. Persistent ecosystem: renewable food, age, death, corpses, metabolism, inspector.
+2. Living environment: depletion, hazards, cycles.
 3. Life and death budgets: richer energy, causes of death.
-4. Reproduction (after the world can persist or collapse on its own).
+4. Reproduction (current): proximity, energy cost, parent IDs, generations. No mutation yet.
 5. Genetics / mutation of **simulation parameters**, not connectome topology, unless a separate experimental mode is declared.
 6. Resource competition metrics.
 7. Corpses as food, then optional predation.
@@ -50,8 +50,10 @@ These are simulation abstractions unless noted.
 | Energy | Artificial budget: base drain + movement cost. Not fly metabolism |
 | Death | Starvation or old age |
 | Corpses | Visible, then decay. Not edible yet |
-| Reproduction / LLM | Not in v0.1 |
+| Reproduction | Two-parent proximity, energy cost, population cap. Same controller; no sex, no mutation |
 
-## Next after v0.1
+## Next after reproduction
 
-Reproduction, then inheritable decoder/metabolism parameters, then competition metrics. LLM cognition only after a non-LLM social baseline exists.
+Inheritable decoder/metabolism parameters, then competition metrics. LLM cognition only after a non-LLM social baseline exists.
+
+The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.

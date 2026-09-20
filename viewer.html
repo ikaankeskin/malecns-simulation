@@ -100,16 +100,19 @@
         <h2>Ecosystem</h2>
         <div class="stat"><span>tick</span><strong id="eco-tick">0</strong></div>
         <div class="stat"><span>alive</span><strong id="eco-alive">0</strong></div>
+        <div class="stat"><span>born</span><strong id="eco-born">0</strong></div>
         <div class="stat"><span>mature food</span><strong id="eco-food">0</strong></div>
         <div class="stat"><span>corpses</span><strong id="eco-corpses">0</strong></div>
         <canvas id="popchart" width="280" height="72" aria-label="Population and food chart"></canvas>
-        <div class="meta" id="chart-legend">white population · gold mature food · teal energy</div>
+        <div class="meta" id="chart-legend">white population · gold mature food · teal energy · faint births</div>
         <h2>Timeline</h2>
         <div id="events"></div>
         <h2>Agents</h2>
         <div id="eco-board"></div>
         <h2>Inspector</h2>
         <div class="stat"><span>id</span><strong id="eco-id">0</strong></div>
+        <div class="stat"><span>generation</span><strong id="eco-gen">0</strong></div>
+        <div class="stat"><span>parents</span><strong id="eco-parents">founder</strong></div>
         <div class="stat"><span>age</span><strong id="eco-age">0</strong></div>
         <div class="stat"><span>energy</span><strong id="eco-energy">0</strong></div>
         <div class="stat"><span>meals</span><strong id="eco-meals">0</strong></div>
@@ -343,7 +346,7 @@
         const series = [];
         for (let i = 0; i < slice.length; i += step) series.push(slice[i]);
         if (!series.length) return;
-        const maxPop = Math.max(1, ...series.map((row) => row.alive || 0));
+        const maxPop = Math.max(1, ...series.map((row) => Math.max(row.alive || 0, row.born || 0)));
         const maxFood = Math.max(1, ...series.map((row) => row.mature_food || 0));
         const maxE = Math.max(0.01, ...series.map((row) => row.mean_energy || 0));
         function line(values, color, peak) {
@@ -356,6 +359,7 @@
           c.strokeStyle = color; c.lineWidth = 1.5; c.stroke();
         }
         line(series.map((row) => row.alive || 0), '#ece7dc', maxPop);
+        line(series.map((row) => row.born || 0), '#9aa3b5', maxPop);
         line(series.map((row) => row.mature_food || 0), '#e6c15a', maxFood);
         line(series.map((row) => row.mean_energy || 0), '#6fbfa3', maxE);
       }
@@ -369,7 +373,7 @@
           ctx.beginPath();
           let started = false;
           ticks.slice(0, index + 1).forEach((step) => {
-            const body = step.agents[agent.id];
+            const body = (step.agents || []).find((row) => row.id === agent.id);
             if (!body) return;
             const [x, y] = worldToCanvas(body.x, body.y);
             if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
@@ -396,6 +400,7 @@
         });
         document.getElementById('eco-tick').textContent = tick.tick;
         document.getElementById('eco-alive').textContent = tick.alive;
+        document.getElementById('eco-born').textContent = tick.born || 0;
         document.getElementById('eco-food').textContent = tick.mature_food;
         document.getElementById('eco-corpses').textContent = String((tick.corpses || []).length);
         const board = tick.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.meals - a.meals) || (b.energy - a.energy) || (a.id - b.id));
@@ -409,8 +414,11 @@
         Array.from(document.querySelectorAll('#eco-board [data-fly]')).forEach((button) => {
           button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
         });
-        const sel = tick.agents[selected] || tick.agents[0];
+        const sel = (tick.agents || []).find((row) => row.id === selected) || tick.agents[0];
         document.getElementById('eco-id').textContent = 'F' + sel.id;
+        document.getElementById('eco-gen').textContent = sel.generation || 0;
+        document.getElementById('eco-parents').textContent = sel.parents
+          ? ('F' + sel.parents[0] + ' + F' + sel.parents[1]) : 'founder';
         document.getElementById('eco-age').textContent = sel.age;
         document.getElementById('eco-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('eco-meals').textContent = sel.meals;
@@ -434,7 +442,7 @@
           ctx.beginPath();
           let started = false;
           ticks.slice(0, index + 1).forEach((step) => {
-            const body = step.agents[agent.id];
+            const body = (step.agents || []).find((row) => row.id === agent.id);
             if (!body) return;
             const [x, y] = worldToCanvas(body.x, body.y);
             if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MaleCNS ecosystem</title>
+  <style>
+    :root {
+      --bg: #0b0d12;
+      --panel: #141821ee;
+      --line: #2a3142;
+      --text: #f3eee3;
+      --muted: #9aa3b5;
+      --gold: #e6c15a;
+      --teal: #6fbfa3;
+      --real: #8bb6ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+      font: 14px/1.45 "IBM Plex Sans", "Source Sans 3", "Segoe UI", sans-serif; }
+    body { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+    header { padding: 14px 20px 10px; border-bottom: 1px solid var(--line); background: #10141c; }
+    header h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+    .badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px;
+      font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--real);
+      border: 1px solid var(--real); vertical-align: middle; }
+    .meta { color: var(--muted); font-size: 12px; max-width: 72rem; }
+    main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
+    .stage { position: relative; min-width: 0; min-height: 0; background:
+      radial-gradient(1200px 700px at 50% 45%, #151b27 0%, #0b0d12 70%); }
+    canvas { width: 100%; height: 100%; display: block; }
+    aside { border-left: 1px solid var(--line); background: var(--panel); overflow: auto; padding: 14px 16px 28px; }
+    h2 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 16px 0 8px; }
+    h2:first-child { margin-top: 0; }
+    .row { display: flex; justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; margin: 4px 0; }
+    .row span { color: var(--muted); }
+    label.ctrl { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin: 8px 0; font-size: 12px; }
+    label.ctrl span { color: var(--muted); }
+    input[type=range] { grid-column: 1 / -1; width: 100%; }
+    select, button, input[type=number] {
+      background: #1d2330; color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+      padding: 7px 10px; cursor: pointer; font: inherit;
+    }
+    button.primary { background: #2a3b34; border-color: #3e5c52; color: #d7f0e6; width: 100%; margin: 4px 0; }
+    button.ghost { width: 100%; margin: 4px 0; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    #events { max-height: 120px; overflow: auto; font-size: 11px; color: var(--muted); }
+    .event { padding: 2px 0; border-bottom: 1px solid #232a38; }
+    #popchart { width: 100%; height: 64px; display: block; background: #10131a; border: 1px solid var(--line); border-radius: 4px; }
+    .fly { width: 100%; text-align: left; background: transparent; padding: 4px 6px; margin: 2px 0; }
+    .fly.selected { background: #262b38; }
+    .fly.dead { opacity: .45; }
+    .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .warn { color: #d4a24c; font-size: 12px; }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .stage { min-height: 52vh; }
+      aside { border-left: 0; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MaleCNS ecosystem <span class="badge">malecns-derived controller</span></h1>
+    <div class="meta">MaleCNS DNg13 circuits steer bodies. Food, energy, aging, and reproduction are labelled simulation rules, not fly physiology. Topology does not mutate.</div>
+  </header>
+  <main>
+    <div class="stage"><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
+    <aside>
+      <h2>Rules</h2>
+      <label class="ctrl"><span>preset</span>
+        <select id="preset" aria-label="Rule preset">
+          <option value="balanced">balanced</option>
+          <option value="scarce">scarce food</option>
+          <option value="bloom">bloom</option>
+          <option value="harsh">harsh</option>
+          <option value="custom">custom</option>
+        </select>
+      </label>
+      <label class="ctrl"><span>agents</span><strong id="agents-val">8</strong>
+        <input id="agents" type="range" min="2" max="24" step="1" value="8" aria-label="Number of agents">
+      </label>
+      <label class="ctrl"><span>food spawn rate</span><strong id="food-val">1.00</strong>
+        <input id="food-rate" type="range" min="0.25" max="2.5" step="0.05" value="1" aria-label="Food spawn rate">
+      </label>
+      <label class="ctrl"><span>aging rate</span><strong id="aging-val">1.00</strong>
+        <input id="aging-rate" type="range" min="0.25" max="2.5" step="0.05" value="1" aria-label="Aging rate">
+      </label>
+      <label class="ctrl"><span>reproduction rate</span><strong id="repro-val">1.00</strong>
+        <input id="repro-rate" type="range" min="0" max="2.5" step="0.05" value="1" aria-label="Reproduction rate">
+      </label>
+      <div class="actions">
+        <button type="button" id="randomize" class="primary">Randomize</button>
+        <button type="button" id="apply">Apply</button>
+        <button type="button" id="play" class="ghost">Pause</button>
+        <button type="button" id="reset" class="ghost">Restart</button>
+      </div>
+      <div class="row"><span>seed</span><strong id="seed-val">4</strong></div>
+      <div class="meta" id="rule-readout"></div>
+
+      <h2>World</h2>
+      <div class="row"><span>tick</span><strong id="tick">0</strong></div>
+      <div class="row"><span>alive</span><strong id="alive">0</strong></div>
+      <div class="row"><span>born</span><strong id="born">0</strong></div>
+      <div class="row"><span>generation</span><strong id="generation">0</strong></div>
+      <div class="row"><span>mature food</span><strong id="food">0</strong></div>
+      <canvas id="popchart" width="300" height="64" aria-label="Population chart"></canvas>
+      <div class="meta">white population · gold food · teal energy</div>
+
+      <h2>Timeline</h2>
+      <div id="events"></div>
+      <h2>Agents</h2>
+      <div id="board"></div>
+      <h2>Inspector</h2>
+      <div class="row"><span>id</span><strong id="sel-id">—</strong></div>
+      <div class="row"><span>generation</span><strong id="sel-gen">0</strong></div>
+      <div class="row"><span>parents</span><strong id="sel-parents">founder</strong></div>
+      <div class="row"><span>age</span><strong id="sel-age">0</strong></div>
+      <div class="row"><span>energy</span><strong id="sel-energy">0</strong></div>
+      <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
+      <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
+      <h2>Assumptions</h2>
+      <div class="meta">Energy is an artificial budget. Reproduction is proximity plus energy, with a population cap. The attraction decoder is an experimental interface mapping, not a biological feeding circuit. MaleCNS data: CC BY 4.0, FlyEM / Janelia, Cambridge, MRC LMB, Google Research.</div>
+    </aside>
+  </main>
+  <script src="engine.js"></script>
+  <script>
+    const Eco = window.MaleCNSEco;
+    const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
+    const canvas = document.getElementById('arena');
+    const ctx = canvas.getContext('2d');
+    const fields = {
+      agents: document.getElementById('agents'),
+      food: document.getElementById('food-rate'),
+      aging: document.getElementById('aging-rate'),
+      repro: document.getElementById('repro-rate'),
+      preset: document.getElementById('preset'),
+    };
+    let graph = null, world = null, selected = 0, playing = true, handle = null, seed = 4;
+
+    function ui() {
+      return {
+        agents: Number(fields.agents.value),
+        food_rate: Number(fields.food.value),
+        aging_rate: Number(fields.aging.value),
+        repro_rate: Number(fields.repro.value),
+        patches: (Eco.PRESETS[fields.preset.value] || Eco.PRESETS.balanced).patches,
+      };
+    }
+
+    function showUi() {
+      document.getElementById('agents-val').textContent = fields.agents.value;
+      document.getElementById('food-val').textContent = Number(fields.food.value).toFixed(2);
+      document.getElementById('aging-val').textContent = Number(fields.aging.value).toFixed(2);
+      document.getElementById('repro-val').textContent = Number(fields.repro.value).toFixed(2);
+    }
+
+    function color(id) { return palette[id % palette.length]; }
+
+    function worldToCanvas(x, y, bounds) {
+      const w = canvas.width, h = canvas.height, m = 28;
+      const scale = Math.min((w - 2 * m) / (bounds.max - bounds.min), (h - 2 * m) / (bounds.max - bounds.min));
+      return [m + (x - bounds.min) * scale, h - m - (y - bounds.min) * scale, scale];
+    }
+
+    function triangle(x, y, heading, fill, faded) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-heading);
+      ctx.globalAlpha = faded ? 0.35 : 1;
+      ctx.fillStyle = fill;
+      ctx.shadowColor = fill;
+      ctx.shadowBlur = faded ? 0 : 8;
+      ctx.beginPath();
+      ctx.moveTo(11, 0); ctx.lineTo(-7, 6); ctx.lineTo(-4, 0); ctx.lineTo(-7, -6);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawChart(series) {
+      const chart = document.getElementById('popchart');
+      const c = chart.getContext('2d');
+      const w = chart.width, h = chart.height;
+      c.clearRect(0, 0, w, h);
+      if (!series.length) return;
+      const maxPop = Math.max(1, ...series.map((row) => row.alive));
+      const maxFood = Math.max(1, ...series.map((row) => row.food));
+      const maxE = Math.max(0.01, ...series.map((row) => row.energy));
+      function line(values, shade, peak) {
+        c.beginPath();
+        values.forEach((value, i) => {
+          const x = 4 + (i / Math.max(1, values.length - 1)) * (w - 8);
+          const y = h - 4 - (value / peak) * (h - 8);
+          if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        });
+        c.strokeStyle = shade; c.lineWidth = 1.4; c.stroke();
+      }
+      line(series.map((row) => row.alive), '#ece7dc', maxPop);
+      line(series.map((row) => row.food), '#e6c15a', maxFood);
+      line(series.map((row) => row.energy), '#6fbfa3', maxE);
+    }
+
+    function draw() {
+      if (!world) return;
+      const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+      if (cssW > 2 && cssH > 2 && (canvas.width !== cssW || canvas.height !== cssH)) {
+        canvas.width = cssW; canvas.height = cssH;
+      }
+      const snap = Eco.snapshot(world);
+      const half = world.rules.map_half;
+      const bounds = { min: -half - 1, max: half + 1 };
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#1d2432';
+      ctx.lineWidth = 1;
+      for (let g = Math.floor(bounds.min); g <= bounds.max; g += 2) {
+        const a = worldToCanvas(g, bounds.min, bounds);
+        const b = worldToCanvas(g, bounds.max, bounds);
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        const c = worldToCanvas(bounds.min, g, bounds);
+        const d = worldToCanvas(bounds.max, g, bounds);
+        ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
+      }
+      const look = { seed: ['#6a5340', 3], growing: ['#7a9a4a', 5], mature: ['#e6c15a', 8], cooldown: ['#3b4254', 3] };
+      snap.patches.forEach((patch) => {
+        const style = look[patch.stage] || look.cooldown;
+        const p = worldToCanvas(patch.x, patch.y, bounds);
+        ctx.globalAlpha = patch.stage === 'cooldown' ? 0.4 : 1;
+        ctx.fillStyle = style[0];
+        if (patch.stage === 'mature') { ctx.shadowColor = '#e6c15a'; ctx.shadowBlur = 12; }
+        ctx.beginPath(); ctx.arc(p[0], p[1], style[1], 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      });
+      snap.corpses.forEach((corpse) => {
+        const p = worldToCanvas(corpse.x, corpse.y, bounds);
+        ctx.fillStyle = '#8a8580'; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      snap.agents.forEach((agent) => {
+        if (!agent.trail || agent.trail.length < 2) return;
+        ctx.beginPath();
+        agent.trail.forEach((point, i) => {
+          const p = worldToCanvas(point[0], point[1], bounds);
+          if (i === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+        });
+        ctx.strokeStyle = color(agent.id);
+        ctx.globalAlpha = agent.id === selected ? 0.9 : 0.28;
+        ctx.lineWidth = agent.id === selected ? 2.2 : 1;
+        ctx.stroke(); ctx.globalAlpha = 1;
+      });
+      snap.agents.forEach((agent) => {
+        const show = agent.alive || (agent.corpse_until != null);
+        if (!show) return;
+        const p = worldToCanvas(agent.x, agent.y, bounds);
+        triangle(p[0], p[1], agent.heading, color(agent.id), !agent.alive);
+        ctx.fillStyle = '#ece7dc';
+        ctx.font = '11px sans-serif';
+        ctx.fillText('F' + agent.id, p[0] + 8, p[1] - 8);
+      });
+      document.getElementById('tick').textContent = snap.tick;
+      document.getElementById('alive').textContent = snap.alive;
+      document.getElementById('born').textContent = snap.births;
+      document.getElementById('generation').textContent = snap.generation;
+      document.getElementById('food').textContent = snap.mature_food;
+      document.getElementById('seed-val').textContent = seed;
+      const rules = world.rules;
+      document.getElementById('rule-readout').textContent =
+        'max age ' + rules.max_age + ' · grow ' + rules.grow_ticks + ' ticks · cooldown ' +
+        rules.cooldown_ticks + ' · mate radius ' + rules.mate_radius.toFixed(2) +
+        (rules.repro_enabled ? ' · repro on' : ' · repro off');
+      const board = snap.agents.slice().sort((a, b) => (b.alive - a.alive) || (b.generation - a.generation) || (b.energy - a.energy) || (a.id - b.id));
+      document.getElementById('board').innerHTML = board.slice(0, 18).map((agent) => {
+        const klass = 'fly' + (agent.id === selected ? ' selected' : '') + (agent.alive ? '' : ' dead');
+        return '<button type="button" class="' + klass + '" data-fly="' + agent.id + '">' +
+          '<span class="swatch" style="background:' + color(agent.id) + '"></span>F' + agent.id +
+          ' · gen ' + agent.generation + ' · ' + (agent.alive ? agent.energy.toFixed(2) : (agent.cause_of_death || 'dead')) +
+          '</button>';
+      }).join('');
+      Array.from(document.querySelectorAll('#board [data-fly]')).forEach((button) => {
+        button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
+      });
+      const sel = snap.agents.find((agent) => agent.id === selected) || snap.agents[0];
+      if (sel) {
+        document.getElementById('sel-id').textContent = 'F' + sel.id;
+        document.getElementById('sel-gen').textContent = sel.generation;
+        document.getElementById('sel-parents').textContent = sel.parents ? ('F' + sel.parents[0] + ' + F' + sel.parents[1]) : 'founder';
+        document.getElementById('sel-age').textContent = sel.age;
+        document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);
+        document.getElementById('sel-meals').textContent = sel.meals;
+        document.getElementById('sel-status').textContent = sel.alive ? 'alive' : (sel.cause_of_death || 'dead');
+      }
+      const recent = snap.events.slice(-8).reverse();
+      document.getElementById('events').innerHTML = recent.map((event) =>
+        '<div class="event">t' + event.tick + ' · ' + event.text + '</div>').join('') || '<div class="event">no events yet</div>';
+      drawChart(snap.series);
+    }
+
+    function startLoop() {
+      clearInterval(handle);
+      handle = setInterval(() => {
+        if (!playing || !world) return;
+        Eco.step(world);
+        if (world.tick % 2 === 0) draw();
+      }, 1000 / 32);
+    }
+
+    function restart(nextSeed) {
+      if (!graph) return;
+      seed = nextSeed == null ? seed : nextSeed;
+      world = Eco.createWorld(graph, ui(), seed);
+      selected = 0;
+      draw();
+    }
+
+    function applyPreset(name) {
+      const preset = Eco.PRESETS[name];
+      if (!preset) return;
+      fields.agents.value = String(preset.agents);
+      fields.food.value = String(preset.food_rate);
+      fields.aging.value = String(preset.aging_rate);
+      fields.repro.value = String(preset.repro_rate);
+      showUi();
+    }
+
+    ['agents', 'food', 'aging', 'repro'].forEach((key) => {
+      fields[key].addEventListener('input', () => {
+        fields.preset.value = 'custom';
+        showUi();
+      });
+    });
+    fields.preset.addEventListener('change', () => {
+      if (fields.preset.value !== 'custom') applyPreset(fields.preset.value);
+      restart(seed);
+    });
+    document.getElementById('apply').onclick = () => restart(seed);
+    document.getElementById('reset').onclick = () => restart(seed);
+    document.getElementById('randomize').onclick = () => {
+      const pick = Eco.randomize();
+      fields.preset.value = pick.preset;
+      applyPreset(pick.preset);
+      fields.agents.value = String(pick.agents);
+      fields.food.value = String(pick.food_rate);
+      fields.aging.value = String(pick.aging_rate);
+      fields.repro.value = String(pick.repro_rate);
+      showUi();
+      restart(pick.seed);
+    };
+    document.getElementById('play').onclick = () => {
+      playing = !playing;
+      document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
+    };
+    window.addEventListener('resize', draw);
+
+    fetch('circuits/dng13.json').then((res) => {
+      if (!res.ok) throw new Error('Could not load DNg13 circuit');
+      return res.json();
+    }).then((loaded) => {
+      graph = loaded;
+      showUi();
+      restart(4);
+      startLoop();
+    }).catch((error) => {
+      document.getElementById('events').innerHTML = '<div class="warn">' + error.message + '</div>';
+    });
+  </script>
+</body>
+</html>

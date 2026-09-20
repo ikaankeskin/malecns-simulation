@@ -26,13 +26,29 @@ Default: 10 flies, 3 pellets, map ±20. The command prints a leaderboard and wri
 
 ## Watch ecosystem v0.1
 
-A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Energy is an artificial budget (base drain plus movement). No reproduction yet.
+A persistent world: fixed patches cycle through seed → growing → mature → cooldown, agents age, starve, or die of old age, and corpses decay. Nearby well-fed adults can reproduce; offspring inherit the same MaleCNS-derived controller. Energy, aging, and birth are labelled simulation rules, not fly physiology.
 
 ```bash
 python3 sim.py ecosystem circuits/dng13.json --ticks 2000 --turn-sign -1 --turn-gain 1 --out view.html --open
 ```
 
-The viewer shows patch stages, a population/food/energy chart, an event timeline, and an agent inspector. Rules and scientific labels are in [ROADMAP.md](ROADMAP.md).
+Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate` (`0` disables birth), `--max-population`. The local viewer shows patch stages, births, generation, parents, a population/food/energy chart, and an event timeline. The broader sequence is in [ROADMAP.md](ROADMAP.md).
+
+## Try it in the browser
+
+The GitHub Pages app runs the same ecosystem live. Choose a rule preset or set agent count, food spawn rate, aging rate, and reproduction rate, then randomize.
+
+[Open the live ecosystem](https://ikaankeskin.github.io/malecns-simulation/)
+
+![DNg13 ecosystem with renewable food, aging, and reproduction](docs/preview.gif)
+
+Serve `docs/` locally if you want the same page without GitHub:
+
+```bash
+python3 -m http.server 8000 --directory docs
+```
+
+Then open http://127.0.0.1:8000/ . The published site needs GitHub Pages enabled (Actions source). The repository is private, so the public URL only works if Pages visibility allows it.
 
 ## Watch a run
 

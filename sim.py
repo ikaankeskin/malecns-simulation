@@ -204,7 +204,11 @@ def main():
     eco.add_argument('--agents', type=int, default=8)
     eco.add_argument('--patches', type=int, default=6)
     eco.add_argument('--map', dest='map_half', type=float, default=20)
-    eco.add_argument('--max-age', dest='max_age', type=int, default=1200)
+    eco.add_argument('--max-age', dest='max_age', type=int, default=None)
+    eco.add_argument('--food-rate', dest='food_rate', type=float, default=1.0)
+    eco.add_argument('--aging-rate', dest='aging_rate', type=float, default=1.0)
+    eco.add_argument('--repro-rate', dest='repro_rate', type=float, default=1.0)
+    eco.add_argument('--max-population', dest='max_population', type=int, default=36)
     eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
     imp = sub.add_parser('import-csv')
     imp.add_argument('nodes'); imp.add_argument('edges'); imp.add_argument('output')
@@ -223,7 +227,11 @@ def main():
                 kwargs.update(agents=a.agents, foods=a.foods, map_half=a.map_half)
             elif a.command == 'ecosystem':
                 kwargs.update(mode='ecosystem', agents=a.agents, patches=a.patches,
-                              map_half=a.map_half, max_age=a.max_age)
+                              map_half=a.map_half, food_rate=a.food_rate,
+                              aging_rate=a.aging_rate, repro_rate=a.repro_rate,
+                              max_population=a.max_population)
+                if a.max_age is not None:
+                    kwargs['max_age'] = a.max_age
             output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)
             print(f'Viewer written to {output}')
             if summary:

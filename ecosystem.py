@@ -21,21 +21,73 @@ DEFAULTS = {
     'grow_ticks': 70,
     'cooldown_ticks': 110,
     'corpse_ticks': 80,
+    'max_population': 36,
+    'mate_radius': 3.0,
+    'min_repro_age': 80,
+    'min_repro_energy': 1.15,
+    'repro_cost': 0.4,
+    'repro_cooldown': 90,
+    'offspring_energy': 0.75,
+    'food_rate': 1.0,
+    'aging_rate': 1.0,
+    'repro_rate': 1.0,
 }
+
+INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
+            'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown')
+RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate')
+
+
+def _positive_number(name, value, allow_zero=False):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f'{name} must be a finite number')
+    if allow_zero:
+        if value < 0:
+            raise ValueError(f'{name} must be nonnegative')
+    elif value <= 0:
+        raise ValueError(f'{name} must be positive')
+    return float(value)
+
+
+def derived_lifecycle(food_rate, aging_rate, repro_rate):
+    food_rate = _positive_number('food_rate', food_rate)
+    aging_rate = _positive_number('aging_rate', aging_rate)
+    repro_rate = _positive_number('repro_rate', repro_rate, allow_zero=True)
+    return {
+        'seed_ticks': max(4, int(round(DEFAULTS['seed_ticks'] / food_rate))),
+        'grow_ticks': max(8, int(round(DEFAULTS['grow_ticks'] / food_rate))),
+        'cooldown_ticks': max(12, int(round(DEFAULTS['cooldown_ticks'] / food_rate))),
+        'max_age': max(80, int(round(DEFAULTS['max_age'] / aging_rate))),
+        'repro_enabled': repro_rate > 0,
+        'repro_cooldown': 10 ** 9 if repro_rate <= 0 else max(12, int(round(DEFAULTS['repro_cooldown'] / repro_rate))),
+        'min_repro_energy': 99.0 if repro_rate <= 0 else max(0.55, DEFAULTS['min_repro_energy'] - 0.15 * (repro_rate - 1.0)),
+        'mate_radius': DEFAULTS['mate_radius'] if repro_rate <= 0 else DEFAULTS['mate_radius'] * (0.75 + 0.25 * repro_rate),
+    }
 
 
 def rules_from(overrides):
     rules = dict(DEFAULTS)
-    for key, value in overrides.items():
-        if key in rules and value is not None:
+    explicit = {key: value for key, value in overrides.items() if key in rules and value is not None}
+    rules.update(explicit)
+    derived = derived_lifecycle(rules['food_rate'], rules['aging_rate'], rules['repro_rate'])
+    for key, value in derived.items():
+        if key not in explicit:
             rules[key] = value
-    for key in ['agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks', 'corpse_ticks']:
+    for key in INT_KEYS:
         if type(rules[key]) is not int or rules[key] < 1:
             raise ValueError(f'{key} must be a positive integer')
+    for key in RATE_KEYS:
+        _positive_number(key, rules[key], allow_zero=(key == 'repro_rate'))
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
+    if rules['max_population'] > 50:
+        raise ValueError('max_population must be 50 or fewer on the CPU path')
+    if rules['agents'] > rules['max_population']:
+        raise ValueError('agents cannot exceed max_population')
     if rules['map_half'] < 4:
         raise ValueError('map_half must be at least 4')
+    if not rules.get('repro_enabled', True):
+        rules['repro_enabled'] = False
     return rules
 
 
@@ -57,6 +109,10 @@ def spawn_agents(count, radius, energy):
             'death_tick': None,
             'cause_of_death': None,
             'corpse_until': None,
+            'last_repro': -10 ** 6,
+            'generation': 0,
+            'parents': None,
+            'offspring': 0,
         })
     return agents
 
@@ -129,7 +185,85 @@ def kill(agent, tick, cause, corpse_ticks):
     agent['corpse_until'] = tick + corpse_ticks
 
 
+def can_reproduce(agent, tick, rules):
+    return (rules.get('repro_enabled', True)
+            and agent['alive']
+            and agent['age'] >= rules['min_repro_age']
+            and agent['energy'] >= rules['min_repro_energy']
+            and (tick - agent['last_repro']) >= rules['repro_cooldown'])
+
+
+def reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed):
+    if not rules.get('repro_enabled', True):
+        return 0
+    candidates = [agent for agent in agents if can_reproduce(agent, tick, rules)]
+    candidates.sort(key=lambda agent: agent['id'])
+    used = set()
+    births = 0
+    for parent in candidates:
+        if parent['id'] in used:
+            continue
+        partner = None
+        best = rules['mate_radius']
+        for other in candidates:
+            if other['id'] <= parent['id'] or other['id'] in used:
+                continue
+            distance = math.hypot(parent['x'] - other['x'], parent['y'] - other['y'])
+            if distance < best:
+                best = distance
+                partner = other
+        if partner is None:
+            continue
+        if sum(agent['alive'] for agent in agents) >= rules['max_population']:
+            events.append({'tick': tick, 'kind': 'repro_capped',
+                           'text': f'population cap {rules["max_population"]} blocked a birth'})
+            break
+        used.add(parent['id'])
+        used.add(partner['id'])
+        parent['energy'] -= rules['repro_cost']
+        partner['energy'] -= rules['repro_cost']
+        parent['last_repro'] = tick
+        partner['last_repro'] = tick
+        parent['offspring'] += 1
+        partner['offspring'] += 1
+        angle = rng.random() * 2 * math.pi
+        half = rules['map_half']
+        x = max(-half, min(half, (parent['x'] + partner['x']) / 2 + 0.35 * math.cos(angle)))
+        y = max(-half, min(half, (parent['y'] + partner['y']) / 2 + 0.35 * math.sin(angle)))
+        child_id = max(agent['id'] for agent in agents) + 1
+        agents.append({
+            'id': child_id,
+            'x': x,
+            'y': y,
+            'heading': angle,
+            'energy': rules['offspring_energy'],
+            'age': 0,
+            'alive': True,
+            'meals': 0,
+            'ate': False,
+            'birth_tick': tick,
+            'death_tick': None,
+            'cause_of_death': None,
+            'corpse_until': None,
+            'last_repro': tick,
+            'generation': max(parent['generation'], partner['generation']) + 1,
+            'parents': (parent['id'], partner['id']),
+            'offspring': 0,
+        })
+        circuits.append(Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed))
+        events.append({
+            'tick': tick,
+            'kind': 'born',
+            'agent': child_id,
+            'parents': [parent['id'], partner['id']],
+            'text': f'F{child_id} born to F{parent["id"]} and F{partner["id"]}',
+        })
+        births += 1
+    return births
+
+
 def snapshot_agent(agent, left, right, speed):
+    parents = agent['parents']
     return {
         'id': agent['id'],
         'x': round(agent['x'], 6),
@@ -142,6 +276,9 @@ def snapshot_agent(agent, left, right, speed):
         'ate': agent['ate'],
         'cause_of_death': agent['cause_of_death'],
         'corpse': bool(agent['corpse_until'] is not None),
+        'generation': agent['generation'],
+        'parents': list(parents) if parents else None,
+        'offspring': agent['offspring'],
         'left_motor': round(left, 6),
         'right_motor': round(right, 6),
         'speed': round(speed, 6),
@@ -155,6 +292,30 @@ def snapshot_patch(patch):
         'y': round(patch['y'], 6),
         'stage': patch['stage'],
     }
+
+
+def motors_for(agents, circuits, edible, decoder, rules, drive_enabled):
+    motors = []
+    for agent, circuit in zip(agents, circuits):
+        agent['ate'] = False
+        speed = 0.0
+        if not agent['alive']:
+            motors.append((0.0, 0.0, speed))
+            continue
+        agent['age'] += 1
+        target, distance = nearest_point(agent['x'], agent['y'], edible)
+        bearing = 0.0
+        stimulus = 0.0
+        if target is not None and drive_enabled:
+            bearing = math.atan2(target[1] - agent['y'], target[0] - agent['x']) - agent['heading']
+            bearing = math.atan2(math.sin(bearing), math.cos(bearing))
+            stimulus = max(0.0, 1.0 - distance / rules['sense_range'])
+        circuit.step(sensory_drives(circuit.nodes, decoder, bearing, stimulus))
+        left, right = circuit.motors()
+        agent['x'], agent['y'], agent['heading'], speed = integrate_motion(
+            decoder, agent['x'], agent['y'], agent['heading'], left, right)
+        motors.append((left, right, speed))
+    return motors
 
 
 def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=False, shuffle_seed=None,
@@ -171,28 +332,10 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
     events = []
     history = []
+    births = 0
+    peak = rules['agents']
     for tick in range(ticks):
-        motors = []
-        edible = mature_locations(patches)
-        for agent, circuit in zip(agents, circuits):
-            agent['ate'] = False
-            speed = 0.0
-            if not agent['alive']:
-                motors.append((0.0, 0.0, speed))
-                continue
-            agent['age'] += 1
-            target, distance = nearest_point(agent['x'], agent['y'], edible)
-            bearing = 0.0
-            stimulus = 0.0
-            if target is not None and drive_enabled:
-                bearing = math.atan2(target[1] - agent['y'], target[0] - agent['x']) - agent['heading']
-                bearing = math.atan2(math.sin(bearing), math.cos(bearing))
-                stimulus = max(0.0, 1.0 - distance / rules['sense_range'])
-            circuit.step(sensory_drives(circuit.nodes, decoder, bearing, stimulus))
-            left, right = circuit.motors()
-            agent['x'], agent['y'], agent['heading'], speed = integrate_motion(
-                decoder, agent['x'], agent['y'], agent['heading'], left, right)
-            motors.append((left, right, speed))
+        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled)
         claimed = claim_patches(agents, patches, rules['eat_radius'])
         for patch in patches:
             if patch['id'] in claimed:
@@ -210,6 +353,9 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 if matured:
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured'})
+        births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
+        while len(motors) < len(agents):
+            motors.append((0.0, 0.0, 0.0))
         for agent, (left, right, speed) in zip(agents, motors):
             if not agent['alive']:
                 continue
@@ -234,6 +380,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 corpses.append({'id': agent['id'], 'x': round(agent['x'], 6), 'y': round(agent['y'], 6),
                                 'cause': agent['cause_of_death']})
         alive = [agent for agent in agents if agent['alive']]
+        peak = max(peak, len(alive))
         history.append({
             'tick': tick,
             'agents': [snapshot_agent(agent, left, right, speed)
@@ -241,6 +388,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'patches': [snapshot_patch(patch) for patch in patches],
             'corpses': corpses,
             'alive': len(alive),
+            'born': births,
             'mature_food': sum(patch['stage'] == 'mature' for patch in patches),
             'mean_energy': round(sum(agent['energy'] for agent in alive) / len(alive), 6) if alive else 0.0,
         })
@@ -253,6 +401,9 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'starved': sum(agent['cause_of_death'] == 'starvation' for agent in agents),
             'old_age': sum(agent['cause_of_death'] == 'old_age' for agent in agents),
             'meals': sum(agent['meals'] for agent in agents),
+            'births': births,
+            'peak': peak,
+            'generation': max((agent['generation'] for agent in agents), default=0),
         },
         'ticks': history,
     }
@@ -262,6 +413,7 @@ def summarize_ecosystem(result):
     final = result['final']
     rules = result['rules']
     last = result['ticks'][-1]
-    return (f"ecosystem {rules['agents']} flies, {rules['patches']} patches, {len(result['ticks'])} ticks; "
-            f"alive {final['alive']}, starved {final['starved']}, old_age {final['old_age']}, "
+    return (f"ecosystem {rules['agents']} start, {rules['patches']} patches, {len(result['ticks'])} ticks; "
+            f"alive {final['alive']}, births {final['births']}, gen {final['generation']}, "
+            f"starved {final['starved']}, old_age {final['old_age']}, "
             f"meals {final['meals']}, mature food {last['mature_food']}")

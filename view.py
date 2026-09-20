@@ -38,7 +38,10 @@ def ecosystem_document(path, ticks, seed, **kwargs):
     eco_keys = {key: kwargs[key] for key in kwargs
                 if key in {'agents', 'patches', 'map_half', 'max_age', 'drive_enabled',
                            'disconnected', 'shuffle_seed', 'base_drain', 'move_cost', 'meal',
-                           'seed_ticks', 'grow_ticks', 'cooldown_ticks', 'corpse_ticks'}}
+                           'seed_ticks', 'grow_ticks', 'cooldown_ticks', 'corpse_ticks',
+                           'max_population', 'mate_radius', 'min_repro_age', 'min_repro_energy',
+                           'repro_cost', 'repro_cooldown', 'offspring_energy',
+                           'food_rate', 'aging_rate', 'repro_rate'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({
@@ -47,9 +50,9 @@ def ecosystem_document(path, ticks, seed, **kwargs):
         'events': result['events'],
         'final': result['final'],
         'assumptions': (graph.get('assumptions') or []) + [
-            'Energy, age, patch growth, and corpses are simulation abstractions, not fly physiology.',
-            'MaleCNS topology is fixed; only spawn pose differs across agents.',
-            'v0.1 has no reproduction, combat, or learning.',
+            'Energy, age, patch growth, corpses, and reproduction are simulation abstractions, not fly physiology.',
+            'MaleCNS topology is fixed; agents differ by spawn pose and parentage, not connectome edits.',
+            'Reproduction is a proximity rule with an energy cost. No mutation, combat, or learning.',
         ],
     })
     return document

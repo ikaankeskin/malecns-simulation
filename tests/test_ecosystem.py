@@ -53,7 +53,32 @@ class EcosystemTests(unittest.TestCase):
         self.assertEqual(payload['mode'], 'ecosystem')
         html = render_viewer(payload)
         self.assertIn('eco-wrap', html)
-        self.assertIn('v0.1 has no reproduction', html)
+        self.assertIn('Reproduction is a proximity rule', html)
+
+    def test_nearby_agents_can_reproduce_and_respect_the_cap(self):
+        born = simulate_ecosystem(
+            DEMO, 12, 1, agents=4, patches=1, map_half=8, disconnected=True,
+            min_repro_age=1, min_repro_energy=0.2, mate_radius=40, repro_cooldown=3,
+            repro_cost=0.05, max_age=500, base_drain=0.0001, move_cost=0.0,
+            max_population=6, energy_start=1.0, repro_rate=1.0)
+        self.assertGreater(born['final']['births'], 0)
+        self.assertLessEqual(born['final']['peak'], 6)
+        self.assertTrue(any(event['kind'] == 'born' for event in born['events']))
+        child = next(agent for agent in born['ticks'][-1]['agents'] if agent['generation'] > 0)
+        self.assertEqual(len(child['parents']), 2)
+        off = simulate_ecosystem(
+            DEMO, 20, 1, agents=4, patches=1, map_half=8, disconnected=True,
+            min_repro_age=1, min_repro_energy=0.2, mate_radius=40, repro_rate=0,
+            max_age=500, base_drain=0.0001)
+        self.assertEqual(off['final']['births'], 0)
+
+    def test_food_and_aging_rates_change_derived_timers(self):
+        from ecosystem import rules_from
+        fast = rules_from({'food_rate': 2.0, 'aging_rate': 2.0, 'repro_rate': 2.0})
+        slow = rules_from({'food_rate': 0.5, 'aging_rate': 0.5, 'repro_rate': 0.5})
+        self.assertLess(fast['grow_ticks'], slow['grow_ticks'])
+        self.assertLess(fast['max_age'], slow['max_age'])
+        self.assertLess(fast['repro_cooldown'], slow['repro_cooldown'])
 
 
 if __name__ == '__main__':
