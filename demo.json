@@ -1,0 +1,17 @@
+{
+  "source": "Synthetic demo topology; NOT MaleCNS data",
+  "nodes": [
+    {"id": "sensor_L", "role": "sensory", "side": "left"},
+    {"id": "sensor_R", "role": "sensory", "side": "right"},
+    {"id": "inter_L", "role": "interneuron", "side": "left"},
+    {"id": "inter_R", "role": "interneuron", "side": "right"},
+    {"id": "motor_L", "role": "motor", "side": "left"},
+    {"id": "motor_R", "role": "motor", "side": "right"}
+  ],
+  "edges": [
+    {"pre": "sensor_L", "post": "inter_L", "weight": 60},
+    {"pre": "sensor_R", "post": "inter_R", "weight": 60},
+    {"pre": "inter_L", "post": "motor_R", "weight": 80},
+    {"pre": "inter_R", "post": "motor_L", "weight": 80}
+  ]
+}
