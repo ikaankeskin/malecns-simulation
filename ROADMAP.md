@@ -53,10 +53,19 @@ These are simulation abstractions unless noted.
 | Reproduction | Two-parent proximity, energy cost, population cap. Same controller topology |
 | Evolution | Inherit and mutate simulation multipliers. Not connectome evolution |
 
-## Next after lineages
+## Next phases
 
-Local food signalling, bounded location memory and per-sender usefulness learning are implemented. The inspector shows remembered targets, arrival outcomes and decaying sender scores. `social_experiment.py` provides separate paired-seed communication and learning on/off comparisons. Learned usefulness is not honesty or friendship. Next social step: an optional costly cooperation action (such as energy sharing) with an explicit baseline; alliances and LLM cognition are not implemented yet.
+Signalling, bounded location memory, and per-sender usefulness are implemented. Seasons and scavenging are implemented. The ordered plan for what remains is [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md):
 
-Scavenging and seasonal food cycles are implemented. Next: measure survival and lineage outcomes across seeds with ecology enabled/disabled, then add a non-LLM social baseline and optional predation. LLM cognition follows the social baseline.
+1. Ecology on/off comparison across seeds. Done: `docs/ecology-comparison.json`.
+2. Family trees from parent IDs already stored at birth.
+3. Map hazards, with death causes beyond starvation and old age.
+4. One costly cooperation action, with an off baseline.
+5. Optional predation, default off.
+6. Inherited personality multipliers for those actions.
+7. Lifetime learning of action outcomes, without changing synapses or inheriting the scores.
+8. Neurotransmitter signs from MaleCNS predictions, as a separate controller comparison.
+
+Alliances and LLM cognition stay out of that plan. Learned usefulness is not honesty or friendship.
 
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.

@@ -42,8 +42,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Evolution of simulation parameters: offspring blend parent genomes and mutate turn/sensory/metabolism/speed/lifespan/fertility, plus weak quirks. Connectome topology remains fixed.
 - [x] Random food respawn, meal-extended lifespan, inspector follow-on, competition metrics, and a lineage dashboard.
 - [x] Local food signals, bounded location memory, inherited signalling/response tendencies.
-- [ ] Relationship learning, combat, and LLM layers.
-- [ ] Neurotransmitter-aware dynamics and later learning experiments.
+- [x] Ecology comparison: seasons × scavenging, five seeds, living-founder counts. See `docs/ecology-comparison.json`.
+- [ ] Family trees, hazards, cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -116,3 +116,12 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Full test suite: 60 tests pass, including the live control wiring and repeatable paired-learning comparison.
 - Live browser verified the learning toggle, fixed-response disabled mode, and a populated record (F5 rated F6 65/100 after a meal, with evidence decay visible). No application-origin browser errors observed.
 - Corrected report circuit checksums to match the canonical GitHub blob: the local materialized copy had an extra trailing newline. JSON/circuit semantics and measured results were unchanged. Added a regression check; 61 tests now pass.
+
+### Next-phase plan
+- Wrote [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md) for the eight remaining items, in dependency order, each with a source project, an implementable slice, and a claim limit.
+- Locked the open choices: cooperation is a directed energy gift, predation can kill, and neurotransmitter signs use acetylcholine and GABA only. Glutamate and monoamines are not applied.
+
+### Ecology comparison
+- Added `ecology_experiment.py`, a 2×2 of seasons and scavenging with composting left on. Five seeds, 2,000 ticks, range 12.
+- Means, seasons/scavenging: on/on alive 1.0, births 10.2, meals 31.4, scavenged 12.4, living founders 0.2; on/off 0 / 8.2 / 32.2 / 0 / 0; off/on 0.6 / 10.8 / 31.2 / 13.8 / 0.4; off/off 0 / 8.2 / 28.8 / 0 / 0. Exploratory only. The both-on cell matches the earlier learning-on social run.
+- Validation: ecology runner repeatability plus the canonical circuit checksum. No new world rule.

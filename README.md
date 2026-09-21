@@ -4,7 +4,7 @@ A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron gra
 
 ## Project plan
 
-See [PLAN.md](PLAN.md) for current status and [ROADMAP.md](ROADMAP.md) for the artificial-life sequence. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
+See [PLAN.md](PLAN.md) for current status, [ROADMAP.md](ROADMAP.md) for the artificial-life sequence, and [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md) for the remaining work. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
 
 ## Run now (Python 3.9+, standard library)
 
@@ -111,7 +111,13 @@ MaleCNS is produced by FlyEM (HHMI Janelia), the University of Cambridge Departm
 
 The ecosystem now cycles through Bloom (1.65× plant lifecycle speed), Abundance (1×), Drought (0.3×), and Recovery (0.8×), each lasting 400 ticks by default. Hungry agents can sense and consume fresh corpses. Each body yields one freshness-scaled energy meal; unlike plants, it grants no lifespan bonus. Uneaten bodies decay after 180 ticks and can advance one nearby seed or growing patch by 12 timer units. These engineered rules are not claims about fly biology. The MaleCNS-derived circuit topology remains fixed.
 
-Use `--season-length 200` to accelerate seasons, `--no-seasons` for stable growth, and `--no-scavenging` to disable corpse feeding with the `ecosystem` command. Bodies can still compost when scavenging is disabled. Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
+Use `--season-length 200` to accelerate seasons, `--no-seasons` for stable growth, and `--no-scavenging` to disable corpse feeding with the `ecosystem` command. Bodies can still compost when scavenging is disabled.
+
+```bash
+python3 ecology_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out ecology-comparison.json
+```
+
+Initial five-seed means (Python; 2,000 ticks; range 12), in order seasons/scavenging: on/on alive 1.0, births 10.2, plant meals 31.4, scavenged 12.4, living founders 0.2; on/off alive 0, births 8.2, plant meals 32.2, scavenged 0, living founders 0; off/on alive 0.6, births 10.8, plant meals 31.2, scavenged 13.8, living founders 0.4; off/off alive 0, births 8.2, plant meals 28.8, scavenged 0, living founders 0. These exploratory results do not establish that seasons or scavenging improve survival. Full settings and per-seed rows: `docs/ecology-comparison.json`. Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent and dashed target line. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season and recycling totals too.
 
