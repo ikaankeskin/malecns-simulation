@@ -157,6 +157,9 @@
       <div class="row"><span>fertility</span><strong id="sel-fert">1.00</strong></div>
       <div class="row"><span>mutations</span><strong id="sel-mut">none</strong></div>
       <div class="row"><span>lineage</span><strong id="sel-line">F0</strong></div>
+      <h2>Family</h2>
+      <div id="family-tree" class="meta" style="white-space:pre-line">founder</div>
+      <div class="meta">Birth-rule parent links for the selected agent. Further ancestors and descendants past four generations are counted, not drawn.</div>
       <div class="row"><span>age / span</span><strong id="sel-age">0</strong></div>
       <div class="row"><span>energy</span><strong id="sel-energy">0</strong></div>
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
@@ -255,6 +258,18 @@
       line(series.map((row) => row.alive), '#ece7dc', maxPop);
       line(series.map((row) => row.food), '#e6c15a', maxFood);
       line(series.map((row) => row.energy), '#6fbfa3', maxE);
+    }
+
+    function formatFamily(tree) {
+      if (!tree.nodes.length) return 'not born yet';
+      const lines = tree.nodes.map((node) => {
+        const state = node.alive ? 'alive' : (node.cause || 'dead');
+        const parents = node.parents ? (' · parents F' + node.parents[0] + ' + F' + node.parents[1]) : '';
+        const mark = node.relation === 'self' ? 'selected' : node.relation;
+        return 'F' + node.id + ' · gen ' + node.generation + ' · ' + state + ' · ' + mark + parents;
+      });
+      if (tree.omitted) lines.push(tree.omitted + ' further relatives omitted');
+      return lines.join('\n');
     }
 
     function followSelection(agents, currentId) {
@@ -420,6 +435,7 @@
         const mut = sel.mutations || {};
         document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('sel-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);
+        document.getElementById('family-tree').textContent = formatFamily(Eco.familyTree(snap.agents, sel.id, snap.tick, 4));
         const span = Eco.lifespanOf(sel, world.rules);
         document.getElementById('sel-age').textContent = sel.age + ' / ' + span;
         document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);

@@ -58,7 +58,7 @@ These are simulation abstractions unless noted.
 Signalling, bounded location memory, and per-sender usefulness are implemented. Seasons and scavenging are implemented. The ordered plan for what remains is [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md):
 
 1. Ecology on/off comparison across seeds. Done: `docs/ecology-comparison.json`.
-2. Family trees from parent IDs already stored at birth.
+2. Family trees from parent IDs already stored at birth. Done in the inspector and playback.
 3. Map hazards, with death causes beyond starvation and old age.
 4. One costly cooperation action, with an off baseline.
 5. Optional predation, default off.

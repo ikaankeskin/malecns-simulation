@@ -637,9 +637,87 @@
     });
   }
 
+  function familyTree(rows, focus, tick, maxDepth) {
+    if (maxDepth == null) maxDepth = 4;
+    if (!Number.isInteger(maxDepth) || maxDepth < 0) throw new Error('max_depth must be a nonnegative integer');
+    const present = [];
+    (rows || []).forEach((row) => {
+      if ((row.birth_tick || 0) > tick) return;
+      const parents = row.parents ? row.parents.slice() : null;
+      const dead = row.death_tick != null && row.death_tick <= tick;
+      present.push({
+        id: row.id, generation: row.generation || 0, parents: parents,
+        alive: !dead, cause: dead ? (row.cause || row.cause_of_death || null) : null,
+      });
+    });
+    const byId = {};
+    present.forEach((row) => { byId[row.id] = row; });
+    if (byId[focus] == null) return { focus: focus, depth: maxDepth, omitted: 0, nodes: [] };
+    const children = {};
+    present.forEach((row) => {
+      (row.parents || []).forEach((parent) => {
+        if (!children[parent]) children[parent] = [];
+        if (children[parent].indexOf(row.id) < 0) children[parent].push(row.id);
+      });
+    });
+    Object.keys(children).forEach((parent) => children[parent].sort((a, b) => a - b));
+    const included = {};
+    included[focus] = ['self', 0];
+    function addLayer(frontier, direction) {
+      const next = [];
+      Object.keys(included).forEach((key) => {
+        const agentId = Number(key);
+        const relation = included[key][0], depth = included[key][1];
+        if (frontier.indexOf(agentId) < 0 || depth >= maxDepth) return;
+        const linked = direction === 'ancestor' ? (byId[agentId].parents || []) : (children[agentId] || []);
+        linked.forEach((other) => {
+          if (byId[other] == null || included[other] != null) return;
+          included[other] = [direction, depth + 1];
+          next.push(other);
+        });
+      });
+      return next;
+    }
+    let frontier = [focus];
+    while (frontier.length) frontier = addLayer(frontier, 'ancestor');
+    frontier = [focus];
+    while (frontier.length) frontier = addLayer(frontier, 'descendant');
+    const omitted = {};
+    function countBeyond(agentId, direction) {
+      const linked = direction === 'ancestor' ? (byId[agentId].parents || []) : (children[agentId] || []);
+      linked.forEach((other) => {
+        if (byId[other] == null || included[other] != null || omitted[other]) return;
+        omitted[other] = true;
+        countBeyond(other, direction);
+      });
+    }
+    Object.keys(included).forEach((key) => {
+      const agentId = Number(key);
+      const relation = included[key][0], depth = included[key][1];
+      if (depth !== maxDepth) return;
+      if (relation === 'self' || relation === 'ancestor') countBeyond(agentId, 'ancestor');
+      if (relation === 'self' || relation === 'descendant') countBeyond(agentId, 'descendant');
+    });
+    const nodes = Object.keys(included).map((key) => {
+      const agentId = Number(key);
+      const row = byId[agentId];
+      return {
+        id: agentId, generation: row.generation, alive: row.alive, cause: row.cause,
+        parents: row.parents, relation: included[key][0], depth: included[key][1],
+      };
+    });
+    nodes.sort((a, b) => {
+      const rank = (node) => node.relation === 'ancestor' ? 0 : node.relation === 'self' ? 1 : 2;
+      return rank(a) - rank(b)
+        || (a.relation === 'ancestor' ? b.depth - a.depth : a.depth - b.depth)
+        || (a.id - b.id);
+    });
+    return { focus: focus, depth: maxDepth, omitted: Object.keys(omitted).length, nodes: nodes };
+  }
+
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
-    lifespanOf,
+    lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,
     DECODER: DECODER,

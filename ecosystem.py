@@ -380,6 +380,102 @@ def lifespan_of(agent, rules):
     return max(1, int(round(rules['max_age'] * agent['genome'].get('lifespan', 1.0) + bonus)))
 
 
+PEDIGREE_DEPTH = 4
+
+
+def family_tree(rows, focus, tick, max_depth=PEDIGREE_DEPTH):
+    """Ancestors and descendants of one agent. Further kin are counted, not drawn."""
+    if type(max_depth) is not int or max_depth < 0:
+        raise ValueError('max_depth must be a nonnegative integer')
+    present = []
+    for row in rows:
+        if row.get('birth_tick', 0) > tick:
+            continue
+        parents = row.get('parents')
+        dead = row.get('death_tick') is not None and row.get('death_tick') <= tick
+        present.append({
+            'id': row['id'],
+            'generation': row.get('generation', 0),
+            'parents': list(parents) if parents else None,
+            'alive': not dead,
+            'cause': (row.get('cause') or row.get('cause_of_death')) if dead else None,
+        })
+    by_id = {row['id']: row for row in present}
+    if focus not in by_id:
+        return {'focus': focus, 'depth': max_depth, 'omitted': 0, 'nodes': []}
+    children = {}
+    for row in present:
+        for parent in row['parents'] or []:
+            children.setdefault(parent, []).append(row['id'])
+    for parent in children:
+        children[parent] = sorted(set(children[parent]))
+    included = {focus: ('self', 0)}
+
+    def add_layer(frontier, direction):
+        nxt = []
+        for agent_id, (relation, depth) in list(included.items()):
+            if (agent_id in frontier) and depth < max_depth:
+                linked = (by_id[agent_id]['parents'] or []) if direction == 'ancestor' else children.get(agent_id, [])
+                for other in linked:
+                    if other not in by_id or other in included:
+                        continue
+                    included[other] = (direction, depth + 1)
+                    nxt.append(other)
+        return nxt
+
+    frontier = [focus]
+    while frontier:
+        frontier = add_layer(frontier, 'ancestor')
+    frontier = [focus]
+    while frontier:
+        frontier = add_layer(frontier, 'descendant')
+    omitted = set()
+
+    def count_beyond(agent_id, direction):
+        linked = (by_id[agent_id]['parents'] or []) if direction == 'ancestor' else children.get(agent_id, [])
+        for other in linked:
+            if other not in by_id or other in included or other in omitted:
+                continue
+            omitted.add(other)
+            count_beyond(other, direction)
+
+    for agent_id, (relation, depth) in included.items():
+        if depth != max_depth:
+            continue
+        if relation in ('self', 'ancestor'):
+            count_beyond(agent_id, 'ancestor')
+        if relation in ('self', 'descendant'):
+            count_beyond(agent_id, 'descendant')
+    nodes = []
+    for agent_id, (relation, depth) in included.items():
+        row = by_id[agent_id]
+        nodes.append({
+            'id': agent_id, 'generation': row['generation'], 'alive': row['alive'],
+            'cause': row['cause'], 'parents': row['parents'], 'relation': relation, 'depth': depth,
+        })
+    nodes.sort(key=lambda node: (
+        0 if node['relation'] == 'ancestor' else 1 if node['relation'] == 'self' else 2,
+        -node['depth'] if node['relation'] == 'ancestor' else node['depth'],
+        node['id']))
+    return {'focus': focus, 'depth': max_depth, 'omitted': len(omitted), 'nodes': nodes}
+
+
+def roster_rows(agents):
+    rows = []
+    for agent in agents:
+        parents = agent.get('parents')
+        rows.append({
+            'id': agent['id'],
+            'generation': agent.get('generation', 0),
+            'parents': list(parents) if parents else None,
+            'birth_tick': agent.get('birth_tick', 0),
+            'death_tick': agent.get('death_tick'),
+            'cause': agent.get('cause_of_death'),
+            'lineage': agent.get('lineage', agent['id']),
+        })
+    return rows
+
+
 def lineage_table(agents):
     table = {}
     for agent in agents:
@@ -750,6 +846,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
         },
+        'roster': roster_rows(agents),
         'ticks': history,
     }
 

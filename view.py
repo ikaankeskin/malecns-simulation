@@ -53,6 +53,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
         'events': result['events'],
         'final': result['final'],
         'lineages': (result.get('final') or {}).get('lineages') or {},
+        'roster': result.get('roster') or [],
         'assumptions': (graph.get('assumptions') or []) + [
             'Energy, age, patch growth, corpses, reproduction, and genomes are simulation abstractions, not fly physiology.',
             'MaleCNS topology is fixed. Offspring inherit and mutate body/decoder multipliers, not connectivity.',

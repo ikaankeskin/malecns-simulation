@@ -43,7 +43,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Random food respawn, meal-extended lifespan, inspector follow-on, competition metrics, and a lineage dashboard.
 - [x] Local food signals, bounded location memory, inherited signalling/response tendencies.
 - [x] Ecology comparison: seasons × scavenging, five seeds, living-founder counts. See `docs/ecology-comparison.json`.
-- [ ] Family trees, hazards, cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] Family trees: depth-capped ancestors and descendants for the selected agent, including cause of death.
+- [ ] Hazards, cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -125,3 +126,8 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added `ecology_experiment.py`, a 2×2 of seasons and scavenging with composting left on. Five seeds, 2,000 ticks, range 12.
 - Means, seasons/scavenging: on/on alive 1.0, births 10.2, meals 31.4, scavenged 12.4, living founders 0.2; on/off 0 / 8.2 / 32.2 / 0 / 0; off/on 0.6 / 10.8 / 31.2 / 13.8 / 0.4; off/off 0 / 8.2 / 28.8 / 0 / 0. Exploratory only. The both-on cell matches the earlier learning-on social run.
 - Validation: ecology runner repeatability plus the canonical circuit checksum. No new world rule.
+
+### Family trees
+- Added a depth-capped pedigree of the selected agent. Nodes show generation, alive or cause of death, and both parents. Relatives past four generations are counted as omitted. Siblings are not treated as descendants.
+- Playback carries a roster so decayed agents stay on the tree. The live inspector uses the same rule.
+- Validation: synthetic depth, death-tick, and unborn checks, plus a reproduction run whose child lists both parents. The live page showed a selected descendant with named ancestors and offspring. Node could not execute here because its ICU library is missing; the page's own JavaScript matched the Python fixture for the depth-1 case.
