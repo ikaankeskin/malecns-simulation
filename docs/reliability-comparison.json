@@ -1,7 +1,7 @@
 {
   "ablation": "social_learning",
   "graph": "circuits/dng13.json",
-  "graph_sha256": "ba18088dcd3e21fbd80f7c00248998c6ec5527520bc43e5664f6df7603345afd",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
   "ticks": 2000,
   "seeds": [
     0,

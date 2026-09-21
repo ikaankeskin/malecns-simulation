@@ -1,10 +1,18 @@
 """Synthetic ablation runner checks, not validation on biological behaviour."""
 import unittest
+import hashlib
+import json
 from pathlib import Path
 from social_experiment import compare
 
 
 class SocialExperimentTests(unittest.TestCase):
+    def test_checked_reports_match_canonical_circuit_bytes(self):
+        root = Path(__file__).resolve().parents[1]
+        digest = hashlib.sha256((root / 'circuits/dng13.json').read_bytes()).hexdigest()
+        for name in ('social-comparison.json', 'reliability-comparison.json'):
+            self.assertEqual(json.loads((root / 'docs' / name).read_text())['graph_sha256'], digest)
+
     def test_paired_runs_are_repeatable(self):
         graph = Path(__file__).resolve().parents[1] / 'demo.json'
         first = compare(graph, [0, 1], ticks=12)

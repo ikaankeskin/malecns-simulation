@@ -114,3 +114,5 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added `social_experiment.py --learning` to hold communication on while toggling only learning. The original communication ablation now explicitly keeps learning off for reproducibility.
 - Five seeds, 2,000 ticks, range 12: learning off/on final alive 0.6/1.0, births 9.6/10.2, meals 33.8/31.4. Results remain mixed and exploratory; full aggregate report checked in.
 - Full test suite: 60 tests pass, including the live control wiring and repeatable paired-learning comparison.
+- Live browser verified the learning toggle, fixed-response disabled mode, and a populated record (F5 rated F6 65/100 after a meal, with evidence decay visible). No application-origin browser errors observed.
+- Corrected report circuit checksums to match the canonical GitHub blob: the local materialized copy had an extra trailing newline. JSON/circuit semantics and measured results were unchanged. Added a regression check; 61 tests now pass.
