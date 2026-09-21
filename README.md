@@ -38,7 +38,7 @@ Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate`, `--muta
 
 The GitHub Pages app runs the same ecosystem live. Choose a rule preset or set agent count, food spawn rate, aging rate, reproduction rate, and mutation rate, then randomize.
 
-[Open the live ecosystem](https://ikaankeskin.github.io/malecns-simulation/)
+[GitHub Pages address](https://ikaankeskin.github.io/malecns-simulation/) — deployment currently blocked at `actions/configure-pages`; this address returned 404 on 2026-09-21. The dashboard is runnable locally from `docs/` with `python3 -m http.server 8000 --directory docs`.
 
 ![DNg13 ecosystem with renewable food, aging, and reproduction](docs/preview.gif)
 

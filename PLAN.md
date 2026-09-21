@@ -78,3 +78,7 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Inspector shows current target intent and scavenging count, with a dashed target line. Corrected displayed lifespan to respect the meal bonus cap.
 - Added a paused single-step control and kept plant-maturation chatter out of the live timeline. Python replay shows season and recycling totals.
 - Validation: 45 tests pass, including executable synthetic DOM/canvas wiring checks for pause, step, restart, toggles and season transitions; CLI playback generation also passes. Local browser preview was blocked by the browser network boundary; DOM harness is not a layout test.
+
+### Deployment verification (2026-09-21)
+- UI commit `d2c1bbb` is pushed; Pages run `35546419914` failed at `actions/configure-pages@v5`, before upload/deploy. Browser confirmed the Pages URL returns 404. No live visual verification is claimed.
+- Repository Pages configuration needs investigation before release. The current GitHub connector has no Pages administration capability. No repository visibility or permissions were changed.
