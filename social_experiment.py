@@ -7,26 +7,31 @@ from statistics import mean
 from ecosystem import simulate_ecosystem
 
 
-def compare(graph, seeds, ticks=2000, sense_range=12):
+def compare(graph, seeds, ticks=2000, sense_range=12, learning=False):
     seeds = list(seeds)
     if not seeds or len(set(seeds)) != len(seeds):
         raise ValueError('provide distinct seeds')
     rows = []
     for seed in seeds:
         for enabled in (False, True):
-            result = simulate_ecosystem(graph, ticks, seed, communication=enabled,
+            communication = True if learning else enabled
+            social_learning = enabled if learning else False
+            result = simulate_ecosystem(graph, ticks, seed, communication=communication,
+                social_learning=social_learning,
                 sense_range=sense_range, turn_sign=-1, turn_gain=1, record_every=20)
             final = result['final']
-            rows.append(dict(seed=seed, communication=enabled,
+            rows.append(dict(seed=seed, communication=communication, social_learning=social_learning,
                 **{k: final[k] for k in ('alive', 'births', 'meals', 'peak', 'social')}))
-    means = {name: {k: mean(r[k] for r in rows if r['communication'] == enabled)
+    varying = 'social_learning' if learning else 'communication'
+    means = {name: {k: mean(r[k] for r in rows if r[varying] == enabled)
                    for k in ('alive', 'births', 'meals', 'peak')}
              for name, enabled in [('off', False), ('on', True)]}
-    return dict(graph=str(graph), graph_sha256=hashlib.sha256(Path(graph).read_bytes()).hexdigest(),
+    return dict(ablation=varying, graph=str(graph), graph_sha256=hashlib.sha256(Path(graph).read_bytes()).hexdigest(),
         ticks=ticks, seeds=seeds, sense_range=sense_range,
         decoder=dict(turn_sign=-1, turn_gain=1), rules=result['rules'], rows=rows, means=means,
-        caveat='Exploratory paired-seed comparison, not biological validation. Communication toggles '
-               'both signals and memory. Trajectories and subsequent world RNG draws can diverge; '
+        caveat='Exploratory paired-seed comparison, not biological validation. Communication ablation toggles '
+               'signals and memory with learning off; learning ablation holds communication on and toggles only '
+               'sender learning. Trajectories and subsequent world RNG draws can diverge; '
                'signal-associated meals are not causal attribution. No confidence intervals or '
                'held-out tuning claim. Python and browser RNGs differ.')
 
@@ -37,8 +42,9 @@ if __name__ == '__main__':
     parser.add_argument('--seeds', default='0,1,2,3,4')
     parser.add_argument('--ticks', type=int, default=2000)
     parser.add_argument('--sense-range', type=float, default=12)
+    parser.add_argument('--learning', action='store_true', help='Compare sender learning off/on with communication on')
     parser.add_argument('--out', default='social-comparison.json')
     args = parser.parse_args()
-    report = compare(args.graph, [int(x) for x in args.seeds.split(',')], args.ticks, args.sense_range)
+    report = compare(args.graph, [int(x) for x in args.seeds.split(',')], args.ticks, args.sense_range, args.learning)
     Path(args.out).write_text(json.dumps(report, indent=2, allow_nan=False) + '\n')
     print(json.dumps(report['means'], indent=2))

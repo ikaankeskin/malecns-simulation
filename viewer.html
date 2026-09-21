@@ -448,7 +448,7 @@
         document.getElementById('eco-signals').textContent = social.sent + ' / ' + social.received;
         document.getElementById('eco-signal-results').textContent = social.meals + ' / ' + social.empty;
         const watched = tick.agents.find(a => a.id === selected);
-        document.getElementById('eco-memory').textContent = watched ? 'F' + watched.id + ' · ' + (watched.intent || 'searching') + ' · ' + (watched.memories || []).length + ' remembered locations. ' + (watched.social_history || []).slice(-1).map(e=>e.text).join('') : '';
+        document.getElementById('eco-memory').textContent = watched ? 'F' + watched.id + ' · ' + (watched.intent || 'searching') + ' · ' + (watched.memories || []).length + ' remembered locations. ' + (watched.social_history || []).slice(-1).map(e=>e.text).join('') + ' Sender usefulness: ' + ((watched.relationships || []).map(r=>'F' + r.source + ' ' + Math.round(r.score * 100) + '/100').join(', ') || 'no evidence') : '';
         const env = tick.environment || {name:'Stable', growth:1};
         document.getElementById('eco-season').textContent = env.name + ' ×' + env.growth.toFixed(2);
         document.getElementById('eco-recycled').textContent = (tick.scavenged || 0) + ' / ' + (tick.composted || 0);
@@ -657,4 +657,3 @@
   </script>
 </body>
 </html>
-

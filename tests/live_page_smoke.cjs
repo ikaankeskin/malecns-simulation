@@ -40,6 +40,12 @@ setImmediate(()=>{
   assert.equal(elements.get('scavenged').textContent,0);
   assert.equal(elements.get('signal-count').textContent,'0 / 0');
   elements.get('communication').checked=true;
+  elements.get('social-learning').checked=false;
+  elements.get('apply').onclick();
+  assert.match(elements.get('sel-relationships').textContent,/Learning disabled/);
+  elements.get('social-learning').checked=true;
+  elements.get('apply').onclick();
+  assert.match(elements.get('sel-relationships').textContent,/No arrival evidence/);
   elements.get('seasons').checked=true; elements.get('scavenging').checked=true;
   elements.get('season-length').value='200'; elements.get('apply').onclick();
   for(let i=0;i<151;i++) interval();

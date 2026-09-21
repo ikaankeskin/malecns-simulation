@@ -13,3 +13,11 @@ class SocialExperimentTests(unittest.TestCase):
         self.assertTrue(all(r['social']['sent'] == 0 for r in first['rows'] if not r['communication']))
         with self.assertRaises(ValueError):
             compare(graph, [0, 0], ticks=12)
+
+    def test_learning_ablation_keeps_communication_on(self):
+        graph = Path(__file__).resolve().parents[1] / 'demo.json'
+        result = compare(graph, [0, 1], ticks=12, learning=True)
+        self.assertEqual(result['ablation'], 'social_learning')
+        self.assertTrue(all(r['communication'] for r in result['rows']))
+        self.assertEqual([r['social_learning'] for r in result['rows']], [False, True, False, True])
+        self.assertEqual(result, compare(graph, [0, 1], ticks=12, learning=True))

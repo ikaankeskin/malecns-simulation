@@ -1,0 +1,252 @@
+{
+  "ablation": "social_learning",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "ba18088dcd3e21fbd80f7c00248998c6ec5527520bc43e5664f6df7603345afd",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rules": {
+    "agents": 8,
+    "patches": 8,
+    "map_half": 20.0,
+    "energy_start": 1.0,
+    "energy_max": 2.0,
+    "base_drain": 0.0012,
+    "move_cost": 0.003,
+    "meal": 0.55,
+    "eat_radius": 0.55,
+    "sense_range": 12.0,
+    "max_age": 520,
+    "seed_ticks": 12,
+    "grow_ticks": 40,
+    "cooldown_ticks": 50,
+    "corpse_ticks": 180,
+    "seasons": true,
+    "season_length": 400,
+    "scavenging": true,
+    "scavenge_below": 1.1,
+    "corpse_meal": 0.35,
+    "compost_radius": 5.0,
+    "compost_boost": 12.0,
+    "max_population": 48,
+    "mate_radius": 6.300000000000001,
+    "min_repro_age": 36,
+    "min_repro_energy": 1.02,
+    "repro_cost": 0.35,
+    "repro_cooldown": 33,
+    "offspring_energy": 0.8,
+    "food_rate": 1.0,
+    "aging_rate": 1.0,
+    "repro_rate": 1.2,
+    "mutation_rate": 0.9,
+    "mutation_sigma": 0.14,
+    "meal_life": 90,
+    "meal_life_cap": 900,
+    "record_every": 20,
+    "communication": true,
+    "social_learning": true,
+    "signal_range": 18.0,
+    "signal_ticks": 24,
+    "signal_cooldown": 60,
+    "signal_cost": 0.01,
+    "memory_ticks": 180,
+    "repro_enabled": true
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "communication": true,
+      "social_learning": false,
+      "alive": 0,
+      "births": 11,
+      "meals": 35,
+      "peak": 14,
+      "social": {
+        "sent": 96,
+        "received": 625,
+        "followed": 115,
+        "meals": 16,
+        "empty": 49,
+        "expired": 36
+      }
+    },
+    {
+      "seed": 0,
+      "communication": true,
+      "social_learning": true,
+      "alive": 0,
+      "births": 13,
+      "meals": 28,
+      "peak": 15,
+      "social": {
+        "sent": 85,
+        "received": 674,
+        "followed": 144,
+        "meals": 12,
+        "empty": 76,
+        "expired": 43
+      }
+    },
+    {
+      "seed": 1,
+      "communication": true,
+      "social_learning": false,
+      "alive": 2,
+      "births": 12,
+      "meals": 36,
+      "peak": 16,
+      "social": {
+        "sent": 100,
+        "received": 663,
+        "followed": 122,
+        "meals": 14,
+        "empty": 57,
+        "expired": 34
+      }
+    },
+    {
+      "seed": 1,
+      "communication": true,
+      "social_learning": true,
+      "alive": 0,
+      "births": 12,
+      "meals": 26,
+      "peak": 16,
+      "social": {
+        "sent": 86,
+        "received": 660,
+        "followed": 122,
+        "meals": 11,
+        "empty": 63,
+        "expired": 35
+      }
+    },
+    {
+      "seed": 2,
+      "communication": true,
+      "social_learning": false,
+      "alive": 1,
+      "births": 9,
+      "meals": 39,
+      "peak": 12,
+      "social": {
+        "sent": 89,
+        "received": 427,
+        "followed": 108,
+        "meals": 12,
+        "empty": 54,
+        "expired": 31
+      }
+    },
+    {
+      "seed": 2,
+      "communication": true,
+      "social_learning": true,
+      "alive": 0,
+      "births": 8,
+      "meals": 35,
+      "peak": 12,
+      "social": {
+        "sent": 83,
+        "received": 413,
+        "followed": 107,
+        "meals": 12,
+        "empty": 60,
+        "expired": 26
+      }
+    },
+    {
+      "seed": 3,
+      "communication": true,
+      "social_learning": false,
+      "alive": 0,
+      "births": 7,
+      "meals": 25,
+      "peak": 15,
+      "social": {
+        "sent": 63,
+        "received": 549,
+        "followed": 98,
+        "meals": 11,
+        "empty": 56,
+        "expired": 23
+      }
+    },
+    {
+      "seed": 3,
+      "communication": true,
+      "social_learning": true,
+      "alive": 5,
+      "births": 12,
+      "meals": 39,
+      "peak": 15,
+      "social": {
+        "sent": 85,
+        "received": 576,
+        "followed": 111,
+        "meals": 14,
+        "empty": 56,
+        "expired": 27
+      }
+    },
+    {
+      "seed": 4,
+      "communication": true,
+      "social_learning": false,
+      "alive": 0,
+      "births": 9,
+      "meals": 34,
+      "peak": 13,
+      "social": {
+        "sent": 73,
+        "received": 273,
+        "followed": 89,
+        "meals": 15,
+        "empty": 43,
+        "expired": 23
+      }
+    },
+    {
+      "seed": 4,
+      "communication": true,
+      "social_learning": true,
+      "alive": 0,
+      "births": 6,
+      "meals": 29,
+      "peak": 13,
+      "social": {
+        "sent": 51,
+        "received": 173,
+        "followed": 55,
+        "meals": 10,
+        "empty": 24,
+        "expired": 19
+      }
+    }
+  ],
+  "means": {
+    "off": {
+      "alive": 0.6,
+      "births": 9.6,
+      "meals": 33.8,
+      "peak": 14
+    },
+    "on": {
+      "alive": 1,
+      "births": 10.2,
+      "meals": 31.4,
+      "peak": 14.2
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Communication ablation toggles signals and memory with learning off; learning ablation holds communication on and toggles only sender learning. Trajectories and subsequent world RNG draws can diverge; signal-associated meals are not causal attribution. No confidence intervals or held-out tuning claim. Python and browser RNGs differ."
+}

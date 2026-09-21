@@ -108,3 +108,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Twice the score scales the inherited response tendency for new reports; existing goals, locomotion, circuit topology and genomes are unchanged. Learned records are individual state, not inherited traits.
 - `--no-social-learning` keeps the previous fixed-response communication baseline. Python snapshots expose read-only decayed records. Matching JavaScript implementation included.
 - Validation: 59 tests pass, including neutral prior, feedback direction, decay, capacity/eviction, disabled mode, agent independence, response effects and Python/JavaScript parity.
+
+### Reliability observatory and controlled comparison
+- Added a learning toggle, per-sender scores/decayed evidence/effective acceptance chances, and score feedback on recent arrival outcomes. Playback displays sender scores.
+- Added `social_experiment.py --learning` to hold communication on while toggling only learning. The original communication ablation now explicitly keeps learning off for reproducibility.
+- Five seeds, 2,000 ticks, range 12: learning off/on final alive 0.6/1.0, births 9.6/10.2, meals 33.8/31.4. Results remain mixed and exploratory; full aggregate report checked in.
+- Full test suite: 60 tests pass, including the live control wiring and repeatable paired-learning comparison.

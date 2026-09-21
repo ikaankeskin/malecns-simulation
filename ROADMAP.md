@@ -55,7 +55,7 @@ These are simulation abstractions unless noted.
 
 ## Next after lineages
 
-Local food signalling and bounded location memory are now implemented, with inherited signalling/response tendencies, visible reports, remembered targets, and factual trip outcomes. `social_experiment.py` provides a paired-seed communication on/off baseline. Next social step: per-sender reliability learning; trust, alliances, and LLM cognition are not implemented yet.
+Local food signalling, bounded location memory and per-sender usefulness learning are implemented. The inspector shows remembered targets, arrival outcomes and decaying sender scores. `social_experiment.py` provides separate paired-seed communication and learning on/off comparisons. Learned usefulness is not honesty or friendship. Next social step: an optional costly cooperation action (such as energy sharing) with an explicit baseline; alliances and LLM cognition are not implemented yet.
 
 Scavenging and seasonal food cycles are implemented. Next: measure survival and lineage outcomes across seeds with ecology enabled/disabled, then add a non-LLM social baseline and optional predation. LLM cognition follows the social baseline.
 

@@ -131,4 +131,18 @@ Run the reproducible CPU comparison:
 python3 social_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out social-comparison.json
 ```
 
-Initial five-seed means (Python; 2,000 ticks; range 12): communication off/on yielded 0/0.6 living agents, 9.4/9.6 births, and 39.6/33.8 plant meals. These mixed exploratory results do not establish a general survival benefit. The toggle changes signalling, memory, and remembered-target steering together; this is not an isolated test of information alone. See `docs/social-comparison.json` for settings, circuit hash and individual runs. Relationship learning and LLM cognition remain future work.
+Initial five-seed means (Python; 2,000 ticks; range 12): communication off/on yielded 0/0.6 living agents, 9.4/9.6 births, and 39.6/33.8 plant meals. These mixed exploratory results do not establish a general survival benefit. The toggle changes signalling, memory, and remembered-target steering together; this is not an isolated test of information alone. See `docs/social-comparison.json` for settings, circuit hash and individual runs. The communication comparison explicitly disables sender learning to preserve that baseline.
+
+### Learning which senders are useful
+
+**Learn sender reliability** is enabled by default; change it and press **Apply** to restart the same seed. The selected agent's **Sender usefulness** panel shows scores, decayed evidence and effective report-acceptance chances. Python playback includes sender scores too. Use `--no-social-learning` to retain fixed inherited responsiveness while keeping communication enabled.
+
+Actual arrival outcomes train a small per-sender estimate: a plant meal is positive evidence, an empty arrival is negative evidence, and an expired trip is ignored. The score is `(1 + useful) / (2 + useful + empty)`, with a neutral 0.5 prior. Evidence halves every 400 ticks and is capped at 16 per sender. At most eight sender records are retained; the oldest outcome is evicted first, with source ID breaking ties. The score multiplies inherited responsiveness by `2 × score` (capped at 1) when deciding whether to remember a new report. Old targets and MaleCNS locomotion are unchanged. Offspring inherit tendencies, not learned records.
+
+This is **learned perceived usefulness**, not honesty, friendship, language, or neural plasticity. Another agent may have eaten an honestly reported patch before the receiver arrives. The model deliberately has no access to hidden ground truth when assigning feedback.
+
+```bash
+python3 social_experiment.py circuits/dng13.json --learning --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out reliability-comparison.json
+```
+
+This comparison holds communication on and toggles only sender learning. Initial learning off/on means: final alive 0.6/1.0, births 9.6/10.2, plant meals 33.8/31.4. Five seeds are exploratory, not a general benefit claim. Full settings and per-seed results: `docs/reliability-comparison.json`. LLM cognition and cooperation actions remain future work.
