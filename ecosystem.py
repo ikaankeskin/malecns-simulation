@@ -136,7 +136,7 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
@@ -706,6 +706,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             for agent in visible:
                 row = snapshot_agent(agent, *motor_by_id.get(agent['id'], (0.0, 0.0, 0.0)))
                 row['life_span'] = lifespan_of(agent, rules)
+                row['relationships'] = social.relationship_view(agent, tick)
                 frames.append(row)
             history.append({
                 'tick': tick,
@@ -765,4 +766,3 @@ def summarize_ecosystem(result):
             f"mature food {last['mature_food']}, "
             f"mean speed {means.get('speed', 1):.2f}, life {means.get('lifespan', 1):.2f}, "
             f"fertility {means.get('fertility', 1):.2f}")
-

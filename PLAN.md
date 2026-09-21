@@ -101,3 +101,10 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Five seeds, 2,000 ticks, sensory range 12: communication off/on mean final alive 0/0.6, births 9.4/9.6, plant meals 39.6/33.8. Mixed exploratory results; no general benefit or causal attribution claim.
 - Browser verified the deployed social dashboard, advancing counters, memory/outcome readouts, communication toggle and step/restart controls. Captured visible violet food reports; no app-origin console error observed.
 - Next: bounded per-sender reliability learning, with explicit controls for messaging cost, memory and sensory-target policy before any LLM layer.
+
+### Per-sender reliability engine
+- Each agent learns perceived report usefulness from actual arrivals: meals add positive evidence, empty locations add negative evidence. Expired trips provide no feedback; an empty arrival is not evidence of deception.
+- Neutral score 0.5; evidence decays with a 400-tick half-life, is capped at 16, and is retained for at most eight senders (oldest outcome first, source ID breaks ties).
+- Twice the score scales the inherited response tendency for new reports; existing goals, locomotion, circuit topology and genomes are unchanged. Learned records are individual state, not inherited traits.
+- `--no-social-learning` keeps the previous fixed-response communication baseline. Python snapshots expose read-only decayed records. Matching JavaScript implementation included.
+- Validation: 59 tests pass, including neutral prior, feedback direction, decay, capacity/eviction, disabled mode, agent independence, response effects and Python/JavaScript parity.

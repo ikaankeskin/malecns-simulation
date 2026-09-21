@@ -167,7 +167,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -181,6 +181,7 @@
     const patches = clamp(Math.round(Number(ui.patches) || 6), 2, 12);
     return Object.assign({}, DEFAULTS, {
       communication: ui.communication == null ? true : ui.communication,
+      social_learning: ui.social_learning == null ? true : ui.social_learning,
       sense_range: ui.sense_range == null ? DEFAULTS.sense_range : ui.sense_range,
       seasons: ui.seasons == null ? true : ui.seasons,
       scavenging: ui.scavenging == null ? true : ui.scavenging,
@@ -650,4 +651,3 @@
     randomize: randomize,
   };
 }(typeof window !== 'undefined' ? window : globalThis));
-
