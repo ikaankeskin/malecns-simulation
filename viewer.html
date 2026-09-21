@@ -100,7 +100,7 @@
         <div class="bar right"><i id="sel-right-bar"></i></div>
       </div>
       <div id="eco-wrap" hidden>
-        <h2>Ecosystem</h2>
+        <h2>Ecosystem</h2><div class="stat"><span>season</span><strong id="eco-season">Stable</strong></div><div class="stat"><span>scavenged / fertilized</span><strong id="eco-recycled">0 / 0</strong></div>
         <div class="stat"><span>tick</span><strong id="eco-tick">0</strong></div>
         <div class="stat"><span>alive</span><strong id="eco-alive">0</strong></div>
         <div class="stat"><span>born</span><strong id="eco-born">0</strong></div>
@@ -424,8 +424,8 @@
         drawPatches(tick.patches || [], scale);
         (tick.corpses || []).forEach((corpse) => {
           const [x, y] = worldToCanvas(corpse.x, corpse.y);
-          ctx.fillStyle = '#8a8580';
-          ctx.globalAlpha = 0.55;
+          ctx.fillStyle = '#e6a0b5';
+          ctx.globalAlpha = 0.25 + 0.65 * (corpse.freshness == null ? 1 : corpse.freshness);
           ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
         });
@@ -438,6 +438,9 @@
           ctx.font = '11px sans-serif';
           ctx.fillText('F' + agent.id, ax + 8, ay - 8);
         });
+        const env = tick.environment || {name:'Stable', growth:1};
+        document.getElementById('eco-season').textContent = env.name + ' ×' + env.growth.toFixed(2);
+        document.getElementById('eco-recycled').textContent = (tick.scavenged || 0) + ' / ' + (tick.composted || 0);
         document.getElementById('eco-tick').textContent = tick.tick;
         document.getElementById('eco-alive').textContent = tick.alive;
         document.getElementById('eco-born').textContent = tick.born || 0;
@@ -643,3 +646,4 @@
   </script>
 </body>
 </html>
+

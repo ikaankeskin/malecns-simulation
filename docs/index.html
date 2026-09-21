@@ -58,7 +58,7 @@
     .bar-row i.gold { background: var(--gold); }
     @media (max-width: 900px) {
       main { grid-template-columns: 1fr; }
-      .stage { min-height: 52vh; }
+      .stage { position: relative; min-height: 52vh; }
       aside { border-left: 0; border-top: 1px solid var(--line); }
     }
   </style>
@@ -69,7 +69,7 @@
     <div class="meta">MaleCNS DNg13 circuits steer bodies. Food, energy, aging, and reproduction are labelled simulation rules, not fly physiology. Topology does not mutate.</div>
   </header>
   <main>
-    <div class="stage"><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
+    <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
     <aside>
       <h2>Rules</h2>
       <label class="ctrl"><span>preset</span>
@@ -96,15 +96,23 @@
       <label class="ctrl"><span>mutation rate</span><strong id="mut-val">0.85</strong>
         <input id="mutation-rate" type="range" min="0" max="1" step="0.05" value="0.9" aria-label="Mutation rate">
       </label>
+      <label class="ctrl"><span>seasonal growth</span><input id="seasons" type="checkbox" checked></label>
+      <label class="ctrl"><span>corpse scavenging</span><input id="scavenging" type="checkbox" checked></label>
+      <label class="ctrl"><span>ticks per season</span><select id="season-length"><option value="200">200 · fast</option><option value="400" selected>400 · standard</option><option value="800">800 · slow</option></select></label>
       <div class="actions">
         <button type="button" id="randomize" class="primary">Randomize</button>
         <button type="button" id="apply">Apply</button>
         <button type="button" id="play" class="ghost">Pause</button>
+        <button type="button" id="step" class="ghost">Step</button>
         <button type="button" id="reset" class="ghost">Restart</button>
       </div>
       <div class="row"><span>seed</span><strong id="seed-val">4</strong></div>
       <div class="meta" id="rule-readout"></div>
 
+      <h2>Nutrient cycle</h2>
+      <div class="row"><span>corpses scavenged</span><strong id="scavenged">0</strong></div>
+      <div class="row"><span>plants fertilized</span><strong id="composted">0</strong></div>
+      <div class="meta">Rose rings show corpse freshness. Uneaten remains can fertilize nearby growing plants. Apply restarts with the chosen rules and same seed.</div>
       <h2>World</h2>
       <div class="row"><span>tick</span><strong id="tick">0</strong></div>
       <div class="row"><span>alive</span><strong id="alive">0</strong></div>
@@ -128,7 +136,7 @@
       <div id="events"></div>
       <h2>Agents</h2>
       <div id="board"></div>
-      <h2>Inspector</h2>
+      <h2>Inspector</h2><div class="row"><span>target intent</span><strong id="sel-intent">searching</strong></div><div class="row"><span>scavenges</span><strong id="sel-scavenges">0</strong></div>
       <div class="row"><span>id</span><strong id="sel-id">—</strong></div>
       <div class="row"><span>generation</span><strong id="sel-gen">0</strong></div>
       <div class="row"><span>parents</span><strong id="sel-parents">founder</strong></div>
@@ -145,7 +153,7 @@
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
       <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
       <h2>Assumptions</h2>
-      <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Meals extend lifespan. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology does not change.</div>
+      <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology does not change.</div>
     </aside>
   </main>
   <script src="engine.js"></script>
@@ -166,6 +174,9 @@
 
     function ui() {
       return {
+        seasons: document.getElementById('seasons').checked,
+        scavenging: document.getElementById('scavenging').checked,
+        season_length: Number(document.getElementById('season-length').value),
         agents: Number(fields.agents.value),
         food_rate: Number(fields.food.value),
         aging_rate: Number(fields.aging.value),
@@ -260,7 +271,9 @@
       const half = world.rules.map_half;
       const bounds = { min: -half - 1, max: half + 1 };
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = '#1d2432';
+      ctx.fillStyle = ['#101f1c', '#141e22', '#251c17', '#151c29'][snap.environment.index] || '#111722';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#28303b';
       ctx.lineWidth = 1;
       for (let g = Math.floor(bounds.min); g <= bounds.max; g += 2) {
         const a = worldToCanvas(g, bounds.min, bounds);
@@ -282,8 +295,10 @@
       });
       snap.corpses.forEach((corpse) => {
         const p = worldToCanvas(corpse.x, corpse.y, bounds);
-        ctx.fillStyle = '#8a8580'; ctx.globalAlpha = 0.5;
+        ctx.fillStyle = '#e6a0b5'; ctx.globalAlpha = 0.25 + 0.65 * corpse.freshness;
         ctx.beginPath(); ctx.arc(p[0], p[1], 5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#e6a0b5'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(p[0], p[1], 9, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * corpse.freshness); ctx.stroke();
         ctx.globalAlpha = 1;
       });
       snap.agents.forEach((agent) => {
@@ -307,6 +322,16 @@
         ctx.font = '11px sans-serif';
         ctx.fillText('F' + agent.id, p[0] + 8, p[1] - 8);
       });
+      snap.events.filter(e => ['scavenged', 'composted'].includes(e.kind) && snap.tick - e.tick < 32).forEach(e => {
+        const p = worldToCanvas(e.x, e.y, bounds), age = Math.max(0, snap.tick - e.tick);
+        ctx.globalAlpha = 1 - age / 32; ctx.strokeStyle = e.kind === 'scavenged' ? '#ffa2bc' : '#92d780';
+        ctx.beginPath(); ctx.arc(p[0], p[1], 8 + age, 0, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 1;
+      });
+      const env = snap.environment;
+      document.getElementById('season-banner').textContent = env.name + ' · growth ×' + env.growth.toFixed(2) +
+        (env.remaining ? ' · ' + env.remaining + ' ticks left · cycle ' + env.cycle : '');
+      document.getElementById('scavenged').textContent = snap.scavenged;
+      document.getElementById('composted').textContent = snap.composted;
       document.getElementById('tick').textContent = snap.tick;
       document.getElementById('alive').textContent = snap.alive;
       document.getElementById('born').textContent = snap.births;
@@ -337,6 +362,13 @@
       });
       const sel = snap.agents.find((agent) => agent.id === selected) || snap.agents[0];
       if (sel) {
+        document.getElementById('sel-intent').textContent = sel.alive ? (sel.intent || 'searching') : 'dead';
+        document.getElementById('sel-scavenges').textContent = sel.scavenges || 0;
+        if (sel.alive && sel.target) {
+          const a = worldToCanvas(sel.x, sel.y, bounds), b = worldToCanvas(sel.target.x, sel.target.y, bounds);
+          ctx.setLineDash([4, 5]); ctx.strokeStyle = sel.intent === 'scavenging' ? '#ffa2bc' : '#e6c15a';
+          ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]);
+        }
         document.getElementById('sel-id').textContent = 'F' + sel.id;
         document.getElementById('sel-gen').textContent = sel.generation;
         document.getElementById('sel-parents').textContent = sel.parents ? ('F' + sel.parents[0] + ' + F' + sel.parents[1]) : 'founder';
@@ -350,13 +382,13 @@
         const mut = sel.mutations || {};
         document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('sel-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);
-        const span = Eco.snapshot && sel.life_span ? sel.life_span : Math.round((world.rules.max_age * (genome.lifespan || 1)) + sel.meals * (world.rules.meal_life || 90));
+        const span = Eco.lifespanOf(sel, world.rules);
         document.getElementById('sel-age').textContent = sel.age + ' / ' + span;
         document.getElementById('sel-energy').textContent = sel.energy.toFixed(3);
         document.getElementById('sel-meals').textContent = sel.meals;
         document.getElementById('sel-status').textContent = sel.alive ? 'alive' : (sel.cause_of_death || 'dead');
       }
-      const recent = snap.events.slice(-8).reverse();
+      const recent = snap.events.filter(e => e.kind !== 'food_mature').slice(-8).reverse();
       document.getElementById('events').innerHTML = recent.map((event) =>
         '<div class="event">t' + event.tick + ' · ' + event.text + '</div>').join('') || '<div class="event">no events yet</div>';
       const genCounts = snap.living_by_gen || {};
@@ -421,6 +453,9 @@
       showUi();
       restart(pick.seed);
     };
+    document.getElementById('step').onclick = () => {
+      if (!world) return; playing = false; document.getElementById('play').textContent = 'Play'; Eco.step(world); draw();
+    };
     document.getElementById('play').onclick = () => {
       playing = !playing;
       document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
@@ -441,3 +476,4 @@
   </script>
 </body>
 </html>
+

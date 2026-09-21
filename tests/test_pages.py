@@ -26,6 +26,12 @@ class PagesTests(unittest.TestCase):
         completed = subprocess.run(['node', '-e', code], cwd=ROOT, text=True, capture_output=True)
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required for page wiring test')
+    def test_live_page_wiring(self):
+        result = subprocess.run(['node', 'tests/live_page_smoke.cjs'], cwd=ROOT,
+                                text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_live_page_exposes_parameter_controls(self):
         html = (DOCS / 'index.html').read_text()
         for token in ('id="agents"', 'id="food-rate"', 'id="aging-rate"', 'id="repro-rate"',

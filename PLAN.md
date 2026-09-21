@@ -72,3 +72,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Enforced reflecting finite map boundaries in both engines. Added CLI season/scavenging switches and playback rule forwarding.
 - Validation: 44 tests pass, including synthetic cross-engine ecology fixtures, meal eligibility, deterministic replay, and map bounds. These are software checks, not biological validation.
 - Next step: expose environment, nutrient events, and target intent in live and replay views.
+
+### Ecology dashboard and replay controls
+- Added seasonal growth and scavenging toggles, season duration, season banner, tinted arena, freshness rings, nutrient-event highlights, and aggregate recycling counts.
+- Inspector shows current target intent and scavenging count, with a dashed target line. Corrected displayed lifespan to respect the meal bonus cap.
+- Added a paused single-step control and kept plant-maturation chatter out of the live timeline. Python replay shows season and recycling totals.
+- Validation: 45 tests pass, including executable synthetic DOM/canvas wiring checks for pause, step, restart, toggles and season transitions; CLI playback generation also passes. Local browser preview was blocked by the browser network boundary; DOM harness is not a layout test.
