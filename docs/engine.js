@@ -20,6 +20,7 @@
     seasons: true, season_length: 400, scavenging: true,
     hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
     gifts: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
+    predation: false, attack_range: 2, attack_cost: 0.08, attack_damage: 0.45, attack_cooldown: 40, attack_chance: 0.35, attack_floor: 0.5,
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
@@ -169,7 +170,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -189,6 +190,7 @@
       scavenging: ui.scavenging == null ? true : ui.scavenging,
       hazards: ui.hazards == null ? true : ui.hazards,
       gifts: ui.gifts == null ? false : ui.gifts,
+      predation: ui.predation == null ? false : ui.predation,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
@@ -486,6 +488,47 @@
     };
   }
 
+  function initAttacks(agent) {
+    if (agent.last_attack == null) agent.last_attack = -1e9;
+    if (agent.attacks == null) agent.attacks = 0;
+  }
+
+  function attackWilling(agent, tick, rules) {
+    return ((agent.id + 1) * 149 + tick * 59 + 113) % 1009 / 1009 < rules.attack_chance;
+  }
+
+  function resolvePredation(agents, patches, tick, rules, events) {
+    agents.forEach(initAttacks);
+    if (!rules.predation) return 0;
+    let kills = 0;
+    agents.filter((agent) => agent.alive).sort((a, b) => a.id - b.id).forEach((attacker) => {
+      if (!attacker.alive) return;
+      if (tick - attacker.last_attack < rules.attack_cooldown) return;
+      if (attacker.energy <= rules.attack_floor) return;
+      const neighbours = agents.filter((other) => other.alive && other.id !== attacker.id
+        && Math.hypot(attacker.x - other.x, attacker.y - other.y) <= rules.attack_range);
+      if (!neighbours.length) return;
+      const target = neighbours.slice().sort((a, b) => Math.hypot(attacker.x - a.x, attacker.y - a.y) - Math.hypot(attacker.x - b.x, attacker.y - b.y) || a.id - b.id)[0];
+      const gap = Math.hypot(attacker.x - target.x, attacker.y - target.y);
+      const mature = (patches || []).filter((patch) => patch.stage === 'mature');
+      const food = mature.length ? Math.min.apply(null, mature.map((patch) => Math.hypot(attacker.x - patch.x, attacker.y - patch.y))) : Infinity;
+      if (gap >= food) return;
+      attacker.last_attack = tick;
+      if (!attackWilling(attacker, tick, rules) || !target.alive) return;
+      attacker.energy -= rules.attack_cost;
+      attacker.attacks += 1;
+      target.energy -= rules.attack_damage;
+      const killed = target.energy <= 0;
+      if (killed) {
+        kill(target, tick, 'predation', rules.corpse_ticks);
+        kills += 1;
+      }
+      events.push({ tick: tick, kind: 'attack', agent: attacker.id, target: target.id, killed: killed,
+        text: 'F' + attacker.id + ' attacked F' + target.id + (killed ? ' and killed them' : '') });
+    });
+    return kills;
+  }
+
   function resolveDeath(agent, rules, inHazard, predation) {
     if (predation) return 'predation';
     if (inHazard && agent.energy <= 0) return 'hazard';
@@ -673,6 +716,7 @@
     });
     Social.endTick(world.agents, world.tick, rules, world.events);
     exchangeGifts(world.agents, world.tick, rules, world.events);
+    resolvePredation(world.agents, world.patches, world.tick, rules, world.events);
     world.scavenged += scavengeCorpses(world.agents, world.tick, rules, world.events);
     reproduce(world);
     world.agents.forEach((agent) => {
@@ -740,6 +784,7 @@
       displaced: world.displaced || 0,
       hazards: world.hazards,
       hazard_deaths: world.agents.filter((agent) => agent.cause_of_death === 'hazard').length,
+      predation_deaths: world.agents.filter((agent) => agent.cause_of_death === 'predation').length,
       gifts: giftTotals(world.agents),
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
@@ -847,7 +892,7 @@
 
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
-    spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals,
+    spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation,
     lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,

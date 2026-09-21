@@ -1,0 +1,158 @@
+{
+  "ablation": "predation",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "fixed": {
+    "hazards": true,
+    "seasons": true,
+    "scavenging": true,
+    "gifts": false,
+    "social_learning": true
+  },
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "predation_enabled": false,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 4,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 9
+    },
+    {
+      "seed": 0,
+      "predation_enabled": true,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 3,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 3,
+      "old_age": 7
+    },
+    {
+      "seed": 1,
+      "predation_enabled": false,
+      "alive": 0,
+      "births": 6,
+      "scavenged": 7,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 13
+    },
+    {
+      "seed": 1,
+      "predation_enabled": true,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 3,
+      "predation": 3,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 6
+    },
+    {
+      "seed": 2,
+      "predation_enabled": false,
+      "alive": 0,
+      "births": 1,
+      "scavenged": 0,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 0,
+      "old_age": 9
+    },
+    {
+      "seed": 2,
+      "predation_enabled": true,
+      "alive": 0,
+      "births": 1,
+      "scavenged": 2,
+      "predation": 1,
+      "hazard": 0,
+      "starved": 2,
+      "old_age": 6
+    },
+    {
+      "seed": 3,
+      "predation_enabled": false,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 3,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 9
+    },
+    {
+      "seed": 3,
+      "predation_enabled": true,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 3,
+      "predation": 1,
+      "hazard": 0,
+      "starved": 2,
+      "old_age": 7
+    },
+    {
+      "seed": 4,
+      "predation_enabled": false,
+      "alive": 0,
+      "births": 5,
+      "scavenged": 8,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 12
+    },
+    {
+      "seed": 4,
+      "predation_enabled": true,
+      "alive": 0,
+      "births": 2,
+      "scavenged": 5,
+      "predation": 2,
+      "hazard": 0,
+      "starved": 3,
+      "old_age": 5
+    }
+  ],
+  "means": {
+    "off": {
+      "alive": 0,
+      "births": 3.2,
+      "scavenged": 4.4,
+      "predation": 0,
+      "hazard": 0,
+      "starved": 0.8,
+      "old_age": 10.4
+    },
+    "on": {
+      "alive": 0,
+      "births": 1.8,
+      "scavenged": 3.2,
+      "predation": 1.4,
+      "hazard": 0,
+      "starved": 2.2,
+      "old_age": 6.2
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Hazards, seasons, scavenging, gifts, and sender learning stay fixed. An attack costs energy and can kill; the corpse is scavenged only under the existing corpse rules. The circuit has no attack output. No confidence intervals. Python and browser RNGs differ."
+}

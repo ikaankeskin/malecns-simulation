@@ -135,6 +135,14 @@ python3 gift_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --
 
 Initial five-seed means: gifts off/on alive 1.0/0.8, births 10.2/11.6, plant meals 31.4/38.2, gifts sent 0/30.2, energy paid 0/4.53, energy kept 0/3.02. A recipient still alive 100 ticks later is not evidence the gift saved them. Full rows: `docs/gift-comparison.json`.
 
+Predation is off unless `--predation` is set or the live **predation** box is checked and applied. An agent with energy above 0.5 may spend 0.08 to deal 0.45 damage to a neighbour within 2 units, only when that neighbour is closer than the nearest mature plant. A killing blow is labelled predation. The attacker is not given the meal.
+
+```bash
+python3 predation_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out predation-comparison.json
+```
+
+Initial five-seed means, with hazards, seasons, scavenging, and learning left on and gifts left off: predation off/on alive 0/0, births 3.2/1.8, scavenged meals 4.4/3.2, predation deaths 0/1.4, starvation 0.8/2.2, old age 10.4/6.2. Exploratory. Full rows: `docs/predation-comparison.json`.
+
 Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, hazard discs, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.

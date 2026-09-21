@@ -37,6 +37,13 @@ DEFAULTS = {
     'gift_cooldown': 80,
     'gift_chance': 0.25,
     'gift_follow': 100,
+    'predation': False,
+    'attack_range': 2.0,
+    'attack_cost': 0.08,
+    'attack_damage': 0.45,
+    'attack_cooldown': 40,
+    'attack_chance': 0.35,
+    'attack_floor': 0.5,
     'scavenge_below': 1.1,
     'corpse_meal': 0.35,
     'compost_radius': 5.0,
@@ -63,7 +70,7 @@ DEFAULTS.update(social.DEFAULTS)
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
             'meal_life', 'meal_life_cap', 'record_every', 'season_length', 'signal_ticks', 'signal_cooldown', 'memory_ticks',
-            'hazard_count', 'gift_cooldown', 'gift_follow')
+            'hazard_count', 'gift_cooldown', 'gift_follow', 'attack_cooldown')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -148,19 +155,24 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
         _positive_number(key, rules[key], allow_zero=True)
-    for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain', 'gift_amount', 'gift_range'):
+    for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain', 'gift_amount', 'gift_range',
+                'attack_range', 'attack_cost', 'attack_damage'):
         _positive_number(key, rules[key])
     _positive_number('gift_keep', rules['gift_keep'], allow_zero=False)
+    _positive_number('attack_floor', rules['attack_floor'], allow_zero=True)
     if rules['gift_keep'] >= rules['gift_amount']:
         raise ValueError('gift_keep must be less than gift_amount')
-    chance = rules['gift_chance']
-    if isinstance(chance, bool) or not isinstance(chance, (int, float)) or not 0 <= chance <= 1:
-        raise ValueError('gift_chance must be between 0 and 1')
+    if rules['attack_range'] >= rules['sense_range']:
+        raise ValueError('attack_range must be shorter than sense_range')
+    for name in ('gift_chance', 'attack_chance'):
+        chance = rules[name]
+        if isinstance(chance, bool) or not isinstance(chance, (int, float)) or not 0 <= chance <= 1:
+            raise ValueError(f'{name} must be between 0 and 1')
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 60:
@@ -818,6 +830,58 @@ def gift_totals(agents):
     }
 
 
+def init_attacks(agent):
+    agent.setdefault('last_attack', -10 ** 9)
+    agent.setdefault('attacks', 0)
+
+
+def attack_willing(agent, tick, rules):
+    roll = ((agent['id'] + 1) * 149 + tick * 59 + 113) % 1009 / 1009
+    return roll < rules['attack_chance']
+
+
+def resolve_predation(agents, patches, tick, rules, events):
+    """Costly attack. A kill leaves a corpse; it does not hand the attacker a meal."""
+    for agent in agents:
+        init_attacks(agent)
+    if not rules['predation']:
+        return 0
+    kills = 0
+    for attacker in sorted((agent for agent in agents if agent['alive']), key=lambda agent: agent['id']):
+        if tick - attacker['last_attack'] < rules['attack_cooldown']:
+            continue
+        if attacker['energy'] <= rules['attack_floor']:
+            continue
+        neighbours = [other for other in agents if other['alive'] and other['id'] != attacker['id']
+                      and math.hypot(attacker['x'] - other['x'], attacker['y'] - other['y']) <= rules['attack_range']]
+        if not neighbours:
+            continue
+        target = min(neighbours, key=lambda other: (
+            math.hypot(attacker['x'] - other['x'], attacker['y'] - other['y']), other['id']))
+        gap = math.hypot(attacker['x'] - target['x'], attacker['y'] - target['y'])
+        food = min((math.hypot(attacker['x'] - patch['x'], attacker['y'] - patch['y'])
+                    for patch in patches if patch['stage'] == 'mature'), default=math.inf)
+        if gap >= food:
+            continue
+        attacker['last_attack'] = tick
+        if not attack_willing(attacker, tick, rules):
+            continue
+        if not target['alive']:
+            continue
+        attacker['energy'] -= rules['attack_cost']
+        attacker['attacks'] += 1
+        target['energy'] -= rules['attack_damage']
+        killed = target['energy'] <= 0
+        if killed:
+            kill(target, tick, 'predation', rules['corpse_ticks'])
+            kills += 1
+        events.append({
+            'tick': tick, 'kind': 'attack', 'agent': attacker['id'], 'target': target['id'], 'killed': killed,
+            'text': f'F{attacker["id"]} attacked F{target["id"]}' + (' and killed them' if killed else ''),
+        })
+    return kills
+
+
 def resolve_death(agent, rules, in_hazard, predation=False):
     """First match: predation, hazard, starvation, old age. One energy pool."""
     if predation:
@@ -928,6 +992,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
         social.end_tick(agents, tick, rules, events)
         exchange_gifts(agents, tick, rules, events)
+        resolve_predation(agents, patches, tick, rules, events)
         scavenged += scavenge_corpses(agents, tick, rules, events)
         births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
         while len(motors) < len(agents):
@@ -995,6 +1060,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'signals': copy.deepcopy(signals), 'social': social.totals(agents),
                 'environment': environment, 'scavenged': scavenged, 'composted': composted,
                 'hazards': [dict(disc) for disc in hazards], 'hazard_deaths': hazard_deaths,
+                'predation': sum(agent['cause_of_death'] == 'predation' for agent in agents),
                 'gifts': gift_totals(agents),
             })
     return {
@@ -1016,6 +1082,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'social': social.totals(agents),
             'scavenged': scavenged, 'composted': composted,
             'hazard': hazard_deaths,
+            'predation': sum(agent['cause_of_death'] == 'predation' for agent in agents),
             'gifts': gift_totals(agents),
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
