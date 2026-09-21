@@ -1,0 +1,420 @@
+{
+  "ablation": "personality",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "fixed": {
+    "hazards": true,
+    "seasons": true,
+    "scavenging": true,
+    "gifts": true,
+    "predation": true,
+    "social_learning": true
+  },
+  "genes": [
+    "caution",
+    "generosity",
+    "aggression"
+  ],
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "gene": "caution",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 3,
+      "hazard_entries": 2,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 0,
+      "gene": "caution",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 4,
+      "attacks": 6,
+      "hazard_entries": 2,
+      "gene_mean": 0.9893
+    },
+    {
+      "seed": 0,
+      "gene": "generosity",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 3,
+      "hazard_entries": 2,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 0,
+      "gene": "generosity",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 3,
+      "attacks": 6,
+      "hazard_entries": 2,
+      "gene_mean": 0.9893
+    },
+    {
+      "seed": 0,
+      "gene": "aggression",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 3,
+      "hazard_entries": 2,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 0,
+      "gene": "aggression",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 4,
+      "attacks": 6,
+      "hazard_entries": 2,
+      "gene_mean": 0.9893
+    },
+    {
+      "seed": 1,
+      "gene": "caution",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 1,
+      "attacks": 6,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 1,
+      "gene": "caution",
+      "varying": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 5,
+      "hazard_entries": 2,
+      "gene_mean": 0.9932
+    },
+    {
+      "seed": 1,
+      "gene": "generosity",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 1,
+      "attacks": 6,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 1,
+      "gene": "generosity",
+      "varying": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 5,
+      "hazard_entries": 2,
+      "gene_mean": 0.9932
+    },
+    {
+      "seed": 1,
+      "gene": "aggression",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 1,
+      "attacks": 6,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 1,
+      "gene": "aggression",
+      "varying": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 5,
+      "hazard_entries": 2,
+      "gene_mean": 0.9932
+    },
+    {
+      "seed": 2,
+      "gene": "caution",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 8,
+      "attacks": 4,
+      "hazard_entries": 0,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 2,
+      "gene": "caution",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 10,
+      "attacks": 3,
+      "hazard_entries": 0,
+      "gene_mean": 0.9798
+    },
+    {
+      "seed": 2,
+      "gene": "generosity",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 8,
+      "attacks": 4,
+      "hazard_entries": 0,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 2,
+      "gene": "generosity",
+      "varying": true,
+      "alive": 0,
+      "births": 6,
+      "gifts": 15,
+      "attacks": 9,
+      "hazard_entries": 1,
+      "gene_mean": 0.9929
+    },
+    {
+      "seed": 2,
+      "gene": "aggression",
+      "varying": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 8,
+      "attacks": 4,
+      "hazard_entries": 0,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 2,
+      "gene": "aggression",
+      "varying": true,
+      "alive": 0,
+      "births": 6,
+      "gifts": 15,
+      "attacks": 9,
+      "hazard_entries": 1,
+      "gene_mean": 0.9929
+    },
+    {
+      "seed": 3,
+      "gene": "caution",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 2,
+      "attacks": 5,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 3,
+      "gene": "caution",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 4,
+      "attacks": 7,
+      "hazard_entries": 1,
+      "gene_mean": 1.0107
+    },
+    {
+      "seed": 3,
+      "gene": "generosity",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 2,
+      "attacks": 5,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 3,
+      "gene": "generosity",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 4,
+      "attacks": 7,
+      "hazard_entries": 1,
+      "gene_mean": 1.0107
+    },
+    {
+      "seed": 3,
+      "gene": "aggression",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 2,
+      "attacks": 5,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 3,
+      "gene": "aggression",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 4,
+      "attacks": 7,
+      "hazard_entries": 1,
+      "gene_mean": 1.0107
+    },
+    {
+      "seed": 4,
+      "gene": "caution",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 8,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 4,
+      "gene": "caution",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 7,
+      "hazard_entries": 2,
+      "gene_mean": 1.0128
+    },
+    {
+      "seed": 4,
+      "gene": "generosity",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 8,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 4,
+      "gene": "generosity",
+      "varying": true,
+      "alive": 0,
+      "births": 3,
+      "gifts": 9,
+      "attacks": 7,
+      "hazard_entries": 2,
+      "gene_mean": 1.01
+    },
+    {
+      "seed": 4,
+      "gene": "aggression",
+      "varying": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 8,
+      "hazard_entries": 1,
+      "gene_mean": 1.0
+    },
+    {
+      "seed": 4,
+      "gene": "aggression",
+      "varying": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 6,
+      "attacks": 7,
+      "hazard_entries": 2,
+      "gene_mean": 1.0128
+    }
+  ],
+  "means": {
+    "caution": {
+      "frozen": {
+        "alive": 0,
+        "births": 1.4,
+        "gifts": 4.2,
+        "attacks": 5.2,
+        "hazard_entries": 1,
+        "gene_mean": 1.0
+      },
+      "varying": {
+        "alive": 0,
+        "births": 1.8,
+        "gifts": 5.6,
+        "attacks": 5.6,
+        "hazard_entries": 1.4,
+        "gene_mean": 0.9972
+      }
+    },
+    "generosity": {
+      "frozen": {
+        "alive": 0,
+        "births": 1.4,
+        "gifts": 4.2,
+        "attacks": 5.2,
+        "hazard_entries": 1,
+        "gene_mean": 1.0
+      },
+      "varying": {
+        "alive": 0,
+        "births": 2.8,
+        "gifts": 6.8,
+        "attacks": 6.8,
+        "hazard_entries": 1.6,
+        "gene_mean": 0.9992
+      }
+    },
+    "aggression": {
+      "frozen": {
+        "alive": 0,
+        "births": 1.4,
+        "gifts": 4.2,
+        "attacks": 5.2,
+        "hazard_entries": 1,
+        "gene_mean": 1.0
+      },
+      "varying": {
+        "alive": 0,
+        "births": 2.6,
+        "gifts": 6.4,
+        "attacks": 6.8,
+        "hazard_entries": 1.6,
+        "gene_mean": 0.9998
+      }
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Hazards, seasons, scavenging, gifts, predation, and sender learning stay on. One gene mutates; the other two stay at 1, which leaves the current attempt chances and hazard comparison unchanged. These genes are inherited scales, not character traits. The circuit gains no new output. No confidence intervals. Python and browser RNGs differ."
+}

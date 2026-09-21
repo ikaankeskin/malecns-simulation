@@ -21,6 +21,7 @@
     hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
     gifts: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
     predation: false, attack_range: 2, attack_cost: 0.08, attack_damage: 0.45, attack_cooldown: 40, attack_chance: 0.35, attack_floor: 0.5,
+    frozen_genes: [],
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
@@ -43,10 +44,12 @@
   const BASE_GENOME = {
     turn_gain: 1, sensory_gain: 1, metabolism: 1, speed: 1,
     lifespan: 1, fertility: 1, signalling: .5, responsiveness: .5, spot: 0, echo: 0, drift: 0,
+    caution: 1, generosity: 1, aggression: 1,
   };
   const GENE_BOUNDS = {
     turn_gain: [0.45, 2], sensory_gain: [0.45, 2.2], metabolism: [0.5, 1.8], speed: [0.55, 1.9],
     signalling: [0, 1], responsiveness: [0, 1], lifespan: [0.65, 1.9], fertility: [0.6, 2.2], spot: [0, 1], echo: [0, 1], drift: [0, 1],
+    caution: [0, 2], generosity: [0, 2], aggression: [0, 2],
   };
   const MUTATION_LABELS = {
     speed: ['speed boost', 'sluggish'],
@@ -58,6 +61,9 @@
     spot: ['speckled', 'speckled'],
     echo: ['echo', 'echo'],
     drift: ['wobble', 'wobble'],
+    caution: ['hazard-shy', 'hazard-tolerant'],
+    generosity: ['gift-prone', 'gift-shy'],
+    aggression: ['attack-prone', 'attack-shy'],
   };
 
   const PRESETS = {
@@ -97,12 +103,19 @@
     const mutations = {};
     const rate = rules.mutation_rate;
     const sigma = rules.mutation_sigma;
+    const frozen = new Set(rules.frozen_genes || []);
     Object.keys(GENE_BOUNDS).forEach((gene) => {
-      const mid = 0.5 * (mother[gene] + father[gene]);
+      if (frozen.has(gene)) {
+        child[gene] = BASE_GENOME[gene];
+        return;
+      }
+      const base = BASE_GENOME[gene];
+      const mid = 0.5 * ((mother[gene] == null ? base : mother[gene]) + (father[gene] == null ? base : father[gene]));
       let value = mid;
       if (rate > 0 && sigma > 0 && random() < rate) {
         const bounds = GENE_BOUNDS[gene];
-        if (gene === 'spot' || gene === 'echo' || gene === 'drift' || gene === 'signalling' || gene === 'responsiveness') {
+        if (gene === 'spot' || gene === 'echo' || gene === 'drift' || gene === 'signalling' || gene === 'responsiveness'
+            || gene === 'caution' || gene === 'generosity' || gene === 'aggression') {
           value = clamp(mid + gauss(random, sigma), bounds[0], bounds[1]);
         } else {
           value = clamp(mid * (1 + gauss(random, sigma)), bounds[0], bounds[1]);
@@ -418,11 +431,17 @@
     return { x: agent.x + dx, y: agent.y + dy, kind: 'avoiding_hazard', id: disc.id };
   }
 
+  function geneValue(agent, name) {
+    const genome = agent.genome || {};
+    return genome[name] == null ? BASE_GENOME[name] : genome[name];
+  }
+
   function competeHazard(agent, choice, hazards, rules) {
     const sensed = rules.hazards ? nearestHazard(agent, hazards, rules) : null;
     if (!sensed) return choice;
     const food = choice ? Math.hypot(choice.x - agent.x, choice.y - agent.y) : Infinity;
-    if (sensed.gap <= 0 || sensed.gap < food) return avoidanceTarget(agent, sensed.disc);
+    const caution = geneValue(agent, 'caution');
+    if (sensed.gap <= 0 || sensed.gap < food * caution) return avoidanceTarget(agent, sensed.disc);
     return choice;
   }
 
@@ -435,7 +454,8 @@
   }
 
   function giftWilling(agent, tick, rules) {
-    return ((agent.id + 1) * 137 + tick * 53 + 91) % 1009 / 1009 < rules.gift_chance;
+    const roll = ((agent.id + 1) * 137 + tick * 53 + 91) % 1009 / 1009;
+    return roll < Math.min(1, rules.gift_chance * geneValue(agent, 'generosity'));
   }
 
   function exchangeGifts(agents, tick, rules, events) {
@@ -494,7 +514,8 @@
   }
 
   function attackWilling(agent, tick, rules) {
-    return ((agent.id + 1) * 149 + tick * 59 + 113) % 1009 / 1009 < rules.attack_chance;
+    const roll = ((agent.id + 1) * 149 + tick * 59 + 113) % 1009 / 1009;
+    return roll < Math.min(1, rules.attack_chance * geneValue(agent, 'aggression'));
   }
 
   function resolvePredation(agents, patches, tick, rules, events) {
@@ -724,6 +745,8 @@
       agent.energy -= rules.base_drain * agent.genome.metabolism + rules.move_cost * agent.speed;
       const sensed = nearestHazard(agent, world.hazards, rules);
       const inHazard = !!(sensed && sensed.dist <= sensed.disc.radius);
+      if (inHazard && !agent.inside_hazard) world.hazardEntries = (world.hazardEntries || 0) + 1;
+      agent.inside_hazard = inHazard;
       if (inHazard) agent.energy -= rules.hazard_drain;
       const cause = resolveDeath(agent, rules, inHazard, false);
       if (cause) {

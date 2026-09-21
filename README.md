@@ -143,6 +143,14 @@ python3 predation_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 20
 
 Initial five-seed means, with hazards, seasons, scavenging, and learning left on and gifts left off: predation off/on alive 0/0, births 3.2/1.8, scavenged meals 4.4/3.2, predation deaths 0/1.4, starvation 0.8/2.2, old age 10.4/6.2. Exploratory. Full rows: `docs/predation-comparison.json`.
 
+Caution, generosity, and aggression are inherited scales. One is neutral: it leaves the hazard comparison and the gift and attack chances unchanged. Caution multiplies how far a hazard edge can be and still beat a meal. Generosity and aggression multiply the attempt chances, which stay capped at 1. The genes are tendencies, not character traits.
+
+```bash
+python3 personality_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out personality-comparison.json
+```
+
+The comparison turns hazards, gifts, and predation on, then lets one gene mutate while the other two stay at 1. Five-seed means for the all-frozen world: alive 0, births 1.4, gifts 4.2, attacks 5.2, hazard entries 1. Letting caution vary: births 1.8, gifts 5.6, attacks 5.6, entries 1.4. Generosity: births 2.8, gifts 6.8, attacks 6.8, entries 1.6. Aggression: births 2.6, gifts 6.4, attacks 6.8, entries 1.6. Gene means stayed within about 0.98 to 1.01. Few offspring were born, so this sample does not show a tendency spreading. Exploratory. Full rows: `docs/personality-comparison.json`.
+
 Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, hazard discs, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.

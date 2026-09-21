@@ -64,6 +64,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
             'Food respawns after cooldown. Plant meals extend artificial lifespan; scavenging only restores energy.',
             'Seasons scale plant lifecycle timers. Unconsumed corpses can accelerate one nearby immature patch.',
             'Reproduction is a proximity rule with an energy cost. Contested meals are scored, not combat.',
+            'Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are not character traits.',
         ],
     })
     return document

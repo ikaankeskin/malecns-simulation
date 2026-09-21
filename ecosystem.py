@@ -44,6 +44,7 @@ DEFAULTS = {
     'attack_cooldown': 40,
     'attack_chance': 0.35,
     'attack_floor': 0.5,
+    'frozen_genes': [],
     'scavenge_below': 1.1,
     'corpse_meal': 0.35,
     'compost_radius': 5.0,
@@ -86,6 +87,9 @@ BASE_GENOME = {
     'spot': 0.0,
     'echo': 0.0,
     'drift': 0.0,
+    'caution': 1.0,
+    'generosity': 1.0,
+    'aggression': 1.0,
 }
 GENE_BOUNDS = {
     'turn_gain': (0.45, 2.0),
@@ -99,7 +103,11 @@ GENE_BOUNDS = {
     'spot': (0.0, 1.0),
     'echo': (0.0, 1.0),
     'drift': (0.0, 1.0),
+    'caution': (0.0, 2.0),
+    'generosity': (0.0, 2.0),
+    'aggression': (0.0, 2.0),
 }
+ADDITIVE_GENES = ('spot', 'echo', 'drift', 'signalling', 'responsiveness', 'caution', 'generosity', 'aggression')
 MUTATION_LABELS = {
     'speed': ('speed boost', 'sluggish'),
     'lifespan': ('long life', 'short life'),
@@ -110,6 +118,9 @@ MUTATION_LABELS = {
     'spot': ('speckled', 'speckled'),
     'echo': ('echo', 'echo'),
     'drift': ('wobble', 'wobble'),
+    'caution': ('hazard-shy', 'hazard-tolerant'),
+    'generosity': ('gift-prone', 'gift-shy'),
+    'aggression': ('attack-prone', 'attack-shy'),
 }
 
 
@@ -177,6 +188,13 @@ def rules_from(overrides):
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 60:
         raise ValueError('max_population must be 60 or fewer on the CPU path')
+    frozen = rules['frozen_genes']
+    if isinstance(frozen, str) or not isinstance(frozen, (list, tuple)):
+        raise ValueError('frozen_genes must be a list of gene names')
+    unknown = [gene for gene in frozen if gene not in GENE_BOUNDS]
+    if unknown:
+        raise ValueError('frozen_genes has unknown names: ' + ', '.join(unknown))
+    rules['frozen_genes'] = list(frozen)
     if rules['agents'] > rules['max_population']:
         raise ValueError('agents cannot exceed max_population')
     if rules['map_half'] < 4:
@@ -373,11 +391,15 @@ def inherit_genome(mother, father, rng, rules):
     mutations = {}
     rate = rules.get('mutation_rate', DEFAULTS['mutation_rate'])
     sigma = rules.get('mutation_sigma', DEFAULTS['mutation_sigma'])
+    frozen = set(rules.get('frozen_genes') or ())
     for gene, (lo, hi) in GENE_BOUNDS.items():
+        if gene in frozen:
+            child[gene] = BASE_GENOME[gene]
+            continue
         mid = 0.5 * (mother.get(gene, BASE_GENOME[gene]) + father.get(gene, BASE_GENOME[gene]))
         value = mid
         if rate > 0 and sigma > 0 and rng.random() < rate:
-            if gene in ('spot', 'echo', 'drift', 'signalling', 'responsiveness'):
+            if gene in ADDITIVE_GENES:
                 value = max(lo, min(hi, mid + rng.gauss(0.0, sigma)))
             else:
                 value = max(lo, min(hi, mid * (1.0 + rng.gauss(0.0, sigma))))
@@ -742,6 +764,10 @@ def avoidance_target(agent, disc):
     return {'x': agent['x'] + dx, 'y': agent['y'] + dy, 'kind': 'avoiding_hazard', 'id': disc['id']}
 
 
+def gene_value(agent, name):
+    return float((agent.get('genome') or {}).get(name, BASE_GENOME[name]))
+
+
 def compete_hazard(agent, choice, hazards, rules):
     sensed = nearest_hazard(agent, hazards, rules) if rules['hazards'] else None
     if sensed is None:
@@ -749,7 +775,8 @@ def compete_hazard(agent, choice, hazards, rules):
     disc, dist = sensed
     gap = dist - disc['radius']
     food = math.inf if choice is None else math.hypot(choice['x'] - agent['x'], choice['y'] - agent['y'])
-    if gap <= 0 or gap < food:
+    caution = gene_value(agent, 'caution')
+    if gap <= 0 or gap < food * caution:
         return avoidance_target(agent, disc)
     return choice
 
@@ -767,7 +794,7 @@ def init_gifts(agent):
 
 def gift_willing(agent, tick, rules):
     roll = ((agent['id'] + 1) * 137 + tick * 53 + 91) % 1009 / 1009
-    return roll < rules['gift_chance']
+    return roll < min(1.0, rules['gift_chance'] * gene_value(agent, 'generosity'))
 
 
 def exchange_gifts(agents, tick, rules, events):
@@ -837,7 +864,7 @@ def init_attacks(agent):
 
 def attack_willing(agent, tick, rules):
     roll = ((agent['id'] + 1) * 149 + tick * 59 + 113) % 1009 / 1009
-    return roll < rules['attack_chance']
+    return roll < min(1.0, rules['attack_chance'] * gene_value(agent, 'aggression'))
 
 
 def resolve_predation(agents, patches, tick, rules, events):
@@ -951,6 +978,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     patches = spawn_patches(rules['patches'], rules['map_half'] * 0.4, rng, rules)
     hazards = spawn_hazards(rules, seed)
     hazard_deaths = 0
+    hazard_entries = 0
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
     events = []
     history = []
@@ -1003,6 +1031,9 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             agent['energy'] -= rules['base_drain'] * agent['genome']['metabolism'] + rules['move_cost'] * speed
             inside = nearest_hazard(agent, hazards, rules)
             in_hazard = inside is not None and inside[1] <= inside[0]['radius']
+            if in_hazard and not agent.get('inside_hazard'):
+                hazard_entries += 1
+            agent['inside_hazard'] = in_hazard
             if in_hazard:
                 agent['energy'] -= rules['hazard_drain']
             cause = resolve_death(agent, rules, in_hazard)
@@ -1060,6 +1091,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'signals': copy.deepcopy(signals), 'social': social.totals(agents),
                 'environment': environment, 'scavenged': scavenged, 'composted': composted,
                 'hazards': [dict(disc) for disc in hazards], 'hazard_deaths': hazard_deaths,
+                'hazard_entries': hazard_entries,
                 'predation': sum(agent['cause_of_death'] == 'predation' for agent in agents),
                 'gifts': gift_totals(agents),
             })
@@ -1082,7 +1114,13 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'social': social.totals(agents),
             'scavenged': scavenged, 'composted': composted,
             'hazard': hazard_deaths,
+            'hazard_entries': hazard_entries,
             'predation': sum(agent['cause_of_death'] == 'predation' for agent in agents),
+            'attacks': sum(agent.get('attacks', 0) for agent in agents),
+            'personality_mean': {
+                gene: round(sum(agent['genome'][gene] for agent in agents) / len(agents), 4)
+                for gene in ('caution', 'generosity', 'aggression')
+            },
             'gifts': gift_totals(agents),
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),

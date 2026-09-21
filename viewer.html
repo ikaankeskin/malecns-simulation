@@ -130,6 +130,7 @@
         <div class="stat"><span>speed gene</span><strong id="eco-speedg">1</strong></div>
         <div class="stat"><span>lifespan</span><strong id="eco-life">1</strong></div>
         <div class="stat"><span>fertility</span><strong id="eco-fert">1</strong></div>
+        <div class="stat"><span>caution / generosity / aggression</span><strong id="eco-personality">1.00 / 1.00 / 1.00</strong></div>
         <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
         <div class="stat"><span>lineage</span><strong id="eco-line">F0</strong></div>
         <h2>Family</h2>
@@ -584,6 +585,7 @@
         document.getElementById('eco-speedg').textContent = Number(genome.speed || 1).toFixed(2);
         document.getElementById('eco-life').textContent = Number(genome.lifespan || 1).toFixed(2);
         document.getElementById('eco-fert').textContent = Number(genome.fertility || 1).toFixed(2);
+        document.getElementById('eco-personality').textContent = Number(genome.caution ?? 1).toFixed(2) + ' / ' + Number(genome.generosity ?? 1).toFixed(2) + ' / ' + Number(genome.aggression ?? 1).toFixed(2);
         const mut = sel.mutations || {};
         document.getElementById('eco-mut').textContent = Object.keys(mut).length
           ? Object.keys(mut).join(', ') : 'none';

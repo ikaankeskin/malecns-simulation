@@ -171,12 +171,13 @@
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
       <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
       <div class="row"><span>signal / response tendency</span><strong id="sel-social-genes">0.50 / 0.50</strong></div>
+      <div class="row"><span>caution / generosity / aggression</span><strong id="sel-personality">1.00 / 1.00 / 1.00</strong></div>
       <h2>Remembered locations</h2><div id="sel-memories" class="meta">none</div>
       <h2>Recent signal outcomes</h2><div id="sel-social-history" class="meta">none</div>
       <h2>Sender usefulness</h2><div id="sel-relationships" class="meta" style="white-space:pre-line">No arrival evidence yet · neutral 50/100</div>
       <div class="meta">Personal estimates, not honesty judgements. Meals raise scores; empty arrivals lower them. Evidence fades toward neutral. Offspring start without these records.</div>
       <h2>Assumptions</h2>
-      <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology does not change.</div>
+      <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are tendencies, not character traits. MaleCNS topology does not change.</div>
     </aside>
   </main>
   <script src="social.js"></script>
@@ -450,6 +451,7 @@
         document.getElementById('sel-life').textContent = Number(genome.lifespan || 1).toFixed(2);
         document.getElementById('sel-fert').textContent = Number(genome.fertility || 1).toFixed(2);
         document.getElementById('sel-social-genes').textContent = Number(genome.signalling ?? .5).toFixed(2) + ' / ' + Number(genome.responsiveness ?? .5).toFixed(2);
+        document.getElementById('sel-personality').textContent = Number(genome.caution ?? 1).toFixed(2) + ' / ' + Number(genome.generosity ?? 1).toFixed(2) + ' / ' + Number(genome.aggression ?? 1).toFixed(2);
         document.getElementById('sel-memories').textContent = (sel.memories || []).map(m =>
           'F' + m.source + ' reported (' + m.x.toFixed(1) + ', ' + m.y.toFixed(1) + ') · ' + Math.max(0, m.until - snap.tick) + ' ticks left').join(' | ') || 'none';
         document.getElementById('sel-social-history').textContent = (sel.social_history || []).slice().reverse().map(e => 't' + e.tick + ' · ' + e.text + (e.reliability == null ? '' : ' · usefulness ' + Math.round(e.reliability * 100) + '/100')).join(' | ') || 'none';

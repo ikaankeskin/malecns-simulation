@@ -47,7 +47,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Map hazards: three seeded discs, escape cue, and death causes in the order predation, hazard, starvation, old age.
 - [x] Costly energy gifts: the recipient keeps less than the donor pays, default off.
 - [x] Optional predation: a costly attack that can kill, default off, corpse scavenged under the existing rules.
-- [ ] Personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] Inherited caution, generosity, and aggression. Neutral scale is 1. One gene varies at a time.
+- [ ] Lifetime action learning and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -151,3 +152,8 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added a default-off attack. Range 2, shorter than sensory range. Cost 0.08, damage 0.45, cooldown 40, and a fixed attempt chance when a neighbour is closer than the nearest mature plant and energy is above 0.5. A killing blow is labelled predation. The attacker gains no meal; the corpse uses the existing scavenging rule, which does not allow a meal on the tick of death.
 - Comparison holds hazards, seasons, scavenging, gifts, and sender learning fixed. Five seeds, 2,000 ticks, range 12: predation off/on alive 0/0, births 3.2/1.8, scavenged 4.4/3.2, predation deaths 0/1.4, starvation 0.8/2.2, old age 10.4/6.2. The off cell matches the earlier hazards-on run. Exploratory.
 - Validation: kill without a meal, food-closer block, range block, disabled mode, and repeatable paired runs. The live checkbox is off. The browser attack matched the Python kill.
+
+### Personality
+- Added three inherited scales, each neutral at 1 and clamped from 0 to 2. Caution multiplies how far a hazard can be and still beat food. Generosity multiplies the gift attempt chance. Aggression multiplies the attack attempt chance. Standing inside a disc still repels. Offspring blend the genes and mutate them with additive noise, like signalling. A frozen gene stays at 1 and does not draw a mutation.
+- Comparison leaves hazards, seasons, scavenging, gifts, predation, and sender learning on. One gene mutates; the other two stay at 1. The all-frozen world is shared. Five seeds, 2,000 ticks, range 12. Frozen means: alive 0, births 1.4, gifts 4.2, attacks 5.2, hazard entries 1, gene mean 1. Varying caution: births 1.8, gifts 5.6, attacks 5.6, entries 1.4, gene mean 0.9972. Varying generosity: births 2.8, gifts 6.8, attacks 6.8, entries 1.6, gene mean 0.9992. Varying aggression: births 2.6, gifts 6.4, attacks 6.8, entries 1.6, gene mean 0.9998. Population means stayed near 1 because few offspring were born. Exploratory. These are tendencies, not character traits.
+- Validation: caution changes the food-versus-hazard choice, zero generosity blocks a certain gift, aggression scales a failed roll into an attack, a frozen gene stays at 1, and a stay inside a disc counts as one entry. The inspector shows 1.00 / 1.00 / 1.00 on a founder. The browser hazard choice and blocked gift matched Python.

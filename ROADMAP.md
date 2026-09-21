@@ -62,7 +62,7 @@ Signalling, bounded location memory, and per-sender usefulness are implemented. 
 3. Map hazards, with death causes beyond starvation and old age. Done: `docs/hazard-comparison.json`.
 4. One costly cooperation action, with an off baseline. Done: `docs/gift-comparison.json`.
 5. Optional predation, default off. Done: `docs/predation-comparison.json`.
-6. Inherited personality multipliers for those actions.
+6. Inherited personality multipliers for those actions. Done: `docs/personality-comparison.json`.
 7. Lifetime learning of action outcomes, without changing synapses or inheriting the scores.
 8. Neurotransmitter signs from MaleCNS predictions, as a separate controller comparison.
 
