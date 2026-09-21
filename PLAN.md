@@ -90,3 +90,8 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Tracks sent/received reports, followed memories, meals, empty arrivals and expired trips. Signal-associated meals are observations, not proof that a signal caused a meal.
 - Python and JavaScript synthetic fixtures agree; 51 tests pass. A browser-engine smoke run with DNg13, seed 4, 2,000 ticks produced 99 reports, 121 followed memories, 13 associated meals and 47 empty arrivals; population extinct by the end. This is a smoke run, not evidence of improved survival.
 - User reports Pages deployment now works. Next: dashboard visibility and a repeatable on/off comparison.
+
+### Social observatory
+- Added communication on/off and sensory-range controls, violet broadcast rings, remembered-goal lines, per-agent memories and factual recent outcomes.
+- Live and replay views show report and arrival metrics; inherited signalling/response tendencies are visible in the live inspector.
+- Synthetic page wiring tests cover disabling/re-enabling communication alongside pause, step and restart. These checks do not establish browser layout or biological fidelity.

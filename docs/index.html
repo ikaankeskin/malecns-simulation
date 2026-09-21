@@ -96,6 +96,8 @@
       <label class="ctrl"><span>mutation rate</span><strong id="mut-val">0.85</strong>
         <input id="mutation-rate" type="range" min="0" max="1" step="0.05" value="0.9" aria-label="Mutation rate">
       </label>
+      <label class="ctrl"><span>food communication</span><input id="communication" type="checkbox" checked></label>
+      <label class="ctrl"><span>sensory range</span><select id="sense-range"><option value="12">12 · local</option><option value="24" selected>24 · wide</option></select></label>
       <label class="ctrl"><span>seasonal growth</span><input id="seasons" type="checkbox" checked></label>
       <label class="ctrl"><span>corpse scavenging</span><input id="scavenging" type="checkbox" checked></label>
       <label class="ctrl"><span>ticks per season</span><select id="season-length"><option value="200">200 · fast</option><option value="400" selected>400 · standard</option><option value="800">800 · slow</option></select></label>
@@ -109,6 +111,12 @@
       <div class="row"><span>seed</span><strong id="seed-val">4</strong></div>
       <div class="meta" id="rule-readout"></div>
 
+      <h2>Communication</h2>
+      <div class="row"><span>reports sent / received</span><strong id="signal-count">0 / 0</strong></div>
+      <div class="row"><span>memories followed</span><strong id="signal-followed">0</strong></div>
+      <div class="row"><span>meals / empty arrivals</span><strong id="signal-results">0 / 0</strong></div>
+      <div class="row"><span>expired trips</span><strong id="signal-expired">0</strong></div>
+      <div class="meta">Violet rings: food reports. Dashed violet lines: remembered goals. Try sensory range 12 with communication on/off and the same seed. Meals after signals do not prove a survival benefit.</div>
       <h2>Nutrient cycle</h2>
       <div class="row"><span>corpses scavenged</span><strong id="scavenged">0</strong></div>
       <div class="row"><span>plants fertilized</span><strong id="composted">0</strong></div>
@@ -152,6 +160,9 @@
       <div class="row"><span>energy</span><strong id="sel-energy">0</strong></div>
       <div class="row"><span>meals</span><strong id="sel-meals">0</strong></div>
       <div class="row"><span>status</span><strong id="sel-status">alive</strong></div>
+      <div class="row"><span>signal / response tendency</span><strong id="sel-social-genes">0.50 / 0.50</strong></div>
+      <h2>Remembered locations</h2><div id="sel-memories" class="meta">none</div>
+      <h2>Recent signal outcomes</h2><div id="sel-social-history" class="meta">none</div>
       <h2>Assumptions</h2>
       <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. MaleCNS topology does not change.</div>
     </aside>
@@ -175,6 +186,8 @@
 
     function ui() {
       return {
+        communication: document.getElementById('communication').checked,
+        sense_range: Number(document.getElementById('sense-range').value),
         seasons: document.getElementById('seasons').checked,
         scavenging: document.getElementById('scavenging').checked,
         season_length: Number(document.getElementById('season-length').value),
@@ -284,6 +297,14 @@
         const d = worldToCanvas(bounds.max, g, bounds);
         ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
       }
+      (snap.signals || []).forEach(signal => {
+        const origin = worldToCanvas(signal.origin_x, signal.origin_y, bounds);
+        const age = Math.max(0, snap.tick - signal.tick), fraction = Math.min(1, age / world.rules.signal_ticks);
+        ctx.strokeStyle = '#c5a0ff'; ctx.lineWidth = 1.5; ctx.globalAlpha = .55 * (1 - fraction);
+        ctx.beginPath(); ctx.arc(origin[0], origin[1], Math.max(2, fraction * world.rules.signal_range * origin[2]), 0, 2 * Math.PI); ctx.stroke();
+        ctx.globalAlpha = 1; ctx.fillStyle = '#c5a0ff'; ctx.font = '10px sans-serif';
+        ctx.fillText('FOOD', origin[0] + 10, origin[1] + 14);
+      });
       const look = { seed: ['#6a5340', 3], growing: ['#7a9a4a', 5], mature: ['#e6c15a', 8], cooldown: ['#3b4254', 3] };
       snap.patches.forEach((patch) => {
         const style = look[patch.stage] || look.cooldown;
@@ -331,6 +352,11 @@
       const env = snap.environment;
       document.getElementById('season-banner').textContent = env.name + ' · growth ×' + env.growth.toFixed(2) +
         (env.remaining ? ' · ' + env.remaining + ' ticks left · cycle ' + env.cycle : '');
+      const comm = snap.social;
+      document.getElementById('signal-count').textContent = comm.sent + ' / ' + comm.received;
+      document.getElementById('signal-followed').textContent = comm.followed;
+      document.getElementById('signal-results').textContent = comm.meals + ' / ' + comm.empty;
+      document.getElementById('signal-expired').textContent = comm.expired;
       document.getElementById('scavenged').textContent = snap.scavenged;
       document.getElementById('composted').textContent = snap.composted;
       document.getElementById('tick').textContent = snap.tick;
@@ -363,11 +389,11 @@
       });
       const sel = snap.agents.find((agent) => agent.id === selected) || snap.agents[0];
       if (sel) {
-        document.getElementById('sel-intent').textContent = sel.alive ? (sel.intent || 'searching') : 'dead';
+        document.getElementById('sel-intent').textContent = sel.alive ? ((sel.intent || 'searching').replaceAll('_', ' ')) : 'dead';
         document.getElementById('sel-scavenges').textContent = sel.scavenges || 0;
         if (sel.alive && sel.target) {
           const a = worldToCanvas(sel.x, sel.y, bounds), b = worldToCanvas(sel.target.x, sel.target.y, bounds);
-          ctx.setLineDash([4, 5]); ctx.strokeStyle = sel.intent === 'scavenging' ? '#ffa2bc' : '#e6c15a';
+          ctx.setLineDash([4, 5]); ctx.strokeStyle = sel.intent === 'following_signal' ? '#c5a0ff' : sel.intent === 'scavenging' ? '#ffa2bc' : '#e6c15a';
           ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); ctx.setLineDash([]);
         }
         document.getElementById('sel-id').textContent = 'F' + sel.id;
@@ -380,6 +406,10 @@
         document.getElementById('sel-speedg').textContent = Number(genome.speed || 1).toFixed(2);
         document.getElementById('sel-life').textContent = Number(genome.lifespan || 1).toFixed(2);
         document.getElementById('sel-fert').textContent = Number(genome.fertility || 1).toFixed(2);
+        document.getElementById('sel-social-genes').textContent = Number(genome.signalling ?? .5).toFixed(2) + ' / ' + Number(genome.responsiveness ?? .5).toFixed(2);
+        document.getElementById('sel-memories').textContent = (sel.memories || []).map(m =>
+          'F' + m.source + ' reported (' + m.x.toFixed(1) + ', ' + m.y.toFixed(1) + ') · ' + Math.max(0, m.until - snap.tick) + ' ticks left').join(' | ') || 'none';
+        document.getElementById('sel-social-history').textContent = (sel.social_history || []).slice().reverse().map(e => 't' + e.tick + ' · ' + e.text).join(' | ') || 'none';
         const mut = sel.mutations || {};
         document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('sel-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);

@@ -11,7 +11,7 @@ for (const match of html.matchAll(/<[^>]*\bid="([^"]+)"[^>]*>/g)) {
     textContent:'', innerHTML:'', width:960, height:720, clientWidth:960, clientHeight:720,
     addEventListener(){}, getContext(){return context;}});
 }
-elements.get('preset').value='balanced'; elements.get('season-length').value='400';
+elements.get('preset').value='balanced'; elements.get('season-length').value='400'; elements.get('sense-range').value='24';
 let interval;
 const sandbox = {console, document:{getElementById(id){assert.ok(elements.has(id),id);return elements.get(id);},querySelectorAll(){return[];}},
   setInterval(fn){interval=fn;return 1;},clearInterval(){},
@@ -30,6 +30,7 @@ setImmediate(()=>{
   assert.equal(elements.get('play').textContent,'Play');
   const paused=elements.get('tick').textContent; interval();
   assert.equal(elements.get('tick').textContent,paused);
+  elements.get('communication').checked=false;
   elements.get('seasons').checked=false; elements.get('scavenging').checked=false;
   elements.get('apply').onclick();
   assert.match(elements.get('season-banner').textContent,/Stable/);
@@ -37,6 +38,8 @@ setImmediate(()=>{
   for(let i=0;i<250;i++) interval();
   assert.ok(Number(elements.get('tick').textContent)>900);
   assert.equal(elements.get('scavenged').textContent,0);
+  assert.equal(elements.get('signal-count').textContent,'0 / 0');
+  elements.get('communication').checked=true;
   elements.get('seasons').checked=true; elements.get('scavenging').checked=true;
   elements.get('season-length').value='200'; elements.get('apply').onclick();
   for(let i=0;i<151;i++) interval();
