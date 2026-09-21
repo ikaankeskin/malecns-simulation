@@ -45,7 +45,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Ecology comparison: seasons × scavenging, five seeds, living-founder counts. See `docs/ecology-comparison.json`.
 - [x] Family trees: depth-capped ancestors and descendants for the selected agent, including cause of death.
 - [x] Map hazards: three seeded discs, escape cue, and death causes in the order predation, hazard, starvation, old age.
-- [ ] Cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] Costly energy gifts: the recipient keeps less than the donor pays, default off.
+- [ ] Predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -138,3 +139,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Death labels, first match: predation (reserved), hazard, starvation, old age. `--no-hazards` and the live checkbox turn the discs off.
 - Five seeds, 2,000 ticks, range 12: hazards off/on alive 1.0/0, births 10.2/3.2, plant meals 31.4/17.4. Hazard-labelled deaths were 0/0. The off cell matches the earlier both-on ecology means. Exploratory; avoidance changed foraging, and this sample did not die inside a disc.
 - Validation: placement stability, food positions unchanged, escape priority, death order, and a forced disc kill. The live page drew the discs and removed them after Apply with the checkbox off. Browser placement for seed 4 matched Python.
+
+### Energy gifts
+- Added an optional directed gift. The donor pays 0.15 and the neighbour within 4 units keeps 0.10, on an 80-tick cooldown, with a fixed attempt chance until a generosity gene exists. A later count records whether the recipient is alive after 100 ticks. That count is not evidence the gift saved them.
+- Default off. The comparison holds hazards off so the gift is the only change against the social baseline.
+- Five seeds, 2,000 ticks, range 12: gifts off/on alive 1.0/0.8, births 10.2/11.6, plant meals 31.4/38.2, gifts sent 0/30.2, energy paid 0/4.53, energy kept 0/3.02. Exploratory. The off cell matches the earlier ecology both-on means.
+- Validation: transfer loss, cooldown, disabled mode, and repeatable paired runs. The live checkbox is off by default. The browser transfer matched the Python energies.

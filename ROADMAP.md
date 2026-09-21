@@ -60,7 +60,7 @@ Signalling, bounded location memory, and per-sender usefulness are implemented. 
 1. Ecology on/off comparison across seeds. Done: `docs/ecology-comparison.json`.
 2. Family trees from parent IDs already stored at birth. Done in the inspector and playback.
 3. Map hazards, with death causes beyond starvation and old age. Done: `docs/hazard-comparison.json`.
-4. One costly cooperation action, with an off baseline.
+4. One costly cooperation action, with an off baseline. Done: `docs/gift-comparison.json`.
 5. Optional predation, default off.
 6. Inherited personality multipliers for those actions.
 7. Lifetime learning of action outcomes, without changing synapses or inheriting the scores.

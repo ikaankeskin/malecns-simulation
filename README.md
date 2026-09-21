@@ -127,6 +127,14 @@ python3 hazard_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 
 
 Initial five-seed means (Python; 2,000 ticks; range 12): hazards off/on alive 1.0/0, births 10.2/3.2, plant meals 31.4/17.4, hazard-labelled deaths 0/0. These exploratory results do not show that the discs caused the deaths in this sample. Full rows: `docs/hazard-comparison.json`.
 
+Energy gifts are off unless `--gifts` is set or the live **energy gifts** box is checked and applied. A donor pays 0.15 energy and a neighbour within 4 units keeps 0.10. The comparison below holds hazards off.
+
+```bash
+python3 gift_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out gift-comparison.json
+```
+
+Initial five-seed means: gifts off/on alive 1.0/0.8, births 10.2/11.6, plant meals 31.4/38.2, gifts sent 0/30.2, energy paid 0/4.53, energy kept 0/3.02. A recipient still alive 100 ticks later is not evidence the gift saved them. Full rows: `docs/gift-comparison.json`.
+
 Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, hazard discs, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.

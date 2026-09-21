@@ -1,0 +1,152 @@
+{
+  "ablation": "gifts",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "hazards": false,
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "gifts": false,
+      "alive": 0,
+      "births": 13,
+      "meals": 28,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    {
+      "seed": 0,
+      "gifts": true,
+      "alive": 1,
+      "births": 16,
+      "meals": 36,
+      "sent": 38,
+      "energy_paid": 5.7,
+      "energy_gained": 3.8,
+      "alive_later": 34
+    },
+    {
+      "seed": 1,
+      "gifts": false,
+      "alive": 0,
+      "births": 12,
+      "meals": 26,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    {
+      "seed": 1,
+      "gifts": true,
+      "alive": 1,
+      "births": 14,
+      "meals": 39,
+      "sent": 34,
+      "energy_paid": 5.1,
+      "energy_gained": 3.4,
+      "alive_later": 32
+    },
+    {
+      "seed": 2,
+      "gifts": false,
+      "alive": 0,
+      "births": 8,
+      "meals": 35,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    {
+      "seed": 2,
+      "gifts": true,
+      "alive": 0,
+      "births": 7,
+      "meals": 35,
+      "sent": 23,
+      "energy_paid": 3.45,
+      "energy_gained": 2.3,
+      "alive_later": 21
+    },
+    {
+      "seed": 3,
+      "gifts": false,
+      "alive": 5,
+      "births": 12,
+      "meals": 39,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    {
+      "seed": 3,
+      "gifts": true,
+      "alive": 0,
+      "births": 7,
+      "meals": 31,
+      "sent": 21,
+      "energy_paid": 3.15,
+      "energy_gained": 2.1,
+      "alive_later": 20
+    },
+    {
+      "seed": 4,
+      "gifts": false,
+      "alive": 0,
+      "births": 6,
+      "meals": 29,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    {
+      "seed": 4,
+      "gifts": true,
+      "alive": 2,
+      "births": 14,
+      "meals": 50,
+      "sent": 35,
+      "energy_paid": 5.25,
+      "energy_gained": 3.5,
+      "alive_later": 34
+    }
+  ],
+  "means": {
+    "off": {
+      "alive": 1,
+      "births": 10.2,
+      "meals": 31.4,
+      "sent": 0,
+      "energy_paid": 0.0,
+      "energy_gained": 0.0,
+      "alive_later": 0
+    },
+    "on": {
+      "alive": 0.8,
+      "births": 11.6,
+      "meals": 38.2,
+      "sent": 30.2,
+      "energy_paid": 4.53,
+      "energy_gained": 3.02,
+      "alive_later": 28.2
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Hazards are off. Communication and sender learning stay at their defaults. The recipient gains less than the donor pays. alive_later counts whether the recipient is alive 100 ticks after the gift; it does not show that the gift saved them. No confidence intervals. Python and browser RNGs differ."
+}

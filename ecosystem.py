@@ -30,6 +30,13 @@ DEFAULTS = {
     'hazard_count': 3,
     'hazard_radius': 3.5,
     'hazard_drain': 0.02,
+    'gifts': False,
+    'gift_amount': 0.15,
+    'gift_keep': 0.10,
+    'gift_range': 4.0,
+    'gift_cooldown': 80,
+    'gift_chance': 0.25,
+    'gift_follow': 100,
     'scavenge_below': 1.1,
     'corpse_meal': 0.35,
     'compost_radius': 5.0,
@@ -56,7 +63,7 @@ DEFAULTS.update(social.DEFAULTS)
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
             'meal_life', 'meal_life_cap', 'record_every', 'season_length', 'signal_ticks', 'signal_cooldown', 'memory_ticks',
-            'hazard_count')
+            'hazard_count', 'gift_cooldown', 'gift_follow')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -141,13 +148,19 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
         _positive_number(key, rules[key], allow_zero=True)
-    for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain'):
+    for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain', 'gift_amount', 'gift_range'):
         _positive_number(key, rules[key])
+    _positive_number('gift_keep', rules['gift_keep'], allow_zero=False)
+    if rules['gift_keep'] >= rules['gift_amount']:
+        raise ValueError('gift_keep must be less than gift_amount')
+    chance = rules['gift_chance']
+    if isinstance(chance, bool) or not isinstance(chance, (int, float)) or not 0 <= chance <= 1:
+        raise ValueError('gift_chance must be between 0 and 1')
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 60:
@@ -729,6 +742,82 @@ def compete_hazard(agent, choice, hazards, rules):
     return choice
 
 
+def init_gifts(agent):
+    agent.setdefault('last_gift', -10 ** 9)
+    agent.setdefault('gifts_sent', 0)
+    agent.setdefault('gifts_received', 0)
+    agent.setdefault('gift_paid', 0.0)
+    agent.setdefault('gift_gained', 0.0)
+    agent.setdefault('gift_alive_later', 0)
+    agent.setdefault('gift_checks', 0)
+    agent.setdefault('gift_pending', [])
+
+
+def gift_willing(agent, tick, rules):
+    roll = ((agent['id'] + 1) * 137 + tick * 53 + 91) % 1009 / 1009
+    return roll < rules['gift_chance']
+
+
+def exchange_gifts(agents, tick, rules, events):
+    """Directed gift. The recipient gains less than the donor pays. Not friendship."""
+    for agent in agents:
+        init_gifts(agent)
+        pending = []
+        for row in agent['gift_pending']:
+            if tick < row['check']:
+                pending.append(row)
+                continue
+            recipient = next((other for other in agents if other['id'] == row['recipient']), None)
+            agent['gift_checks'] += 1
+            if recipient is not None and recipient['alive']:
+                agent['gift_alive_later'] += 1
+        agent['gift_pending'] = pending
+    if not rules['gifts']:
+        return 0
+    sent = 0
+    for donor in sorted((agent for agent in agents if agent['alive']), key=lambda agent: agent['id']):
+        if tick - donor['last_gift'] < rules['gift_cooldown']:
+            continue
+        if donor['energy'] < rules['gift_amount'] + 0.2:
+            continue
+        neighbours = [other for other in agents if other['alive'] and other['id'] != donor['id']
+                      and math.hypot(donor['x'] - other['x'], donor['y'] - other['y']) <= rules['gift_range']]
+        if not neighbours:
+            continue
+        donor['last_gift'] = tick
+        if not gift_willing(donor, tick, rules):
+            continue
+        recipient = min(neighbours, key=lambda other: (
+            math.hypot(donor['x'] - other['x'], donor['y'] - other['y']), other['id']))
+        gain = min(rules['energy_max'] - recipient['energy'], rules['gift_keep'])
+        gain = max(0.0, gain)
+        donor['energy'] -= rules['gift_amount']
+        recipient['energy'] += gain
+        donor['gifts_sent'] += 1
+        donor['gift_paid'] += rules['gift_amount']
+        recipient['gifts_received'] += 1
+        recipient['gift_gained'] += gain
+        donor['gift_pending'].append({'tick': tick, 'recipient': recipient['id'], 'check': tick + rules['gift_follow']})
+        sent += 1
+        events.append({'tick': tick, 'kind': 'gift', 'agent': donor['id'], 'recipient': recipient['id'],
+                       'paid': rules['gift_amount'], 'gained': round(gain, 6),
+                       'text': f'F{donor["id"]} gave energy to F{recipient["id"]} ({rules["gift_amount"]:.2f} paid, {gain:.2f} received)'})
+    return sent
+
+
+def gift_totals(agents):
+    for agent in agents:
+        init_gifts(agent)
+    return {
+        'sent': sum(agent['gifts_sent'] for agent in agents),
+        'received': sum(agent['gifts_received'] for agent in agents),
+        'energy_paid': round(sum(agent['gift_paid'] for agent in agents), 6),
+        'energy_gained': round(sum(agent['gift_gained'] for agent in agents), 6),
+        'alive_later': sum(agent['gift_alive_later'] for agent in agents),
+        'checked': sum(agent['gift_checks'] for agent in agents),
+    }
+
+
 def resolve_death(agent, rules, in_hazard, predation=False):
     """First match: predation, hazard, starvation, old age. One energy pool."""
     if predation:
@@ -838,6 +927,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
         social.end_tick(agents, tick, rules, events)
+        exchange_gifts(agents, tick, rules, events)
         scavenged += scavenge_corpses(agents, tick, rules, events)
         births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
         while len(motors) < len(agents):
@@ -905,6 +995,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'signals': copy.deepcopy(signals), 'social': social.totals(agents),
                 'environment': environment, 'scavenged': scavenged, 'composted': composted,
                 'hazards': [dict(disc) for disc in hazards], 'hazard_deaths': hazard_deaths,
+                'gifts': gift_totals(agents),
             })
     return {
         'mode': 'ecosystem',
@@ -925,6 +1016,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'social': social.totals(agents),
             'scavenged': scavenged, 'composted': composted,
             'hazard': hazard_deaths,
+            'gifts': gift_totals(agents),
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
         },

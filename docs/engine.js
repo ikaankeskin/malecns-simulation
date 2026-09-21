@@ -19,6 +19,7 @@
     corpse_ticks: 180,
     seasons: true, season_length: 400, scavenging: true,
     hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
+    gifts: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
@@ -168,7 +169,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -187,6 +188,7 @@
       seasons: ui.seasons == null ? true : ui.seasons,
       scavenging: ui.scavenging == null ? true : ui.scavenging,
       hazards: ui.hazards == null ? true : ui.hazards,
+      gifts: ui.gifts == null ? false : ui.gifts,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
@@ -422,6 +424,68 @@
     return choice;
   }
 
+  function initGifts(agent) {
+    if (agent.last_gift == null) agent.last_gift = -1e9;
+    ['gifts_sent', 'gifts_received', 'gift_paid', 'gift_gained', 'gift_alive_later', 'gift_checks'].forEach((key) => {
+      if (agent[key] == null) agent[key] = 0;
+    });
+    if (!agent.gift_pending) agent.gift_pending = [];
+  }
+
+  function giftWilling(agent, tick, rules) {
+    return ((agent.id + 1) * 137 + tick * 53 + 91) % 1009 / 1009 < rules.gift_chance;
+  }
+
+  function exchangeGifts(agents, tick, rules, events) {
+    agents.forEach((agent) => {
+      initGifts(agent);
+      const pending = [];
+      agent.gift_pending.forEach((row) => {
+        if (tick < row.check) { pending.push(row); return; }
+        const recipient = agents.find((other) => other.id === row.recipient);
+        agent.gift_checks += 1;
+        if (recipient && recipient.alive) agent.gift_alive_later += 1;
+      });
+      agent.gift_pending = pending;
+    });
+    if (!rules.gifts) return 0;
+    let sent = 0;
+    agents.filter((agent) => agent.alive).sort((a, b) => a.id - b.id).forEach((donor) => {
+      if (tick - donor.last_gift < rules.gift_cooldown) return;
+      if (donor.energy < rules.gift_amount + 0.2) return;
+      const neighbours = agents.filter((other) => other.alive && other.id !== donor.id
+        && Math.hypot(donor.x - other.x, donor.y - other.y) <= rules.gift_range);
+      if (!neighbours.length) return;
+      donor.last_gift = tick;
+      if (!giftWilling(donor, tick, rules)) return;
+      const recipient = neighbours.slice().sort((a, b) => Math.hypot(donor.x - a.x, donor.y - a.y) - Math.hypot(donor.x - b.x, donor.y - b.y) || a.id - b.id)[0];
+      const gain = Math.max(0, Math.min(rules.energy_max - recipient.energy, rules.gift_keep));
+      donor.energy -= rules.gift_amount;
+      recipient.energy += gain;
+      donor.gifts_sent += 1;
+      donor.gift_paid += rules.gift_amount;
+      recipient.gifts_received += 1;
+      recipient.gift_gained += gain;
+      donor.gift_pending.push({ tick: tick, recipient: recipient.id, check: tick + rules.gift_follow });
+      sent += 1;
+      events.push({ tick: tick, kind: 'gift', agent: donor.id, recipient: recipient.id,
+        text: 'F' + donor.id + ' gave energy to F' + recipient.id });
+    });
+    return sent;
+  }
+
+  function giftTotals(agents) {
+    agents.forEach(initGifts);
+    return {
+      sent: agents.reduce((sum, agent) => sum + agent.gifts_sent, 0),
+      received: agents.reduce((sum, agent) => sum + agent.gifts_received, 0),
+      energy_paid: agents.reduce((sum, agent) => sum + agent.gift_paid, 0),
+      energy_gained: agents.reduce((sum, agent) => sum + agent.gift_gained, 0),
+      alive_later: agents.reduce((sum, agent) => sum + agent.gift_alive_later, 0),
+      checked: agents.reduce((sum, agent) => sum + agent.gift_checks, 0),
+    };
+  }
+
   function resolveDeath(agent, rules, inHazard, predation) {
     if (predation) return 'predation';
     if (inHazard && agent.energy <= 0) return 'hazard';
@@ -608,6 +672,7 @@
       world.events.push({ tick: world.tick, kind: 'ate', text: 'F' + winner.id + ' ate patch ' + patch.id });
     });
     Social.endTick(world.agents, world.tick, rules, world.events);
+    exchangeGifts(world.agents, world.tick, rules, world.events);
     world.scavenged += scavengeCorpses(world.agents, world.tick, rules, world.events);
     reproduce(world);
     world.agents.forEach((agent) => {
@@ -675,6 +740,7 @@
       displaced: world.displaced || 0,
       hazards: world.hazards,
       hazard_deaths: world.agents.filter((agent) => agent.cause_of_death === 'hazard').length,
+      gifts: giftTotals(world.agents),
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null)
@@ -781,7 +847,7 @@
 
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
-    spawnHazards, competeHazard, resolveDeath,
+    spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals,
     lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,
