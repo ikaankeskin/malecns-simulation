@@ -8,7 +8,7 @@ from ecosystem import simulate_ecosystem
 
 
 OUTCOMES = ('alive', 'births', 'scavenged', 'predation', 'hazard', 'starved', 'old_age')
-FIXED = dict(hazards=True, seasons=True, scavenging=True, gifts=False, social_learning=True)
+FIXED = dict(hazards=True, seasons=True, scavenging=True, gifts=False, social_learning=True, lifetime_learning=False)
 
 
 def compare(graph, seeds, ticks=2000, sense_range=12):

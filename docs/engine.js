@@ -21,7 +21,7 @@
     hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
     gifts: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
     predation: false, attack_range: 2, attack_cost: 0.08, attack_damage: 0.45, attack_cooldown: 40, attack_chance: 0.35, attack_floor: 0.5,
-    frozen_genes: [],
+    frozen_genes: [], lifetime_learning: true,
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
@@ -183,7 +183,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -204,6 +204,7 @@
       hazards: ui.hazards == null ? true : ui.hazards,
       gifts: ui.gifts == null ? false : ui.gifts,
       predation: ui.predation == null ? false : ui.predation,
+      lifetime_learning: ui.lifetime_learning == null ? true : ui.lifetime_learning,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
@@ -370,6 +371,7 @@
       const gain = Math.min(rules.energy_max-eater.energy, rules.corpse_meal*freshness);
       if (gain <= 0) return;
       eater.energy += gain; eater.ate = true; eater.scavenges = (eater.scavenges || 0)+1;
+      noteAttackMeal(eater, corpse, tick, rules);
       corpse.corpse_until = null;
       events.push({tick: tick, kind: 'scavenged', agent: eater.id, corpse: corpse.id, energy: Number(gain.toFixed(6)),
         x: corpse.x, y: corpse.y, text: 'F'+eater.id+' scavenged F'+corpse.id+' (+'+gain.toFixed(2)+' energy)'});
@@ -431,6 +433,91 @@
     return { x: agent.x + dx, y: agent.y + dy, kind: 'avoiding_hazard', id: disc.id };
   }
 
+  const ACTION_HALF_LIFE = 400;
+  const ACTION_EVIDENCE_CAP = 16;
+  const ATTACK_PENDING_CAP = 4;
+
+  function initActionLearning(agent) {
+    if (!agent.action_learning) {
+      agent.action_learning = {
+        gift: { useful: 0, empty: 0, seen_useful: 0, seen_empty: 0, last_tick: null },
+        attack: { useful: 0, empty: 0, seen_useful: 0, seen_empty: 0, last_tick: null },
+      };
+    }
+    if (!agent.attack_pending) agent.attack_pending = [];
+    if (!agent.action_history) agent.action_history = [];
+  }
+
+  function actionScore(agent, action, tick, rules) {
+    if (action !== 'gift' && action !== 'attack') throw new Error('action must be gift or attack');
+    if (rules.lifetime_learning === false) return 0.5;
+    initActionLearning(agent);
+    const row = agent.action_learning[action];
+    if (row.last_tick == null) return 0.5;
+    const decay = Math.pow(2, -Math.max(0, tick - row.last_tick) / ACTION_HALF_LIFE);
+    return (1 + row.useful * decay) / (2 + row.useful * decay + row.empty * decay);
+  }
+
+  function learnAction(agent, action, tick, outcome, rules) {
+    if (rules.lifetime_learning === false || (outcome !== 'useful' && outcome !== 'empty')) return null;
+    initActionLearning(agent);
+    const row = agent.action_learning[action];
+    const decay = row.last_tick == null ? 1 : Math.pow(2, -Math.max(0, tick - row.last_tick) / ACTION_HALF_LIFE);
+    row.useful *= decay;
+    row.empty *= decay;
+    row[outcome] += 1;
+    row[outcome === 'useful' ? 'seen_useful' : 'seen_empty'] += 1;
+    const total = row.useful + row.empty;
+    if (total > ACTION_EVIDENCE_CAP) {
+      row.useful *= ACTION_EVIDENCE_CAP / total;
+      row.empty *= ACTION_EVIDENCE_CAP / total;
+    }
+    row.last_tick = tick;
+    const score = actionScore(agent, action, tick, rules);
+    agent.action_history = agent.action_history.concat([{
+      tick: tick, action: action, outcome: outcome, score: score, text: 'F' + agent.id + ' ' + action + ' ' + outcome,
+    }]).slice(-6);
+    return score;
+  }
+
+  function noteAttackMeal(eater, corpse, tick, rules) {
+    const pending = eater.attack_pending || [];
+    const index = pending.findIndex((row) => row.target === corpse.id);
+    if (index < 0) return;
+    pending.splice(index, 1);
+    learnAction(eater, 'attack', tick, 'useful', rules);
+  }
+
+  function settleAttackLearning(agents, tick, rules) {
+    if (rules.lifetime_learning === false) return;
+    agents.forEach((agent) => {
+      const pending = agent.attack_pending || [];
+      if (!pending.length) return;
+      const kept = [];
+      pending.forEach((row) => {
+        const corpse = agents.find((other) => other.id === row.target);
+        const fresh = corpse && corpseFreshness(corpse, tick, rules) > 0;
+        const arrived = agent.alive && Math.hypot(agent.x - row.x, agent.y - row.y) < rules.eat_radius;
+        if (arrived && !fresh) {
+          learnAction(agent, 'attack', tick, 'empty', rules);
+          return;
+        }
+        if (!agent.alive || tick >= row.until) return;
+        kept.push(row);
+      });
+      agent.attack_pending = kept;
+    });
+  }
+
+  function rememberAttack(attacker, target, tick, rules) {
+    if (rules.lifetime_learning === false) return;
+    initActionLearning(attacker);
+    if (attacker.attack_pending.length >= ATTACK_PENDING_CAP) attacker.attack_pending.shift();
+    attacker.attack_pending.push({
+      target: target.id, x: target.x, y: target.y, until: tick + rules.corpse_ticks,
+    });
+  }
+
   function geneValue(agent, name) {
     const genome = agent.genome || {};
     return genome[name] == null ? BASE_GENOME[name] : genome[name];
@@ -455,7 +542,8 @@
 
   function giftWilling(agent, tick, rules) {
     const roll = ((agent.id + 1) * 137 + tick * 53 + 91) % 1009 / 1009;
-    return roll < Math.min(1, rules.gift_chance * geneValue(agent, 'generosity'));
+    const scale = geneValue(agent, 'generosity') * 2 * actionScore(agent, 'gift', tick, rules);
+    return roll < Math.min(1, rules.gift_chance * scale);
   }
 
   function exchangeGifts(agents, tick, rules, events) {
@@ -467,6 +555,9 @@
         const recipient = agents.find((other) => other.id === row.recipient);
         agent.gift_checks += 1;
         if (recipient && recipient.alive) agent.gift_alive_later += 1;
+        if (agent.alive && row.energy != null) {
+          learnAction(agent, 'gift', tick, agent.energy >= row.energy - 1e-9 ? 'useful' : 'empty', rules);
+        }
       });
       agent.gift_pending = pending;
     });
@@ -488,7 +579,9 @@
       donor.gift_paid += rules.gift_amount;
       recipient.gifts_received += 1;
       recipient.gift_gained += gain;
-      donor.gift_pending.push({ tick: tick, recipient: recipient.id, check: tick + rules.gift_follow });
+      donor.gift_pending.push({
+        tick: tick, recipient: recipient.id, check: tick + rules.gift_follow, energy: donor.energy,
+      });
       sent += 1;
       events.push({ tick: tick, kind: 'gift', agent: donor.id, recipient: recipient.id,
         text: 'F' + donor.id + ' gave energy to F' + recipient.id });
@@ -515,7 +608,8 @@
 
   function attackWilling(agent, tick, rules) {
     const roll = ((agent.id + 1) * 149 + tick * 59 + 113) % 1009 / 1009;
-    return roll < Math.min(1, rules.attack_chance * geneValue(agent, 'aggression'));
+    const scale = geneValue(agent, 'aggression') * 2 * actionScore(agent, 'attack', tick, rules);
+    return roll < Math.min(1, rules.attack_chance * scale);
   }
 
   function resolvePredation(agents, patches, tick, rules, events) {
@@ -542,6 +636,7 @@
       const killed = target.energy <= 0;
       if (killed) {
         kill(target, tick, 'predation', rules.corpse_ticks);
+        rememberAttack(attacker, target, tick, rules);
         kills += 1;
       }
       events.push({ tick: tick, kind: 'attack', agent: attacker.id, target: target.id, killed: killed,
@@ -762,6 +857,7 @@
         agent.corpse_until = null;
       }
     });
+    settleAttackLearning(world.agents, world.tick, rules);
     const alive = world.agents.filter((agent) => agent.alive).length;
     world.peak = Math.max(world.peak, alive);
     if (world.tick % 4 === 0) {
@@ -916,6 +1012,7 @@
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
     spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation,
+    actionScore, learnAction, settleAttackLearning,
     lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,

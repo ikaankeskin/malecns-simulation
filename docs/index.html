@@ -98,6 +98,7 @@
       </label>
       <label class="ctrl"><span>food communication</span><input id="communication" type="checkbox" checked></label>
       <label class="ctrl"><span>learn sender reliability</span><input id="social-learning" type="checkbox" checked></label>
+      <label class="ctrl"><span>learn gift and attack outcomes</span><input id="lifetime-learning" type="checkbox" checked></label>
       <label class="ctrl"><span>sensory range</span><select id="sense-range"><option value="12">12 · local</option><option value="24" selected>24 · wide</option></select></label>
       <label class="ctrl"><span>seasonal growth</span><input id="seasons" type="checkbox" checked></label>
       <label class="ctrl"><span>corpse scavenging</span><input id="scavenging" type="checkbox" checked></label>
@@ -176,6 +177,8 @@
       <h2>Recent signal outcomes</h2><div id="sel-social-history" class="meta">none</div>
       <h2>Sender usefulness</h2><div id="sel-relationships" class="meta" style="white-space:pre-line">No arrival evidence yet · neutral 50/100</div>
       <div class="meta">Personal estimates, not honesty judgements. Meals raise scores; empty arrivals lower them. Evidence fades toward neutral. Offspring start without these records.</div>
+      <h2>Gift and attack outcomes</h2><div id="sel-actions" class="meta" style="white-space:pre-line">No action evidence yet · neutral 50/100</div>
+      <div class="meta">A gift is scored from the donor's own energy 100 ticks later. An attack is scored only if that attacker eats the corpse, or reaches the spot after it is gone. A corpse never reached adds nothing. These scores are not inherited and do not change synapses.</div>
       <h2>Assumptions</h2>
       <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are tendencies, not character traits. MaleCNS topology does not change.</div>
     </aside>
@@ -201,6 +204,7 @@
       return {
         communication: document.getElementById('communication').checked,
         social_learning: document.getElementById('social-learning').checked,
+        lifetime_learning: document.getElementById('lifetime-learning').checked,
         sense_range: Number(document.getElementById('sense-range').value),
         seasons: document.getElementById('seasons').checked,
         scavenging: document.getElementById('scavenging').checked,
@@ -458,6 +462,17 @@
         const relationships = window.MaleCNSSocial.relationshipView(sel, snap.tick);
         document.getElementById('sel-relationships').textContent = !world.rules.communication ? 'Communication disabled' : !world.rules.social_learning ? 'Learning disabled · fixed inherited response' : relationships.map(r =>
           'F' + r.source + ' · ' + Math.round(r.score * 100) + '/100 · evidence ' + r.useful.toFixed(1) + ' useful / ' + r.empty.toFixed(1) + ' empty · remember chance ' + Math.round(100 * Math.min(1, 2 * r.score * (genome.responsiveness ?? .5))) + '%').join('\n') || 'No arrival evidence yet · neutral 50/100';
+        const actionLine = (action, gene) => {
+          const score = Eco.actionScore(sel, action, snap.tick, world.rules);
+          const table = ((sel.action_learning || {})[action]) || {};
+          const decay = table.last_tick == null ? 1 : Math.pow(2, -Math.max(0, snap.tick - table.last_tick) / 400);
+          const useful = table.last_tick == null ? 0 : table.useful * decay;
+          const empty = table.last_tick == null ? 0 : table.empty * decay;
+          return action + ' · ' + Math.round(score * 100) + '/100 · evidence ' + useful.toFixed(1) + ' useful / ' + empty.toFixed(1) + ' empty · ' + gene + ' scale ' + (2 * score).toFixed(2);
+        };
+        document.getElementById('sel-actions').textContent = !world.rules.lifetime_learning
+          ? 'Learning disabled · genes stay at their inherited scale'
+          : (actionLine('gift', 'generosity') + '\n' + actionLine('attack', 'aggression'));
         const mut = sel.mutations || {};
         document.getElementById('sel-mut').textContent = Object.keys(mut).length ? Object.keys(mut).join(', ') : 'none';
         document.getElementById('sel-line').textContent = 'F' + (sel.lineage != null ? sel.lineage : sel.id);

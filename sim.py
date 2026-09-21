@@ -219,6 +219,7 @@ def main():
     eco.add_argument('--no-hazards', dest='hazards', action='store_false')
     eco.add_argument('--gifts', dest='gifts', action='store_true')
     eco.add_argument('--predation', dest='predation', action='store_true')
+    eco.add_argument('--no-lifetime-learning', dest='lifetime_learning', action='store_false')
     eco.add_argument('--season-length', type=int, default=400)
     eco.add_argument('--record-every', dest='record_every', type=int, default=6)
     eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
@@ -246,6 +247,7 @@ def main():
                               record_every=a.record_every, seasons=a.seasons,
                               scavenging=a.scavenging, season_length=a.season_length,
                               hazards=a.hazards, gifts=a.gifts, predation=a.predation,
+                              lifetime_learning=a.lifetime_learning,
                               communication=a.communication, sense_range=a.sense_range,
                               social_learning=a.social_learning)
                 if a.max_age is not None:

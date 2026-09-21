@@ -48,7 +48,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'hazards', 'hazard_count', 'hazard_radius', 'hazard_drain',
                            'gifts', 'gift_amount', 'gift_keep', 'gift_range', 'gift_cooldown', 'gift_chance', 'gift_follow',
                            'predation', 'attack_range', 'attack_cost', 'attack_damage', 'attack_cooldown',
-                           'attack_chance', 'attack_floor'}}
+                           'attack_chance', 'attack_floor', 'lifetime_learning'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({
@@ -65,6 +65,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
             'Seasons scale plant lifecycle timers. Unconsumed corpses can accelerate one nearby immature patch.',
             'Reproduction is a proximity rule with an energy cost. Contested meals are scored, not combat.',
             'Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are not character traits.',
+            'Gift and attack outcome scores are individual, decay, and are not inherited. They do not change synapses.',
         ],
     })
     return document

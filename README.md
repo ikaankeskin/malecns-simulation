@@ -151,6 +151,16 @@ python3 personality_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 
 
 The comparison turns hazards, gifts, and predation on, then lets one gene mutate while the other two stay at 1. Five-seed means for the all-frozen world: alive 0, births 1.4, gifts 4.2, attacks 5.2, hazard entries 1. Letting caution vary: births 1.8, gifts 5.6, attacks 5.6, entries 1.4. Generosity: births 2.8, gifts 6.8, attacks 6.8, entries 1.6. Aggression: births 2.6, gifts 6.4, attacks 6.8, entries 1.6. Gene means stayed within about 0.98 to 1.01. Few offspring were born, so this sample does not show a tendency spreading. Exploratory. Full rows: `docs/personality-comparison.json`.
 
+Each agent can also keep a gift score and an attack score. They use the same decay and cap as sender scores, and twice the score scales the inherited generosity or aggression. The scores are not inherited and do not change synapses. Turn them off with `--no-lifetime-learning`.
+
+A living donor compares their own energy 100 ticks after a gift with the energy they had just after paying. Eating a corpse from one's own kill counts as a useful attack; reaching that spot after the corpse is gone counts as empty. A corpse the attacker never reaches does not change the score.
+
+```bash
+python3 lifetime_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out lifetime-comparison.json
+```
+
+Personality genes stay at 1. Hazards, gifts, and predation stay on. Five-seed means, learning off/on: alive 0/0, births 1.4/1.4, gifts 4.2/4.4, attacks 5.2/5.2, hazard entries 1/1. Gift outcomes were 1.2 useful and 2.4 empty when learning was on. Attack outcomes were 0.4 and 0.4. The off cell matches the frozen-personality run. Exploratory. Full rows: `docs/lifetime-comparison.json`.
+
 Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, hazard discs, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.

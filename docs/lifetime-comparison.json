@@ -1,0 +1,192 @@
+{
+  "ablation": "lifetime_learning",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "fixed": {
+    "hazards": true,
+    "seasons": true,
+    "scavenging": true,
+    "gifts": true,
+    "predation": true,
+    "social_learning": true,
+    "frozen_genes": [
+      "caution",
+      "generosity",
+      "aggression"
+    ]
+  },
+  "proxy": {
+    "gift": "Living donor energy at 100 ticks versus energy just after the gift. No comparison with other donors.",
+    "attack": "Eat own kill, or arrive after that corpse is gone. An unreached corpse adds no evidence."
+  },
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "lifetime_learning": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 3,
+      "hazard_entries": 2,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 0,
+      "lifetime_learning": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 3,
+      "attacks": 3,
+      "hazard_entries": 2,
+      "gift_useful": 0,
+      "gift_empty": 3,
+      "attack_useful": 1,
+      "attack_empty": 0
+    },
+    {
+      "seed": 1,
+      "lifetime_learning": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 1,
+      "attacks": 6,
+      "hazard_entries": 1,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 1,
+      "lifetime_learning": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 2,
+      "attacks": 6,
+      "hazard_entries": 1,
+      "gift_useful": 2,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 1
+    },
+    {
+      "seed": 2,
+      "lifetime_learning": false,
+      "alive": 0,
+      "births": 1,
+      "gifts": 8,
+      "attacks": 4,
+      "hazard_entries": 0,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 2,
+      "lifetime_learning": true,
+      "alive": 0,
+      "births": 1,
+      "gifts": 8,
+      "attacks": 4,
+      "hazard_entries": 0,
+      "gift_useful": 2,
+      "gift_empty": 4,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 3,
+      "lifetime_learning": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 2,
+      "attacks": 5,
+      "hazard_entries": 1,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 3,
+      "lifetime_learning": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 2,
+      "attacks": 5,
+      "hazard_entries": 1,
+      "gift_useful": 0,
+      "gift_empty": 1,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 4,
+      "lifetime_learning": false,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 8,
+      "hazard_entries": 1,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    {
+      "seed": 4,
+      "lifetime_learning": true,
+      "alive": 0,
+      "births": 2,
+      "gifts": 7,
+      "attacks": 8,
+      "hazard_entries": 1,
+      "gift_useful": 2,
+      "gift_empty": 4,
+      "attack_useful": 1,
+      "attack_empty": 1
+    }
+  ],
+  "means": {
+    "off": {
+      "alive": 0,
+      "births": 1.4,
+      "gifts": 4.2,
+      "attacks": 5.2,
+      "hazard_entries": 1,
+      "gift_useful": 0,
+      "gift_empty": 0,
+      "attack_useful": 0,
+      "attack_empty": 0
+    },
+    "on": {
+      "alive": 0,
+      "births": 1.4,
+      "gifts": 4.4,
+      "attacks": 5.2,
+      "hazard_entries": 1,
+      "gift_useful": 1.2,
+      "gift_empty": 2.4,
+      "attack_useful": 0.4,
+      "attack_empty": 0.4
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Hazards, seasons, scavenging, gifts, predation, and sender learning stay on. Personality genes stay at 1. Learning off keeps the neutral score, so attempt chances match the inherited genes. Scores are not inherited and do not change synapses. No confidence intervals. Python and browser RNGs differ."
+}

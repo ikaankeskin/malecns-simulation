@@ -36,7 +36,8 @@ class PagesTests(unittest.TestCase):
         html = (DOCS / 'index.html').read_text()
         for token in ('id="agents"', 'id="food-rate"', 'id="aging-rate"', 'id="repro-rate"',
           'id="mutation-rate"', 'id="randomize"', 'id="preset"', 'id="lineage-board"',
-          'id="family-tree"', 'id="hazards"', 'id="gifts-enabled"', 'id="predation-enabled"', 'id="sel-personality"', 'malecns-derived'):
+          'id="family-tree"', 'id="hazards"', 'id="gifts-enabled"', 'id="predation-enabled"',
+          'id="sel-personality"', 'id="lifetime-learning"', 'malecns-derived'):
             self.assertIn(token, html)
         engine = (DOCS / 'engine.js').read_text()
         self.assertIn('function inheritGenome', engine)

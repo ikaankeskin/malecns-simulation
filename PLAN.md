@@ -48,7 +48,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Costly energy gifts: the recipient keeps less than the donor pays, default off.
 - [x] Optional predation: a costly attack that can kill, default off, corpse scavenged under the existing rules.
 - [x] Inherited caution, generosity, and aggression. Neutral scale is 1. One gene varies at a time.
-- [ ] Lifetime action learning and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] Lifetime gift and attack scores. Individual, decaying, and not inherited. Synapses stay fixed.
+- [ ] Neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -157,3 +158,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added three inherited scales, each neutral at 1 and clamped from 0 to 2. Caution multiplies how far a hazard can be and still beat food. Generosity multiplies the gift attempt chance. Aggression multiplies the attack attempt chance. Standing inside a disc still repels. Offspring blend the genes and mutate them with additive noise, like signalling. A frozen gene stays at 1 and does not draw a mutation.
 - Comparison leaves hazards, seasons, scavenging, gifts, predation, and sender learning on. One gene mutates; the other two stay at 1. The all-frozen world is shared. Five seeds, 2,000 ticks, range 12. Frozen means: alive 0, births 1.4, gifts 4.2, attacks 5.2, hazard entries 1, gene mean 1. Varying caution: births 1.8, gifts 5.6, attacks 5.6, entries 1.4, gene mean 0.9972. Varying generosity: births 2.8, gifts 6.8, attacks 6.8, entries 1.6, gene mean 0.9992. Varying aggression: births 2.6, gifts 6.4, attacks 6.8, entries 1.6, gene mean 0.9998. Population means stayed near 1 because few offspring were born. Exploratory. These are tendencies, not character traits.
 - Validation: caution changes the food-versus-hazard choice, zero generosity blocks a certain gift, aggression scales a failed roll into an attack, a frozen gene stays at 1, and a stay inside a disc counts as one entry. The inspector shows 1.00 / 1.00 / 1.00 on a founder. The browser hazard choice and blocked gift matched Python.
+
+### Lifetime action scores
+- Added one decaying score for gifts and one for attacks. Neutral is 0.5, evidence halves every 400 ticks, and the weights are capped at 16, matching sender scores. Twice the score scales the inherited generosity or aggression. `--no-lifetime-learning` keeps the genes and leaves the score at 0.5. Offspring start without these records. Synapses do not change.
+- Pre-registered outcomes: a living donor compares their energy 100 ticks later with the energy just after the gift. Eating one's own kill is useful; reaching that spot after the corpse is gone is empty. A corpse the attacker never reaches adds nothing. A non-killing hit adds nothing. Recipient survival is not the training signal.
+- Comparison freezes caution, generosity, and aggression at 1 and leaves hazards, seasons, scavenging, gifts, predation, and sender learning on. Five seeds, 2,000 ticks, range 12. Learning off/on: alive 0/0, births 1.4/1.4, gifts 4.2/4.4, attacks 5.2/5.2, hazard entries 1/1. Gift outcomes useful/empty 0/0 versus 1.2/2.4. Attack outcomes 0/0 versus 0.4/0.4. The off cell matches the all-frozen personality run. Exploratory. Empty gift outcomes were more common than useful ones in this sample.
+- Validation: energy comparison, decay, a low score blocking a neutral attempt, eating a kill, a missed corpse, and an arrival after someone else ate. The gene does not change. The live checkbox is on. A founder reads 50/100 for both actions. The browser gift update matched the Python score.

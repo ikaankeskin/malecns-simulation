@@ -45,6 +45,7 @@ DEFAULTS = {
     'attack_chance': 0.35,
     'attack_floor': 0.5,
     'frozen_genes': [],
+    'lifetime_learning': True,
     'scavenge_below': 1.1,
     'corpse_meal': 0.35,
     'compost_radius': 5.0,
@@ -166,7 +167,7 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
@@ -245,6 +246,7 @@ def scavenge_corpses(agents, tick, rules, events):
         eater['energy'] += gained
         eater['ate'] = True
         eater['scavenges'] = eater.get('scavenges', 0) + 1
+        note_attack_meal(eater, corpse, tick, rules)
         corpse['corpse_until'] = None  # One finite meal; cannot also fertilize a patch.
         events.append({'tick': tick, 'kind': 'scavenged', 'agent': eater['id'], 'corpse': corpse['id'],
                        'energy': round(gained, 6), 'x': corpse['x'], 'y': corpse['y'],
@@ -768,6 +770,135 @@ def gene_value(agent, name):
     return float((agent.get('genome') or {}).get(name, BASE_GENOME[name]))
 
 
+# Same half-life and cap as sender scores. One row per action, not per partner.
+ACTION_HALF_LIFE = 400
+ACTION_EVIDENCE_CAP = 16
+ATTACK_PENDING_CAP = 4
+
+
+def init_action_learning(agent):
+    agent.setdefault('action_learning', {
+        'gift': {'useful': 0.0, 'empty': 0.0, 'seen_useful': 0, 'seen_empty': 0, 'last_tick': None},
+        'attack': {'useful': 0.0, 'empty': 0.0, 'seen_useful': 0, 'seen_empty': 0, 'last_tick': None},
+    })
+    agent.setdefault('attack_pending', [])
+    agent.setdefault('action_history', [])
+
+
+def action_score(agent, action, tick, rules):
+    """Neutral prior is one success and one failure. Learning off keeps that prior."""
+    if action not in ('gift', 'attack'):
+        raise ValueError('action must be gift or attack')
+    if not rules.get('lifetime_learning', True):
+        return 0.5
+    init_action_learning(agent)
+    row = agent['action_learning'][action]
+    if row['last_tick'] is None:
+        return 0.5
+    decay = 2 ** (-max(0, tick - row['last_tick']) / ACTION_HALF_LIFE)
+    useful, empty = row['useful'] * decay, row['empty'] * decay
+    return (1 + useful) / (2 + useful + empty)
+
+
+def learn_action(agent, action, tick, outcome, rules):
+    if not rules.get('lifetime_learning', True) or outcome not in ('useful', 'empty'):
+        return None
+    init_action_learning(agent)
+    row = agent['action_learning'][action]
+    decay = 1.0 if row['last_tick'] is None else 2 ** (-max(0, tick - row['last_tick']) / ACTION_HALF_LIFE)
+    row['useful'] *= decay
+    row['empty'] *= decay
+    row['useful' if outcome == 'useful' else 'empty'] += 1
+    row['seen_useful' if outcome == 'useful' else 'seen_empty'] += 1
+    total = row['useful'] + row['empty']
+    if total > ACTION_EVIDENCE_CAP:
+        scale = ACTION_EVIDENCE_CAP / total
+        row['useful'] *= scale
+        row['empty'] *= scale
+    row['last_tick'] = tick
+    score = action_score(agent, action, tick, rules)
+    agent['action_history'] = (agent['action_history'] + [{
+        'tick': tick, 'action': action, 'outcome': outcome, 'score': round(score, 6),
+        'text': f'F{agent["id"]} {action} {outcome}',
+    }])[-6:]
+    return score
+
+
+def action_view(agent, tick, rules):
+    rows = []
+    for action in ('gift', 'attack'):
+        table = ((agent.get('action_learning') or {}).get(action) or {})
+        score = action_score(agent, action, tick, rules)
+        if not rules.get('lifetime_learning', True) or table.get('last_tick') is None:
+            useful = empty = 0.0
+        else:
+            decay = 2 ** (-max(0, tick - table['last_tick']) / ACTION_HALF_LIFE)
+            useful, empty = table['useful'] * decay, table['empty'] * decay
+        rows.append({
+            'action': action, 'score': round(score, 6),
+            'useful': round(useful, 4), 'empty': round(empty, 4),
+            'seen_useful': table.get('seen_useful', 0), 'seen_empty': table.get('seen_empty', 0),
+        })
+    return rows
+
+
+def action_totals(agents):
+    totals = {'gift_useful': 0, 'gift_empty': 0, 'attack_useful': 0, 'attack_empty': 0}
+    for agent in agents:
+        table = agent.get('action_learning') or {}
+        for action in ('gift', 'attack'):
+            row = table.get(action) or {}
+            totals[action + '_useful'] += row.get('seen_useful', 0)
+            totals[action + '_empty'] += row.get('seen_empty', 0)
+    return totals
+
+
+def note_attack_meal(eater, corpse, tick, rules):
+    """The attacker ate this corpse. That is local evidence, not a hidden reward."""
+    pending = eater.get('attack_pending') or []
+    match = next((row for row in pending if row['target'] == corpse['id']), None)
+    if match is None:
+        return
+    pending.remove(match)
+    learn_action(eater, 'attack', tick, 'useful', rules)
+
+
+def settle_attack_learning(agents, tick, rules):
+    """Arrival at a gone corpse counts. A corpse never reached does not."""
+    if not rules.get('lifetime_learning', True):
+        return
+    by_id = {agent['id']: agent for agent in agents}
+    for agent in agents:
+        pending = agent.get('attack_pending') or []
+        if not pending:
+            continue
+        kept = []
+        for row in pending:
+            corpse = by_id.get(row['target'])
+            fresh = corpse is not None and corpse_freshness(corpse, tick, rules) > 0
+            arrived = agent['alive'] and math.hypot(agent['x'] - row['x'], agent['y'] - row['y']) < rules['eat_radius']
+            if arrived and not fresh:
+                learn_action(agent, 'attack', tick, 'empty', rules)
+                continue
+            if not agent['alive'] or tick >= row['until']:
+                continue
+            kept.append(row)
+        agent['attack_pending'] = kept
+
+
+def remember_attack(attacker, target, tick, rules):
+    if not rules.get('lifetime_learning', True):
+        return
+    init_action_learning(attacker)
+    pending = attacker['attack_pending']
+    if len(pending) >= ATTACK_PENDING_CAP:
+        pending.pop(0)
+    pending.append({
+        'target': target['id'], 'x': target['x'], 'y': target['y'],
+        'until': tick + rules['corpse_ticks'],
+    })
+
+
 def compete_hazard(agent, choice, hazards, rules):
     sensed = nearest_hazard(agent, hazards, rules) if rules['hazards'] else None
     if sensed is None:
@@ -794,7 +925,8 @@ def init_gifts(agent):
 
 def gift_willing(agent, tick, rules):
     roll = ((agent['id'] + 1) * 137 + tick * 53 + 91) % 1009 / 1009
-    return roll < min(1.0, rules['gift_chance'] * gene_value(agent, 'generosity'))
+    scale = gene_value(agent, 'generosity') * 2.0 * action_score(agent, 'gift', tick, rules)
+    return roll < min(1.0, rules['gift_chance'] * scale)
 
 
 def exchange_gifts(agents, tick, rules, events):
@@ -810,6 +942,9 @@ def exchange_gifts(agents, tick, rules, events):
             agent['gift_checks'] += 1
             if recipient is not None and recipient['alive']:
                 agent['gift_alive_later'] += 1
+            if agent['alive'] and 'energy' in row:
+                outcome = 'useful' if agent['energy'] >= row['energy'] - 1e-9 else 'empty'
+                learn_action(agent, 'gift', tick, outcome, rules)
         agent['gift_pending'] = pending
     if not rules['gifts']:
         return 0
@@ -836,7 +971,10 @@ def exchange_gifts(agents, tick, rules, events):
         donor['gift_paid'] += rules['gift_amount']
         recipient['gifts_received'] += 1
         recipient['gift_gained'] += gain
-        donor['gift_pending'].append({'tick': tick, 'recipient': recipient['id'], 'check': tick + rules['gift_follow']})
+        donor['gift_pending'].append({
+            'tick': tick, 'recipient': recipient['id'], 'check': tick + rules['gift_follow'],
+            'energy': donor['energy'],
+        })
         sent += 1
         events.append({'tick': tick, 'kind': 'gift', 'agent': donor['id'], 'recipient': recipient['id'],
                        'paid': rules['gift_amount'], 'gained': round(gain, 6),
@@ -864,7 +1002,8 @@ def init_attacks(agent):
 
 def attack_willing(agent, tick, rules):
     roll = ((agent['id'] + 1) * 149 + tick * 59 + 113) % 1009 / 1009
-    return roll < min(1.0, rules['attack_chance'] * gene_value(agent, 'aggression'))
+    scale = gene_value(agent, 'aggression') * 2.0 * action_score(agent, 'attack', tick, rules)
+    return roll < min(1.0, rules['attack_chance'] * scale)
 
 
 def resolve_predation(agents, patches, tick, rules, events):
@@ -901,6 +1040,7 @@ def resolve_predation(agents, patches, tick, rules, events):
         killed = target['energy'] <= 0
         if killed:
             kill(target, tick, 'predation', rules['corpse_ticks'])
+            remember_attack(attacker, target, tick, rules)
             kills += 1
         events.append({
             'tick': tick, 'kind': 'attack', 'agent': attacker['id'], 'target': target['id'], 'killed': killed,
@@ -1057,6 +1197,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             else:
                 corpses.append({'id': agent['id'], 'x': round(agent['x'], 6), 'y': round(agent['y'], 6),
                                 'cause': agent['cause_of_death'], 'freshness': round(corpse_freshness(agent, tick, rules), 6)})
+        settle_attack_learning(agents, tick, rules)
         alive = [agent for agent in agents if agent['alive']]
         peak = max(peak, len(alive))
         means, stds = genome_stats(agents)
@@ -1069,6 +1210,8 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 row = snapshot_agent(agent, *motor_by_id.get(agent['id'], (0.0, 0.0, 0.0)))
                 row['life_span'] = lifespan_of(agent, rules)
                 row['relationships'] = social.relationship_view(agent, tick)
+                row['action_scores'] = action_view(agent, tick, rules)
+                row['action_history'] = copy.deepcopy(agent.get('action_history') or [])
                 frames.append(row)
             history.append({
                 'tick': tick,
@@ -1122,6 +1265,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 for gene in ('caution', 'generosity', 'aggression')
             },
             'gifts': gift_totals(agents),
+            'actions': action_totals(agents),
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
         },

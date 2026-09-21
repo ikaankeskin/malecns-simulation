@@ -19,7 +19,7 @@ def compare(graph, seeds, ticks=2000, sense_range=12):
     for seed in seeds:
         for enabled in (False, True):
             result = simulate_ecosystem(
-                graph, ticks, seed, gifts=enabled, hazards=False, sense_range=sense_range,
+                graph, ticks, seed, gifts=enabled, hazards=False, lifetime_learning=False, sense_range=sense_range,
                 turn_sign=-1, turn_gain=1, record_every=ticks)
             final = result['final']
             gifts = final['gifts']
