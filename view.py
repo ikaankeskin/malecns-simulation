@@ -44,7 +44,8 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma',
                            'meal_life', 'meal_life_cap', 'record_every', 'seasons', 'season_length',
                            'communication', 'social_learning', 'sense_range', 'signal_range', 'signal_ticks', 'signal_cooldown',
-                           'signal_cost', 'memory_ticks', 'scavenging', 'scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost'}}
+                           'signal_cost', 'memory_ticks', 'scavenging', 'scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost',
+                           'hazards', 'hazard_count', 'hazard_radius', 'hazard_drain'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({

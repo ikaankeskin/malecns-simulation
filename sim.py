@@ -216,6 +216,7 @@ def main():
     eco.add_argument('--sense-range', type=float, default=24)
     eco.add_argument('--no-seasons', dest='seasons', action='store_false')
     eco.add_argument('--no-scavenging', dest='scavenging', action='store_false')
+    eco.add_argument('--no-hazards', dest='hazards', action='store_false')
     eco.add_argument('--season-length', type=int, default=400)
     eco.add_argument('--record-every', dest='record_every', type=int, default=6)
     eco.add_argument('--open', action='store_true', help='Open the HTML file in a browser')
@@ -242,6 +243,7 @@ def main():
                               mutation_rate=a.mutation_rate, mutation_sigma=a.mutation_sigma,
                               record_every=a.record_every, seasons=a.seasons,
                               scavenging=a.scavenging, season_length=a.season_length,
+                              hazards=a.hazards,
                               communication=a.communication, sense_range=a.sense_range,
                               social_learning=a.social_learning)
                 if a.max_age is not None:

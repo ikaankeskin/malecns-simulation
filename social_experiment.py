@@ -16,7 +16,7 @@ def compare(graph, seeds, ticks=2000, sense_range=12, learning=False):
         for enabled in (False, True):
             communication = True if learning else enabled
             social_learning = enabled if learning else False
-            result = simulate_ecosystem(graph, ticks, seed, communication=communication,
+            result = simulate_ecosystem(graph, ticks, seed, hazards=False, communication=communication,
                 social_learning=social_learning,
                 sense_range=sense_range, turn_sign=-1, turn_gain=1, record_every=20)
             final = result['final']

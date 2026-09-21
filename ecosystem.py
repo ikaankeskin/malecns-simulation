@@ -26,6 +26,10 @@ DEFAULTS = {
     'seasons': True,
     'season_length': 400,
     'scavenging': True,
+    'hazards': True,
+    'hazard_count': 3,
+    'hazard_radius': 3.5,
+    'hazard_drain': 0.02,
     'scavenge_below': 1.1,
     'corpse_meal': 0.35,
     'compost_radius': 5.0,
@@ -51,7 +55,8 @@ DEFAULTS.update(social.DEFAULTS)
 
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
-            'meal_life', 'meal_life_cap', 'record_every', 'season_length', 'signal_ticks', 'signal_cooldown', 'memory_ticks')
+            'meal_life', 'meal_life_cap', 'record_every', 'season_length', 'signal_ticks', 'signal_cooldown', 'memory_ticks',
+            'hazard_count')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -136,12 +141,12 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
         _positive_number(key, rules[key], allow_zero=True)
-    for key in ('signal_range', 'sense_range'):
+    for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain'):
         _positive_number(key, rules[key])
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
@@ -670,7 +675,74 @@ def snapshot_patch(patch):
     }
 
 
-def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0, events=None):
+def spawn_hazards(rules, seed):
+    """Fixed discs from the seed. Does not draw from the world random stream."""
+    if not rules['hazards']:
+        return []
+    radius = rules['hazard_radius']
+    span = max(0.0, rules['map_half'] - radius)
+    discs = []
+    for index in range(rules['hazard_count']):
+        angle = (seed * 0.917 + index) * 2.399963
+        ring = span * (0.45 + 0.5 * ((seed * 17 + index * 13) % 5) / 4)
+        discs.append({
+            'id': index,
+            'x': round(max(-span, min(span, ring * math.cos(angle))), 6),
+            'y': round(max(-span, min(span, ring * math.sin(angle))), 6),
+            'radius': radius,
+        })
+    return discs
+
+
+def nearest_hazard(agent, hazards, rules):
+    best = None
+    for disc in hazards:
+        dist = math.hypot(agent['x'] - disc['x'], agent['y'] - disc['y'])
+        if dist <= disc['radius'] or dist < rules['sense_range']:
+            gap = dist - disc['radius']
+            key = (gap, disc['id'])
+            if best is None or key < best[0]:
+                best = (key, disc, dist)
+    return None if best is None else (best[1], best[2])
+
+
+def avoidance_target(agent, disc):
+    dx = agent['x'] - disc['x']
+    dy = agent['y'] - disc['y']
+    dist = math.hypot(dx, dy)
+    if dist < 1e-9:
+        dx, dy = math.cos(agent['heading'] + math.pi), math.sin(agent['heading'] + math.pi)
+    else:
+        dx, dy = dx / dist, dy / dist
+    return {'x': agent['x'] + dx, 'y': agent['y'] + dy, 'kind': 'avoiding_hazard', 'id': disc['id']}
+
+
+def compete_hazard(agent, choice, hazards, rules):
+    sensed = nearest_hazard(agent, hazards, rules) if rules['hazards'] else None
+    if sensed is None:
+        return choice
+    disc, dist = sensed
+    gap = dist - disc['radius']
+    food = math.inf if choice is None else math.hypot(choice['x'] - agent['x'], choice['y'] - agent['y'])
+    if gap <= 0 or gap < food:
+        return avoidance_target(agent, disc)
+    return choice
+
+
+def resolve_death(agent, rules, in_hazard, predation=False):
+    """First match: predation, hazard, starvation, old age. One energy pool."""
+    if predation:
+        return 'predation'
+    if in_hazard and agent['energy'] <= 0:
+        return 'hazard'
+    if agent['energy'] <= 0:
+        return 'starvation'
+    if agent['age'] >= lifespan_of(agent, rules):
+        return 'old_age'
+    return None
+
+
+def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0, events=None, hazards=None):
     motors = []
     for agent, circuit in zip(agents, circuits):
         agent['ate'] = False
@@ -684,6 +756,7 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0, 
             options += [{'x': a['x'], 'y': a['y'], 'kind': 'scavenging', 'id': a['id']}
                         for a in agents if corpse_freshness(a, tick, rules) > 0]
         choice = social.select_target(agent, options, tick, rules, events if events is not None else []) if drive_enabled else None
+        choice = compete_hazard(agent, choice, hazards or [], rules) if drive_enabled else choice
         distance = math.hypot(choice['x']-agent['x'], choice['y']-agent['y']) if choice else math.inf
         target = (choice['x'], choice['y']) if choice else None
         agent['intent'] = choice['kind'] if choice and drive_enabled else 'searching'
@@ -723,6 +796,8 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     rng = random.Random(seed)
     agents = spawn_agents(rules['agents'], rules['map_half'] * 0.85, rules['energy_start'])
     patches = spawn_patches(rules['patches'], rules['map_half'] * 0.4, rng, rules)
+    hazards = spawn_hazards(rules, seed)
+    hazard_deaths = 0
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
     events = []
     history = []
@@ -737,7 +812,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         if rules['seasons'] and tick % rules['season_length'] == 0:
             events.append({'tick': tick, 'kind': 'season', 'text': f'{environment["name"]}: plant growth ×{environment["growth"]:.2f}'})
         social.begin_tick(agents, patches, signals, tick, rules, events)
-        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled, tick, events)
+        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled, tick, events, hazards)
         claimed, contests = claim_patches(agents, patches, rules['eat_radius'])
         contested_meals += len(contests)
         displaced += sum(len(row['losers']) for row in contests)
@@ -771,14 +846,19 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             if not agent['alive']:
                 continue
             agent['energy'] -= rules['base_drain'] * agent['genome']['metabolism'] + rules['move_cost'] * speed
-            if agent['age'] >= lifespan_of(agent, rules):
-                kill(agent, tick, 'old_age', rules['corpse_ticks'])
-                events.append({'tick': tick, 'kind': 'died', 'agent': agent['id'], 'cause': 'old_age',
-                               'text': f'F{agent["id"]} died of old age'})
-            elif agent['energy'] <= 0:
-                kill(agent, tick, 'starvation', rules['corpse_ticks'])
-                events.append({'tick': tick, 'kind': 'died', 'agent': agent['id'], 'cause': 'starvation',
-                               'text': f'F{agent["id"]} starved'})
+            inside = nearest_hazard(agent, hazards, rules)
+            in_hazard = inside is not None and inside[1] <= inside[0]['radius']
+            if in_hazard:
+                agent['energy'] -= rules['hazard_drain']
+            cause = resolve_death(agent, rules, in_hazard)
+            if cause == 'hazard':
+                hazard_deaths += 1
+            if cause:
+                kill(agent, tick, cause, rules['corpse_ticks'])
+                label = {'hazard': 'died in a hazard', 'starvation': 'starved', 'old_age': 'died of old age',
+                         'predation': 'was killed'}[cause]
+                events.append({'tick': tick, 'kind': 'died', 'agent': agent['id'], 'cause': cause,
+                               'text': f'F{agent["id"]} {label}'})
         corpses = []
         for agent in agents:
             if agent['corpse_until'] is None:
@@ -824,6 +904,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'displaced': displaced,
                 'signals': copy.deepcopy(signals), 'social': social.totals(agents),
                 'environment': environment, 'scavenged': scavenged, 'composted': composted,
+                'hazards': [dict(disc) for disc in hazards], 'hazard_deaths': hazard_deaths,
             })
     return {
         'mode': 'ecosystem',
@@ -843,10 +924,12 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'displaced': displaced,
             'social': social.totals(agents),
             'scavenged': scavenged, 'composted': composted,
+            'hazard': hazard_deaths,
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),
         },
         'roster': roster_rows(agents),
+        'hazards': hazards,
         'ticks': history,
     }
 

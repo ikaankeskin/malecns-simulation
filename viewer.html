@@ -100,7 +100,7 @@
         <div class="bar right"><i id="sel-right-bar"></i></div>
       </div>
       <div id="eco-wrap" hidden>
-        <h2>Ecosystem</h2><div class="stat"><span>signals sent / received</span><strong id="eco-signals">0 / 0</strong></div><div class="stat"><span>signal meals / empty trips</span><strong id="eco-signal-results">0 / 0</strong></div><div id="eco-memory" class="meta"></div><div class="stat"><span>season</span><strong id="eco-season">Stable</strong></div><div class="stat"><span>scavenged / fertilized</span><strong id="eco-recycled">0 / 0</strong></div>
+        <h2>Ecosystem</h2><div class="stat"><span>signals sent / received</span><strong id="eco-signals">0 / 0</strong></div><div class="stat"><span>signal meals / empty trips</span><strong id="eco-signal-results">0 / 0</strong></div><div id="eco-memory" class="meta"></div><div class="stat"><span>season</span><strong id="eco-season">Stable</strong></div><div class="stat"><span>scavenged / fertilized</span><strong id="eco-recycled">0 / 0</strong></div><div class="stat"><span>hazard deaths</span><strong id="eco-hazards">0</strong></div>
         <div class="stat"><span>tick</span><strong id="eco-tick">0</strong></div>
         <div class="stat"><span>alive</span><strong id="eco-alive">0</strong></div>
         <div class="stat"><span>born</span><strong id="eco-born">0</strong></div>
@@ -518,6 +518,11 @@
           ctx.globalAlpha = .6 * (1 - fraction); ctx.strokeStyle = '#c5a0ff';
           ctx.beginPath(); ctx.arc(sx, sy, Math.max(2, fraction * (data.rules.signal_range || 18) * scale), 0, 2 * Math.PI); ctx.stroke(); ctx.globalAlpha = 1;
         });
+        (tick.hazards || []).forEach((disc) => {
+          const [hx, hy] = worldToCanvas(disc.x, disc.y);
+          ctx.beginPath(); ctx.arc(hx, hy, disc.radius * scale, 0, 2 * Math.PI);
+          ctx.fillStyle = '#c45c2a33'; ctx.fill(); ctx.strokeStyle = '#e07a45'; ctx.stroke();
+        });
         drawPatches(tick.patches || [], scale);
         (tick.corpses || []).forEach((corpse) => {
           const [x, y] = worldToCanvas(corpse.x, corpse.y);
@@ -543,6 +548,7 @@
         const env = tick.environment || {name:'Stable', growth:1};
         document.getElementById('eco-season').textContent = env.name + ' ×' + env.growth.toFixed(2);
         document.getElementById('eco-recycled').textContent = (tick.scavenged || 0) + ' / ' + (tick.composted || 0);
+        document.getElementById('eco-hazards').textContent = tick.hazard_deaths || 0;
         document.getElementById('eco-tick').textContent = tick.tick;
         document.getElementById('eco-alive').textContent = tick.alive;
         document.getElementById('eco-born').textContent = tick.born || 0;

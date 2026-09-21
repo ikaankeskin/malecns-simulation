@@ -117,9 +117,19 @@ Use `--season-length 200` to accelerate seasons, `--no-seasons` for stable growt
 python3 ecology_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out ecology-comparison.json
 ```
 
-Initial five-seed means (Python; 2,000 ticks; range 12), in order seasons/scavenging: on/on alive 1.0, births 10.2, plant meals 31.4, scavenged 12.4, living founders 0.2; on/off alive 0, births 8.2, plant meals 32.2, scavenged 0, living founders 0; off/on alive 0.6, births 10.8, plant meals 31.2, scavenged 13.8, living founders 0.4; off/off alive 0, births 8.2, plant meals 28.8, scavenged 0, living founders 0. These exploratory results do not establish that seasons or scavenging improve survival. Full settings and per-seed rows: `docs/ecology-comparison.json`. Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
+Initial five-seed means (Python; 2,000 ticks; range 12), in order seasons/scavenging: on/on alive 1.0, births 10.2, plant meals 31.4, scavenged 12.4, living founders 0.2; on/off alive 0, births 8.2, plant meals 32.2, scavenged 0, living founders 0; off/on alive 0.6, births 10.8, plant meals 31.2, scavenged 13.8, living founders 0.4; off/off alive 0, births 8.2, plant meals 28.8, scavenged 0, living founders 0. These exploratory results do not establish that seasons or scavenging improve survival. Full settings and per-seed rows: `docs/ecology-comparison.json`.
 
-The live dashboard exposes seasonal growth, corpse scavenging, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.
+Three hazard discs are placed from the seed, inside the map, without changing where food spawns. Standing in one costs 0.02 energy per tick. If the edge is closer than food, the agent is given a direction away from the disc; the circuit still only steers. A death inside a disc is labelled hazard, ahead of starvation and old age. Use `--no-hazards` to turn this off.
+
+```bash
+python3 hazard_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out hazard-comparison.json
+```
+
+Initial five-seed means (Python; 2,000 ticks; range 12): hazards off/on alive 1.0/0, births 10.2/3.2, plant meals 31.4/17.4, hazard-labelled deaths 0/0. These exploratory results do not show that the discs caused the deaths in this sample. Full rows: `docs/hazard-comparison.json`.
+
+Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
+
+The live dashboard exposes seasonal growth, corpse scavenging, hazard discs, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent, dashed target line, and a family list of ancestors and descendants. The list is capped at four generations and shows a count of further relatives. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season, recycling totals, and the same family list.
 
 ### Food signals and location memory
 

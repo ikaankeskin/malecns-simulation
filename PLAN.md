@@ -44,7 +44,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Local food signals, bounded location memory, inherited signalling/response tendencies.
 - [x] Ecology comparison: seasons × scavenging, five seeds, living-founder counts. See `docs/ecology-comparison.json`.
 - [x] Family trees: depth-capped ancestors and descendants for the selected agent, including cause of death.
-- [ ] Hazards, cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] Map hazards: three seeded discs, escape cue, and death causes in the order predation, hazard, starvation, old age.
+- [ ] Cooperation, predation, personality, lifetime action learning, and neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
 
 ## First scientific decision
 
@@ -131,3 +132,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added a depth-capped pedigree of the selected agent. Nodes show generation, alive or cause of death, and both parents. Relatives past four generations are counted as omitted. Siblings are not treated as descendants.
 - Playback carries a roster so decayed agents stay on the tree. The live inspector uses the same rule.
 - Validation: synthetic depth, death-tick, and unborn checks, plus a reproduction run whose child lists both parents. The live page showed a selected descendant with named ancestors and offspring. Node could not execute here because its ICU library is missing; the page's own JavaScript matched the Python fixture for the depth-1 case.
+
+### Map hazards
+- Added three seeded discs that drain 0.02 energy per tick while an agent stands inside. Placement does not use the food random stream. Within sensory range, a disc competes with food: the agent steers away when the edge is closer than the meal. The circuit still only receives a direction.
+- Death labels, first match: predation (reserved), hazard, starvation, old age. `--no-hazards` and the live checkbox turn the discs off.
+- Five seeds, 2,000 ticks, range 12: hazards off/on alive 1.0/0, births 10.2/3.2, plant meals 31.4/17.4. Hazard-labelled deaths were 0/0. The off cell matches the earlier both-on ecology means. Exploratory; avoidance changed foraging, and this sample did not die inside a disc.
+- Validation: placement stability, food positions unchanged, escape priority, death order, and a forced disc kill. The live page drew the discs and removed them after Apply with the checkbox off. Browser placement for seed 4 matched Python.

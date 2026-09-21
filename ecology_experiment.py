@@ -24,7 +24,7 @@ def compare(graph, seeds, ticks=2000, sense_range=12):
     for seed in seeds:
         for seasons, scavenging in CELLS:
             result = simulate_ecosystem(
-                graph, ticks, seed, seasons=seasons, scavenging=scavenging,
+                graph, ticks, seed, seasons=seasons, scavenging=scavenging, hazards=False,
                 sense_range=sense_range, turn_sign=-1, turn_gain=1, record_every=ticks)
             final = result['final']
             living_founders = sum(1 for row in final['lineages'].values() if row['living'] > 0)

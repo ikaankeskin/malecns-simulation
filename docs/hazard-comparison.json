@@ -1,0 +1,189 @@
+{
+  "ablation": "hazards",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "ticks": 2000,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sense_range": 12.0,
+  "decoder": {
+    "turn_sign": -1,
+    "turn_gain": 1
+  },
+  "rules": {
+    "agents": 8,
+    "patches": 8,
+    "map_half": 20.0,
+    "energy_start": 1.0,
+    "energy_max": 2.0,
+    "base_drain": 0.0012,
+    "move_cost": 0.003,
+    "meal": 0.55,
+    "eat_radius": 0.55,
+    "sense_range": 12.0,
+    "max_age": 520,
+    "seed_ticks": 12,
+    "grow_ticks": 40,
+    "cooldown_ticks": 50,
+    "corpse_ticks": 180,
+    "seasons": true,
+    "season_length": 400,
+    "scavenging": true,
+    "hazard_count": 3,
+    "hazard_radius": 3.5,
+    "hazard_drain": 0.02,
+    "scavenge_below": 1.1,
+    "corpse_meal": 0.35,
+    "compost_radius": 5.0,
+    "compost_boost": 12.0,
+    "max_population": 48,
+    "mate_radius": 6.300000000000001,
+    "min_repro_age": 36,
+    "min_repro_energy": 1.02,
+    "repro_cost": 0.35,
+    "repro_cooldown": 33,
+    "offspring_energy": 0.8,
+    "food_rate": 1.0,
+    "aging_rate": 1.0,
+    "repro_rate": 1.2,
+    "mutation_rate": 0.9,
+    "mutation_sigma": 0.14,
+    "meal_life": 90,
+    "meal_life_cap": 900,
+    "record_every": 2000,
+    "communication": true,
+    "social_learning": true,
+    "signal_range": 18.0,
+    "signal_ticks": 24,
+    "signal_cooldown": 60,
+    "signal_cost": 0.01,
+    "memory_ticks": 180,
+    "repro_enabled": true
+  },
+  "rows": [
+    {
+      "seed": 0,
+      "hazards": false,
+      "alive": 0,
+      "births": 13,
+      "meals": 28,
+      "hazard": 0,
+      "starved": 0,
+      "old_age": 21
+    },
+    {
+      "seed": 0,
+      "hazards": true,
+      "alive": 0,
+      "births": 2,
+      "meals": 7,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 9
+    },
+    {
+      "seed": 1,
+      "hazards": false,
+      "alive": 0,
+      "births": 12,
+      "meals": 26,
+      "hazard": 0,
+      "starved": 2,
+      "old_age": 18
+    },
+    {
+      "seed": 1,
+      "hazards": true,
+      "alive": 0,
+      "births": 6,
+      "meals": 26,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 13
+    },
+    {
+      "seed": 2,
+      "hazards": false,
+      "alive": 0,
+      "births": 8,
+      "meals": 35,
+      "hazard": 0,
+      "starved": 0,
+      "old_age": 16
+    },
+    {
+      "seed": 2,
+      "hazards": true,
+      "alive": 0,
+      "births": 1,
+      "meals": 22,
+      "hazard": 0,
+      "starved": 0,
+      "old_age": 9
+    },
+    {
+      "seed": 3,
+      "hazards": false,
+      "alive": 5,
+      "births": 12,
+      "meals": 39,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 14
+    },
+    {
+      "seed": 3,
+      "hazards": true,
+      "alive": 0,
+      "births": 2,
+      "meals": 10,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 9
+    },
+    {
+      "seed": 4,
+      "hazards": false,
+      "alive": 0,
+      "births": 6,
+      "meals": 29,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 13
+    },
+    {
+      "seed": 4,
+      "hazards": true,
+      "alive": 0,
+      "births": 5,
+      "meals": 22,
+      "hazard": 0,
+      "starved": 1,
+      "old_age": 12
+    }
+  ],
+  "means": {
+    "off": {
+      "alive": 1,
+      "births": 10.2,
+      "meals": 31.4,
+      "hazard": 0,
+      "starved": 0.8,
+      "old_age": 16.4
+    },
+    "on": {
+      "alive": 0,
+      "births": 3.2,
+      "meals": 17.4,
+      "hazard": 0,
+      "starved": 0.8,
+      "old_age": 10.4
+    }
+  },
+  "caveat": "Exploratory paired-seed comparison, not biological validation. Seasons and scavenging stay at their defaults. Hazard discs use a separate placement stream, so food placement matches the off cell until behaviour diverges. Deaths in a disc are labelled hazard, not injury or evolved avoidance. No confidence intervals. Python and browser RNGs differ."
+}

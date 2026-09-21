@@ -18,6 +18,7 @@
     cooldown_ticks: 50,
     corpse_ticks: 180,
     seasons: true, season_length: 400, scavenging: true,
+    hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
     max_population: 48,
     mate_radius: 6,
@@ -167,7 +168,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -185,6 +186,7 @@
       sense_range: ui.sense_range == null ? DEFAULTS.sense_range : ui.sense_range,
       seasons: ui.seasons == null ? true : ui.seasons,
       scavenging: ui.scavenging == null ? true : ui.scavenging,
+      hazards: ui.hazards == null ? true : ui.hazards,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
@@ -371,6 +373,63 @@
     return true;
   }
 
+  function spawnHazards(rules, seed) {
+    if (!rules.hazards) return [];
+    const radius = rules.hazard_radius;
+    const span = Math.max(0, rules.map_half - radius);
+    const discs = [];
+    for (let index = 0; index < rules.hazard_count; index += 1) {
+      const angle = (seed * 0.917 + index) * 2.399963;
+      const ring = span * (0.45 + 0.5 * ((seed * 17 + index * 13) % 5) / 4);
+      discs.push({
+        id: index,
+        x: Math.round(Math.max(-span, Math.min(span, ring * Math.cos(angle))) * 1e6) / 1e6,
+        y: Math.round(Math.max(-span, Math.min(span, ring * Math.sin(angle))) * 1e6) / 1e6,
+        radius: radius,
+      });
+    }
+    return discs;
+  }
+
+  function nearestHazard(agent, hazards, rules) {
+    let best = null;
+    (hazards || []).forEach((disc) => {
+      const dist = Math.hypot(agent.x - disc.x, agent.y - disc.y);
+      if (dist <= disc.radius || dist < rules.sense_range) {
+        const gap = dist - disc.radius;
+        if (!best || gap < best.gap || (gap === best.gap && disc.id < best.disc.id)) best = { gap: gap, disc: disc, dist: dist };
+      }
+    });
+    return best;
+  }
+
+  function avoidanceTarget(agent, disc) {
+    let dx = agent.x - disc.x, dy = agent.y - disc.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 1e-9) {
+      dx = Math.cos(agent.heading + Math.PI); dy = Math.sin(agent.heading + Math.PI);
+    } else {
+      dx /= dist; dy /= dist;
+    }
+    return { x: agent.x + dx, y: agent.y + dy, kind: 'avoiding_hazard', id: disc.id };
+  }
+
+  function competeHazard(agent, choice, hazards, rules) {
+    const sensed = rules.hazards ? nearestHazard(agent, hazards, rules) : null;
+    if (!sensed) return choice;
+    const food = choice ? Math.hypot(choice.x - agent.x, choice.y - agent.y) : Infinity;
+    if (sensed.gap <= 0 || sensed.gap < food) return avoidanceTarget(agent, sensed.disc);
+    return choice;
+  }
+
+  function resolveDeath(agent, rules, inHazard, predation) {
+    if (predation) return 'predation';
+    if (inHazard && agent.energy <= 0) return 'hazard';
+    if (agent.energy <= 0) return 'starvation';
+    if (agent.age >= lifespanOf(agent, rules)) return 'old_age';
+    return null;
+  }
+
   function createWorld(graph, ui, seed) {
     const rules = rulesFrom(ui || {});
     const decoder = Object.assign({}, DECODER);
@@ -383,6 +442,7 @@
       tick: 0,
       agents: spawnAgents(rules.agents, rules.map_half * 0.85, rules.energy_start),
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
+      hazards: spawnHazards(rules, seed),
       circuits: [],
       events: [], signals: [],
       births: 0, scavenged: 0, composted: 0,
@@ -489,7 +549,7 @@
         world.agents.forEach(a => { if (corpseFreshness(a,world.tick,rules)>0) options.push({x:a.x,y:a.y,kind:'scavenging',id:a.id}); });
       }
       options.sort((a,b) => Math.hypot(a.x-agent.x,a.y-agent.y)-Math.hypot(b.x-agent.x,b.y-agent.y));
-      const choice = Social.selectTarget(agent, options, world.tick, rules, world.events);
+      const choice = competeHazard(agent, Social.selectTarget(agent, options, world.tick, rules, world.events), world.hazards, rules);
       const found = choice ? [[choice.x,choice.y],Math.hypot(choice.x-agent.x,choice.y-agent.y)] : [null,Infinity];
       agent.intent = choice ? choice.kind : 'searching';
       agent.target = agent.intent !== 'searching' ? choice : null;
@@ -553,12 +613,14 @@
     world.agents.forEach((agent) => {
       if (!agent.alive) return;
       agent.energy -= rules.base_drain * agent.genome.metabolism + rules.move_cost * agent.speed;
-      if (agent.age >= lifespanOf(agent, rules)) {
-        kill(agent, world.tick, 'old_age', rules.corpse_ticks);
-        world.events.push({ tick: world.tick, kind: 'died', text: 'F' + agent.id + ' died of old age' });
-      } else if (agent.energy <= 0) {
-        kill(agent, world.tick, 'starvation', rules.corpse_ticks);
-        world.events.push({ tick: world.tick, kind: 'died', text: 'F' + agent.id + ' starved' });
+      const sensed = nearestHazard(agent, world.hazards, rules);
+      const inHazard = !!(sensed && sensed.dist <= sensed.disc.radius);
+      if (inHazard) agent.energy -= rules.hazard_drain;
+      const cause = resolveDeath(agent, rules, inHazard, false);
+      if (cause) {
+        kill(agent, world.tick, cause, rules.corpse_ticks);
+        const label = { hazard: 'died in a hazard', starvation: 'starved', old_age: 'died of old age', predation: 'was killed' }[cause];
+        world.events.push({ tick: world.tick, kind: 'died', cause: cause, text: 'F' + agent.id + ' ' + label });
       }
     });
     world.agents.forEach((agent) => {
@@ -611,6 +673,8 @@
       scavenged: world.scavenged, composted: world.composted,
       contested: world.contested || 0,
       displaced: world.displaced || 0,
+      hazards: world.hazards,
+      hazard_deaths: world.agents.filter((agent) => agent.cause_of_death === 'hazard').length,
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null)
@@ -717,6 +781,7 @@
 
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
+    spawnHazards, competeHazard, resolveDeath,
     lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,
     PRESETS: PRESETS,

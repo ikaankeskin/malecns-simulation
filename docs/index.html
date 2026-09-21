@@ -101,6 +101,7 @@
       <label class="ctrl"><span>sensory range</span><select id="sense-range"><option value="12">12 · local</option><option value="24" selected>24 · wide</option></select></label>
       <label class="ctrl"><span>seasonal growth</span><input id="seasons" type="checkbox" checked></label>
       <label class="ctrl"><span>corpse scavenging</span><input id="scavenging" type="checkbox" checked></label>
+      <label class="ctrl"><span>hazard discs</span><input id="hazards" type="checkbox" checked></label>
       <label class="ctrl"><span>ticks per season</span><select id="season-length"><option value="200">200 · fast</option><option value="400" selected>400 · standard</option><option value="800">800 · slow</option></select></label>
       <div class="actions">
         <button type="button" id="randomize" class="primary">Randomize</button>
@@ -121,6 +122,7 @@
       <h2>Nutrient cycle</h2>
       <div class="row"><span>corpses scavenged</span><strong id="scavenged">0</strong></div>
       <div class="row"><span>plants fertilized</span><strong id="composted">0</strong></div>
+      <div class="row"><span>hazard deaths</span><strong id="hazard-deaths">0</strong></div>
       <div class="meta">Rose rings show corpse freshness. Uneaten remains can fertilize nearby growing plants. Apply restarts with the chosen rules and same seed.</div>
       <h2>World</h2>
       <div class="row"><span>tick</span><strong id="tick">0</strong></div>
@@ -197,6 +199,7 @@
         sense_range: Number(document.getElementById('sense-range').value),
         seasons: document.getElementById('seasons').checked,
         scavenging: document.getElementById('scavenging').checked,
+        hazards: document.getElementById('hazards').checked,
         season_length: Number(document.getElementById('season-length').value),
         agents: Number(fields.agents.value),
         food_rate: Number(fields.food.value),
@@ -316,6 +319,17 @@
         const d = worldToCanvas(bounds.max, g, bounds);
         ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
       }
+      (snap.hazards || []).forEach((disc) => {
+        const center = worldToCanvas(disc.x, disc.y, bounds);
+        ctx.beginPath();
+        ctx.arc(center[0], center[1], disc.radius * center[2], 0, 2 * Math.PI);
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = '#c45c2a';
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#e07a45';
+        ctx.stroke();
+      });
       (snap.signals || []).forEach(signal => {
         const origin = worldToCanvas(signal.origin_x, signal.origin_y, bounds);
         const age = Math.max(0, snap.tick - signal.tick), fraction = Math.min(1, age / world.rules.signal_ticks);
@@ -389,6 +403,7 @@
       document.getElementById('food').textContent = snap.mature_food;
       document.getElementById('contested').textContent = snap.contested || 0;
       document.getElementById('displaced').textContent = snap.displaced || 0;
+      document.getElementById('hazard-deaths').textContent = snap.hazard_deaths || 0;
       document.getElementById('seed-val').textContent = seed;
       const rules = world.rules;
       document.getElementById('rule-readout').textContent =
