@@ -211,6 +211,8 @@ def main():
     eco.add_argument('--max-population', dest='max_population', type=int, default=48)
     eco.add_argument('--mutation-rate', dest='mutation_rate', type=float, default=0.9)
     eco.add_argument('--mutation-sigma', dest='mutation_sigma', type=float, default=0.14)
+    eco.add_argument('--no-communication', dest='communication', action='store_false')
+    eco.add_argument('--sense-range', type=float, default=24)
     eco.add_argument('--no-seasons', dest='seasons', action='store_false')
     eco.add_argument('--no-scavenging', dest='scavenging', action='store_false')
     eco.add_argument('--season-length', type=int, default=400)
@@ -238,7 +240,8 @@ def main():
                               max_population=a.max_population,
                               mutation_rate=a.mutation_rate, mutation_sigma=a.mutation_sigma,
                               record_every=a.record_every, seasons=a.seasons,
-                              scavenging=a.scavenging, season_length=a.season_length)
+                              scavenging=a.scavenging, season_length=a.season_length,
+                              communication=a.communication, sense_range=a.sense_range)
                 if a.max_age is not None:
                     kwargs['max_age'] = a.max_age
             output, summary = write_viewer(a.graph, a.ticks, a.seed, a.out, **kwargs)

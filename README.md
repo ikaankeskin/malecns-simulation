@@ -38,7 +38,7 @@ Useful knobs: `--agents`, `--food-rate`, `--aging-rate`, `--repro-rate`, `--muta
 
 The GitHub Pages app runs the same ecosystem live. Choose a rule preset or set agent count, food spawn rate, aging rate, reproduction rate, and mutation rate, then randomize.
 
-[GitHub Pages address](https://ikaankeskin.github.io/malecns-simulation/) — deployment currently blocked at `actions/configure-pages`; this address returned 404 on 2026-09-21. The dashboard is runnable locally from `docs/` with `python3 -m http.server 8000 --directory docs`.
+[Open the live ecosystem](https://ikaankeskin.github.io/malecns-simulation/)
 
 ![DNg13 ecosystem with renewable food, aging, and reproduction](docs/preview.gif)
 
@@ -48,7 +48,7 @@ Serve `docs/` locally if you want the same page without GitHub:
 python3 -m http.server 8000 --directory docs
 ```
 
-Then open http://127.0.0.1:8000/ . The published site needs GitHub Pages enabled (Actions source). The repository is private, so the public URL only works if Pages visibility allows it.
+Then open http://127.0.0.1:8000/ . The published site needs GitHub Pages enabled (Actions source). 
 
 ## Watch a run
 
@@ -114,3 +114,11 @@ The ecosystem now cycles through Bloom (1.65× plant lifecycle speed), Abundance
 Use `--season-length 200` to accelerate seasons, `--no-seasons` for stable growth, and `--no-scavenging` to disable corpse feeding with the `ecosystem` command. Bodies can still compost when scavenging is disabled. Maps now reflect agents at their boundaries. Python and browser runs are deterministic within each engine; their random generators differ, so equal seeds do not imply identical trajectories across engines.
 
 The live dashboard exposes seasonal growth, corpse scavenging, and ticks per season. **Apply** restarts with the selected rules and the same seed; **Step** pauses and advances one tick. The arena tint and banner track the season, rose rings show corpse freshness, and expanding rose/green rings mark scavenging/fertilization. Select an agent to see its current target intent and dashed target line. These intent labels describe the engineered sensory target selection, not inferred cognition. Python HTML replays include season and recycling totals too.
+
+### Food signals and location memory
+
+Agents can report the nearest mature food they currently sense. Reports reach neighbours within 18 units, cost 0.01 energy, and are attempted at most every 60 ticks. Visible signals last 24 ticks; accepted location memories last 180 ticks. Each agent keeps at most four locations and six recent outcomes. Locations remain stale if food is consumed or moves; agents find out on arrival or forget them on expiry. Reports are received once at emission, not continuously relayed.
+
+Two inherited multipliers, `signalling` and `responsiveness`, control deterministic probabilities of reporting and remembering. Memory goals compete with directly sensed food by distance, with remembered goals winning exact ties for consistent outcome tracking. Following a remembered location supplies a fixed 0.5 sensory stimulus scaled by sensory gain; it does not move the agent directly or change circuit topology. This engineered policy is a baseline, not learned cooperation. No energy reward is awarded for signalling.
+
+Use `--no-communication` for a baseline and `--sense-range 12` to try limited local perception. Signal-associated meals do not establish a causal benefit: the food may have become directly visible anyway. Run multiple seeds with communication on/off before drawing survival conclusions.

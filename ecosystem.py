@@ -2,6 +2,8 @@
 import json
 import math
 import random
+import social
+import copy
 from pathlib import Path
 from sim import Circuit, integrate_motion, nearest_point, sensory_drives, validate_decoder, validate_graph
 
@@ -45,9 +47,11 @@ DEFAULTS = {
     'record_every': 1,
 }
 
+DEFAULTS.update(social.DEFAULTS)
+
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
-            'meal_life', 'meal_life_cap', 'record_every', 'season_length')
+            'meal_life', 'meal_life_cap', 'record_every', 'season_length', 'signal_ticks', 'signal_cooldown', 'memory_ticks')
 RATE_KEYS = ('food_rate', 'aging_rate', 'repro_rate', 'mutation_rate', 'mutation_sigma')
 
 # Relative body/decoder multipliers. Topology is not in the genome.
@@ -58,6 +62,8 @@ BASE_GENOME = {
     'speed': 1.0,
     'lifespan': 1.0,
     'fertility': 1.0,
+    'signalling': 0.5,
+    'responsiveness': 0.5,
     'spot': 0.0,
     'echo': 0.0,
     'drift': 0.0,
@@ -69,6 +75,8 @@ GENE_BOUNDS = {
     'speed': (0.55, 1.9),
     'lifespan': (0.65, 1.9),
     'fertility': (0.6, 2.2),
+    'signalling': (0.0, 1.0),
+    'responsiveness': (0.0, 1.0),
     'spot': (0.0, 1.0),
     'echo': (0.0, 1.0),
     'drift': (0.0, 1.0),
@@ -128,11 +136,13 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging'):
+    for key in ('seasons', 'scavenging', 'communication'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
-    for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost'):
+    for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
         _positive_number(key, rules[key], allow_zero=True)
+    for key in ('signal_range', 'sense_range'):
+        _positive_number(key, rules[key])
     if rules['agents'] > 50:
         raise ValueError('agents must be 50 or fewer on the CPU path')
     if rules['max_population'] > 60:
@@ -337,7 +347,7 @@ def inherit_genome(mother, father, rng, rules):
         mid = 0.5 * (mother.get(gene, BASE_GENOME[gene]) + father.get(gene, BASE_GENOME[gene]))
         value = mid
         if rate > 0 and sigma > 0 and rng.random() < rate:
-            if gene in ('spot', 'echo', 'drift'):
+            if gene in ('spot', 'echo', 'drift', 'signalling', 'responsiveness'):
                 value = max(lo, min(hi, mid + rng.gauss(0.0, sigma)))
             else:
                 value = max(lo, min(hi, mid * (1.0 + rng.gauss(0.0, sigma))))
@@ -545,7 +555,10 @@ def snapshot_agent(agent, left, right, speed):
         'displaced': agent.get('displaced', 0),
         'scavenges': agent.get('scavenges', 0),
         'intent': agent.get('intent', 'searching'),
-        'target': agent.get('target'),
+        'target': copy.deepcopy(agent.get('target')),
+        'memories': copy.deepcopy(agent.get('memories', [])),
+        'social_history': copy.deepcopy(agent.get('social_history', [])),
+        'social': dict(agent.get('social', {})),
         'left_motor': round(left, 6),
         'right_motor': round(right, 6),
         'speed': round(speed, 6),
@@ -561,7 +574,7 @@ def snapshot_patch(patch):
     }
 
 
-def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0):
+def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0, events=None):
     motors = []
     for agent, circuit in zip(agents, circuits):
         agent['ate'] = False
@@ -574,17 +587,17 @@ def motors_for(agents, circuits, edible, decoder, rules, drive_enabled, tick=0):
         if rules['scavenging'] and agent['energy'] < rules['scavenge_below']:
             options += [{'x': a['x'], 'y': a['y'], 'kind': 'scavenging', 'id': a['id']}
                         for a in agents if corpse_freshness(a, tick, rules) > 0]
-        choice = min(options, key=lambda p: math.hypot(p['x']-agent['x'], p['y']-agent['y']), default=None)
+        choice = social.select_target(agent, options, tick, rules, events if events is not None else []) if drive_enabled else None
         distance = math.hypot(choice['x']-agent['x'], choice['y']-agent['y']) if choice else math.inf
         target = (choice['x'], choice['y']) if choice else None
-        agent['intent'] = choice['kind'] if choice and distance < rules['sense_range'] and drive_enabled else 'searching'
+        agent['intent'] = choice['kind'] if choice and drive_enabled else 'searching'
         agent['target'] = choice if agent['intent'] != 'searching' else None
         bearing = 0.0
         stimulus = 0.0
         if target is not None and drive_enabled:
             bearing = math.atan2(target[1] - agent['y'], target[0] - agent['x']) - agent['heading']
             bearing = math.atan2(math.sin(bearing), math.cos(bearing))
-            stimulus = max(0.0, 1.0 - distance / rules['sense_range']) * agent['genome']['sensory_gain']
+            stimulus = (0.5 if choice['kind'] == 'following_signal' else max(0.0, 1.0 - distance / rules['sense_range'])) * agent['genome']['sensory_gain']
         body = decoder_for(decoder, agent['genome'])
         circuit.step(sensory_drives(circuit.nodes, body, bearing, stimulus))
         left, right = circuit.motors()
@@ -617,6 +630,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
     events = []
     history = []
+    signals = []
     births = 0
     peak = rules['agents']
     contested_meals = 0
@@ -626,7 +640,8 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         environment = season_at(tick, rules)
         if rules['seasons'] and tick % rules['season_length'] == 0:
             events.append({'tick': tick, 'kind': 'season', 'text': f'{environment["name"]}: plant growth ×{environment["growth"]:.2f}'})
-        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled, tick)
+        social.begin_tick(agents, patches, signals, tick, rules, events)
+        motors = motors_for(agents, circuits, mature_locations(patches), decoder, rules, drive_enabled, tick, events)
         claimed, contests = claim_patches(agents, patches, rules['eat_radius'])
         contested_meals += len(contests)
         displaced += sum(len(row['losers']) for row in contests)
@@ -637,6 +652,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         for patch in patches:
             if patch['id'] in claimed:
                 eater = next(agent for agent in agents if agent['id'] == claimed[patch['id']])
+                eater['meal_position'] = {'x': patch['x'], 'y': patch['y']}
                 eater['ate'] = True
                 eater['meals'] += 1
                 eater['energy'] = min(rules['energy_max'], eater['energy'] + rules['meal'] * patch['nutrition'])
@@ -650,6 +666,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 if matured:
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
+        social.end_tick(agents, tick, rules, events)
         scavenged += scavenge_corpses(agents, tick, rules, events)
         births += reproduce(agents, circuits, graph, tick, rules, rng, events, disconnected, shuffle_seed)
         while len(motors) < len(agents):
@@ -708,6 +725,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'living_by_gen': living_by_generation(agents),
                 'contested': contested_meals,
                 'displaced': displaced,
+                'signals': copy.deepcopy(signals), 'social': social.totals(agents),
                 'environment': environment, 'scavenged': scavenged, 'composted': composted,
             })
     return {
@@ -726,6 +744,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             'genome_std': genome_stats(agents)[1],
             'contested': contested_meals,
             'displaced': displaced,
+            'social': social.totals(agents),
             'scavenged': scavenged, 'composted': composted,
             'lineages': lineage_table(agents),
             'living_by_gen': living_by_generation(agents),

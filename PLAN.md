@@ -41,7 +41,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] GitHub Pages live ecosystem with agent/food/aging/reproduction controls and randomize.
 - [x] Evolution of simulation parameters: offspring blend parent genomes and mutate turn/sensory/metabolism/speed/lifespan/fertility, plus weak quirks. Connectome topology remains fixed.
 - [x] Random food respawn, meal-extended lifespan, inspector follow-on, competition metrics, and a lineage dashboard.
-- [ ] Combat, social, and LLM layers (not started).
+- [x] Local food signals, bounded location memory, inherited signalling/response tendencies.
+- [ ] Relationship learning, combat, and LLM layers.
 - [ ] Neurotransmitter-aware dynamics and later learning experiments.
 
 ## First scientific decision
@@ -82,3 +83,10 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 ### Deployment verification (2026-09-21)
 - UI commit `d2c1bbb` is pushed; Pages run `35546419914` failed at `actions/configure-pages@v5`, before upload/deploy. Browser confirmed the Pages URL returns 404. No live visual verification is claimed.
 - Repository Pages configuration needs investigation before release. The current GitHub connector has no Pages administration capability. No repository visibility or permissions were changed.
+
+### Food signals and bounded memory
+- Added local FOOD reports with range, cost, cooldown and expiry. Receivers may remember four locations and six recent outcomes; hidden patch movement never updates a remembered location.
+- Added inherited signalling/responsiveness tendencies and a deterministic decision stream separate from world RNG. Memory supplies a virtual sensory target; the independent MaleCNS-derived circuit still controls locomotion. No cooperation reward or LLM.
+- Tracks sent/received reports, followed memories, meals, empty arrivals and expired trips. Signal-associated meals are observations, not proof that a signal caused a meal.
+- Python and JavaScript synthetic fixtures agree; 51 tests pass. A browser-engine smoke run with DNg13, seed 4, 2,000 ticks produced 99 reports, 121 followed memories, 13 associated meals and 47 empty arrivals; population extinct by the end. This is a smoke run, not evidence of improved survival.
+- User reports Pages deployment now works. Next: dashboard visibility and a repeatable on/off comparison.

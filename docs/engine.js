@@ -1,5 +1,6 @@
 /* Live ecosystem engine. Dynamics are simulation abstractions; DNg13 topology is MaleCNS-derived. */
 (function (root) {
+  const Social = root.MaleCNSSocial || (typeof require === 'function' ? (require('./social.js'), globalThis.MaleCNSSocial) : null);
   const DEFAULTS = {
     agents: 8,
     patches: 8,
@@ -34,13 +35,15 @@
     meal_life_cap: 900,
   };
 
+  Object.assign(DEFAULTS, Social.DEFAULTS);
+
   const BASE_GENOME = {
     turn_gain: 1, sensory_gain: 1, metabolism: 1, speed: 1,
-    lifespan: 1, fertility: 1, spot: 0, echo: 0, drift: 0,
+    lifespan: 1, fertility: 1, signalling: .5, responsiveness: .5, spot: 0, echo: 0, drift: 0,
   };
   const GENE_BOUNDS = {
     turn_gain: [0.45, 2], sensory_gain: [0.45, 2.2], metabolism: [0.5, 1.8], speed: [0.55, 1.9],
-    lifespan: [0.65, 1.9], fertility: [0.6, 2.2], spot: [0, 1], echo: [0, 1], drift: [0, 1],
+    signalling: [0, 1], responsiveness: [0, 1], lifespan: [0.65, 1.9], fertility: [0.6, 2.2], spot: [0, 1], echo: [0, 1], drift: [0, 1],
   };
   const MUTATION_LABELS = {
     speed: ['speed boost', 'sluggish'],
@@ -96,7 +99,7 @@
       let value = mid;
       if (rate > 0 && sigma > 0 && random() < rate) {
         const bounds = GENE_BOUNDS[gene];
-        if (gene === 'spot' || gene === 'echo' || gene === 'drift') {
+        if (gene === 'spot' || gene === 'echo' || gene === 'drift' || gene === 'signalling' || gene === 'responsiveness') {
           value = clamp(mid + gauss(random, sigma), bounds[0], bounds[1]);
         } else {
           value = clamp(mid * (1 + gauss(random, sigma)), bounds[0], bounds[1]);
@@ -164,18 +167,21 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging'].forEach(key => {
+    ['seasons', 'scavenging', 'communication'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
       throw new Error('season_length must be a positive integer');
     }
+    if (ui.sense_range != null && (!Number.isFinite(ui.sense_range) || ui.sense_range <= 0)) throw new Error('sense_range must be positive');
     const food = Math.max(0.2, Number(ui.food_rate) || 1);
     const aging = Math.max(0.2, Number(ui.aging_rate) || 1);
     const repro = Math.max(0, Number(ui.repro_rate) || 0);
     const agents = clamp(Math.round(Number(ui.agents) || 8), 2, 24);
     const patches = clamp(Math.round(Number(ui.patches) || 6), 2, 12);
     return Object.assign({}, DEFAULTS, {
+      communication: ui.communication == null ? true : ui.communication,
+      sense_range: ui.sense_range == null ? DEFAULTS.sense_range : ui.sense_range,
       seasons: ui.seasons == null ? true : ui.seasons,
       scavenging: ui.scavenging == null ? true : ui.scavenging,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
@@ -377,7 +383,7 @@
       agents: spawnAgents(rules.agents, rules.map_half * 0.85, rules.energy_start),
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
       circuits: [],
-      events: [],
+      events: [], signals: [],
       births: 0, scavenged: 0, composted: 0,
       peak: rules.agents,
       contested: 0,
@@ -470,6 +476,7 @@
     if (rules.seasons && world.tick % rules.season_length === 0) {
       world.events.push({tick: world.tick, kind: 'season', text: environment.name+': plant growth ×'+environment.growth.toFixed(2)});
     }
+    Social.beginTick(world.agents, world.patches, world.signals, world.tick, rules, world.events);
     const edible = world.patches.filter(p => p.stage === 'mature').map(p => ({x:p.x, y:p.y, kind:'foraging'}));
     world.agents.forEach((agent, index) => {
       agent.ate = false;
@@ -481,16 +488,16 @@
         world.agents.forEach(a => { if (corpseFreshness(a,world.tick,rules)>0) options.push({x:a.x,y:a.y,kind:'scavenging',id:a.id}); });
       }
       options.sort((a,b) => Math.hypot(a.x-agent.x,a.y-agent.y)-Math.hypot(b.x-agent.x,b.y-agent.y));
-      const choice = options[0];
+      const choice = Social.selectTarget(agent, options, world.tick, rules, world.events);
       const found = choice ? [[choice.x,choice.y],Math.hypot(choice.x-agent.x,choice.y-agent.y)] : [null,Infinity];
-      agent.intent = choice && found[1] < rules.sense_range ? choice.kind : 'searching';
+      agent.intent = choice ? choice.kind : 'searching';
       agent.target = agent.intent !== 'searching' ? choice : null;
       let bearing = 0;
       let stimulus = 0;
       if (found[0]) {
         bearing = Math.atan2(found[0][1] - agent.y, found[0][0] - agent.x) - agent.heading;
         bearing = Math.atan2(Math.sin(bearing), Math.cos(bearing));
-        stimulus = Math.max(0, 1 - found[1] / rules.sense_range) * agent.genome.sensory_gain;
+        stimulus = (choice.kind === 'following_signal' ? .5 : Math.max(0, 1 - found[1] / rules.sense_range)) * agent.genome.sensory_gain;
       }
       const circuit = world.circuits[index];
       const body = decoderFor(decoder, agent.genome);
@@ -530,6 +537,7 @@
         world.events.push({ tick: world.tick, kind: 'contested',
           text: 'F' + winner.id + ' beat ' + (contenders.length - 1) + ' rival(s) to patch ' + patch.id });
       }
+      winner.meal_position = {x:patch.x,y:patch.y};
       winner.ate = true;
       winner.meals += 1;
       winner.energy = Math.min(rules.energy_max, winner.energy + rules.meal * patch.nutrition);
@@ -538,6 +546,7 @@
       patch.consumed_by = winner.id;
       world.events.push({ tick: world.tick, kind: 'ate', text: 'F' + winner.id + ' ate patch ' + patch.id });
     });
+    Social.endTick(world.agents, world.tick, rules, world.events);
     world.scavenged += scavengeCorpses(world.agents, world.tick, rules, world.events);
     reproduce(world);
     world.agents.forEach((agent) => {
@@ -596,6 +605,7 @@
       mean_metabolism: living.length ? living.reduce((sum, agent) => sum + agent.genome.metabolism, 0) / living.length : 1,
       mean_lifespan: living.length ? living.reduce((sum, agent) => sum + agent.genome.lifespan, 0) / living.length : 1,
       mean_fertility: living.length ? living.reduce((sum, agent) => sum + agent.genome.fertility, 0) / living.length : 1,
+      signals: world.signals, social: Social.totals(world.agents),
       environment: seasonAt(Math.max(0,world.tick-1),world.rules),
       scavenged: world.scavenged, composted: world.composted,
       contested: world.contested || 0,
