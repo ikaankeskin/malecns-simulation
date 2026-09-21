@@ -122,3 +122,13 @@ Agents can report the nearest mature food they currently sense. Reports reach ne
 Two inherited multipliers, `signalling` and `responsiveness`, control deterministic probabilities of reporting and remembering. Memory goals compete with directly sensed food by distance, with remembered goals winning exact ties for consistent outcome tracking. Following a remembered location supplies a fixed 0.5 sensory stimulus scaled by sensory gain; it does not move the agent directly or change circuit topology. This engineered policy is a baseline, not learned cooperation. No energy reward is awarded for signalling.
 
 Use `--no-communication` for a baseline and `--sense-range 12` to try limited local perception. Signal-associated meals do not establish a causal benefit: the food may have become directly visible anyway. Run multiple seeds with communication on/off before drawing survival conclusions.
+
+The live inspector now shows remembered locations, their expiry, recent outcomes, and inherited signalling/response tendencies. Violet rings mark broadcasts; violet target lines mark remembered goals. **Food communication** and **sensory range** take effect with **Apply**, which restarts the same seed.
+
+Run the reproducible CPU comparison:
+
+```bash
+python3 social_experiment.py circuits/dng13.json --seeds 0,1,2,3,4 --ticks 2000 --sense-range 12 --out social-comparison.json
+```
+
+Initial five-seed means (Python; 2,000 ticks; range 12): communication off/on yielded 0/0.6 living agents, 9.4/9.6 births, and 39.6/33.8 plant meals. These mixed exploratory results do not establish a general survival benefit. The toggle changes signalling, memory, and remembered-target steering together; this is not an isolated test of information alone. See `docs/social-comparison.json` for settings, circuit hash and individual runs. Relationship learning and LLM cognition remain future work.

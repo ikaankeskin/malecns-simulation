@@ -55,7 +55,8 @@ These are simulation abstractions unless noted.
 
 ## Next after lineages
 
+Local food signalling and bounded location memory are now implemented, with inherited signalling/response tendencies, visible reports, remembered targets, and factual trip outcomes. `social_experiment.py` provides a paired-seed communication on/off baseline. Next social step: per-sender reliability learning; trust, alliances, and LLM cognition are not implemented yet.
+
 Scavenging and seasonal food cycles are implemented. Next: measure survival and lineage outcomes across seeds with ecology enabled/disabled, then add a non-LLM social baseline and optional predation. LLM cognition follows the social baseline.
 
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.
-

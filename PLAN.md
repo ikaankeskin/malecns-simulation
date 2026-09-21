@@ -95,3 +95,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Added communication on/off and sensory-range controls, violet broadcast rings, remembered-goal lines, per-agent memories and factual recent outcomes.
 - Live and replay views show report and arrival metrics; inherited signalling/response tendencies are visible in the live inspector.
 - Synthetic page wiring tests cover disabling/re-enabling communication alongside pause, step and restart. These checks do not establish browser layout or biological fidelity.
+
+### Communication ablation and release verification
+- Added `social_experiment.py` and a synthetic repeatability test; full suite: 52 passing tests.
+- Five seeds, 2,000 ticks, sensory range 12: communication off/on mean final alive 0/0.6, births 9.4/9.6, plant meals 39.6/33.8. Mixed exploratory results; no general benefit or causal attribution claim.
+- Browser verified the deployed social dashboard, advancing counters, memory/outcome readouts, communication toggle and step/restart controls. Captured visible violet food reports; no app-origin console error observed.
+- Next: bounded per-sender reliability learning, with explicit controls for messaging cost, memory and sensory-target policy before any LLM layer.
