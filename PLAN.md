@@ -23,6 +23,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 
 ## Status
 
+- [x] Live soil verification (2026-09-22): garden shortcut enabled soil; disabling it and applying showed unrestricted growth. At tick 1935, 31/87 occupied cells were below 20% fertility. P96's six samples showed recovery from 0% at tick 1356 to 38% at tick 1856, with 45% current fertility. Overlay and patch history verified visually; no app-origin browser error observed. Changed the nutrient dashboard label to “compost events” because soil mode replenishes cells rather than directly fertilizing one plant.
+
 - [x] Soil observatory and paired comparison: live/replay fertility overlay, mode toggle, occupied-cell fertility/depletion metrics, nutrient accounting and bounded garden soil history. Garden-world shortcut now enables soil mode. Five seeds at 2,000 ticks: soil off/on alive 45.6/10.2, births 83.8/40.4, garden harvests 439.6/59; planting stays on and both modes reach the garden cap. No migration claim. Full suite: 104 passing tests; CLI soil replay generated and scripts/payload parsed.
 
 - [x] Shared-soil engine: optional grid of cells up to 10 units wide, capacity 1, recovery 0.0008/tick, growing-stage cost 0.6 per crop, proportional same-cell allocation. Uneaten corpses return up to 0.3 to their cell, replacing the timer shortcut in this mode. Six fertility samples per patch; aggregate nutrient accounting and immutable replay snapshots. Disabled mode retains the prior ecosystem. Synthetic budget, fairness, recovery, compost, growth-completion and Python/JavaScript parity tests added.
