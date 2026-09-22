@@ -230,6 +230,7 @@ def main():
     eco.add_argument('--no-scavenging', dest='scavenging', action='store_false')
     eco.add_argument('--no-hazards', dest='hazards', action='store_false')
     eco.add_argument('--gifts', dest='gifts', action='store_true')
+    eco.add_argument('--reciprocity', action='store_true', help='Prefer previous helpers when choosing gift recipients')
     eco.add_argument('--predation', dest='predation', action='store_true')
     eco.add_argument('--no-lifetime-learning', dest='lifetime_learning', action='store_false')
     eco.add_argument('--season-length', type=int, default=400)
@@ -258,7 +259,7 @@ def main():
                               mutation_rate=a.mutation_rate, mutation_sigma=a.mutation_sigma,
                               record_every=a.record_every, seasons=a.seasons,
                               scavenging=a.scavenging, season_length=a.season_length,
-                              hazards=a.hazards, gifts=a.gifts, predation=a.predation,
+                              hazards=a.hazards, gifts=a.gifts, predation=a.predation, reciprocity=a.reciprocity,
                               lifetime_learning=a.lifetime_learning,
                               communication=a.communication, sense_range=a.sense_range,
                               social_learning=a.social_learning)

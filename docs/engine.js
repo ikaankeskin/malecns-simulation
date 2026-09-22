@@ -19,7 +19,7 @@
     corpse_ticks: 180,
     seasons: true, season_length: 400, scavenging: true,
     hazards: true, hazard_count: 3, hazard_radius: 3.5, hazard_drain: 0.02,
-    gifts: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
+    gifts: false, reciprocity: false, gift_amount: 0.15, gift_keep: 0.1, gift_range: 4, gift_cooldown: 80, gift_chance: 0.25, gift_follow: 100,
     predation: false, attack_range: 2, attack_cost: 0.08, attack_damage: 0.45, attack_cooldown: 40, attack_chance: 0.35, attack_floor: 0.5,
     frozen_genes: [], lifetime_learning: true,
     scavenge_below: 1.1, corpse_meal: 0.35, compost_radius: 5, compost_boost: 12,
@@ -183,7 +183,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -203,6 +203,7 @@
       scavenging: ui.scavenging == null ? true : ui.scavenging,
       hazards: ui.hazards == null ? true : ui.hazards,
       gifts: ui.gifts == null ? false : ui.gifts,
+      reciprocity: ui.reciprocity == null ? false : ui.reciprocity,
       predation: ui.predation == null ? false : ui.predation,
       lifetime_learning: ui.lifetime_learning == null ? true : ui.lifetime_learning,
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
@@ -533,6 +534,8 @@
   }
 
   function initGifts(agent) {
+    if (!agent.helpers) agent.helpers = [];
+    if (agent.returned_gifts == null) agent.returned_gifts = 0;
     if (agent.last_gift == null) agent.last_gift = -1e9;
     ['gifts_sent', 'gifts_received', 'gift_paid', 'gift_gained', 'gift_alive_later', 'gift_checks'].forEach((key) => {
       if (agent[key] == null) agent[key] = 0;
@@ -544,6 +547,19 @@
     const roll = ((agent.id + 1) * 137 + tick * 53 + 91) % 1009 / 1009;
     const scale = geneValue(agent, 'generosity') * 2 * actionScore(agent, 'gift', tick, rules);
     return roll < Math.min(1, rules.gift_chance * scale);
+  }
+
+  function helperView(agent, tick) {
+    return (agent.helpers || []).filter(r => tick - r.tick < 1200).map(r =>
+      Object.assign({}, r, {energy: r.energy * Math.pow(2, -Math.max(0, tick - r.tick) / 400)}));
+  }
+
+  function rememberHelper(agent, source, energy, tick) {
+    if (energy <= 0) return;
+    const prior = helperView(agent, tick).find(r => r.source === source);
+    const rows = (agent.helpers || []).filter(r => r.source !== source && tick - r.tick < 1200);
+    rows.push({source, energy: Math.min(4, (prior ? prior.energy : 0) + energy), tick});
+    agent.helpers = rows.sort((a, b) => a.tick - b.tick || a.source - b.source).slice(-8);
   }
 
   function exchangeGifts(agents, tick, rules, events) {
@@ -563,6 +579,7 @@
     });
     if (!rules.gifts) return 0;
     let sent = 0;
+    const evidence = new Map(agents.map(a => [a.id, new Map(helperView(a, tick).filter(r => r.tick < tick).map(r => [r.source, r.energy]))]));
     agents.filter((agent) => agent.alive).sort((a, b) => a.id - b.id).forEach((donor) => {
       if (tick - donor.last_gift < rules.gift_cooldown) return;
       if (donor.energy < rules.gift_amount + 0.2) return;
@@ -571,7 +588,9 @@
       if (!neighbours.length) return;
       donor.last_gift = tick;
       if (!giftWilling(donor, tick, rules)) return;
-      const recipient = neighbours.slice().sort((a, b) => Math.hypot(donor.x - a.x, donor.y - a.y) - Math.hypot(donor.x - b.x, donor.y - b.y) || a.id - b.id)[0];
+      const distance = other => Math.hypot(donor.x - other.x, donor.y - other.y) /
+        (1 + (rules.reciprocity ? 2 * Math.min(1, evidence.get(donor.id).get(other.id) || 0) : 0));
+      const recipient = neighbours.slice().sort((a, b) => distance(a) - distance(b) || a.id - b.id)[0];
       const gain = Math.max(0, Math.min(rules.energy_max - recipient.energy, rules.gift_keep));
       donor.energy -= rules.gift_amount;
       recipient.energy += gain;
@@ -579,11 +598,16 @@
       donor.gift_paid += rules.gift_amount;
       recipient.gifts_received += 1;
       recipient.gift_gained += gain;
+      const returned = (evidence.get(donor.id).get(recipient.id) || 0) > 0 && gain > 0;
+      donor.returned_gifts += Number(returned);
+      rememberHelper(recipient, donor.id, gain, tick);
       donor.gift_pending.push({
         tick: tick, recipient: recipient.id, check: tick + rules.gift_follow, energy: donor.energy,
       });
       sent += 1;
       events.push({ tick: tick, kind: 'gift', agent: donor.id, recipient: recipient.id,
+        paid: rules.gift_amount, gained: gain, returned_help: returned,
+        x: donor.x, y: donor.y, to_x: recipient.x, to_y: recipient.y,
         text: 'F' + donor.id + ' gave energy to F' + recipient.id });
     });
     return sent;
@@ -593,6 +617,7 @@
     agents.forEach(initGifts);
     return {
       sent: agents.reduce((sum, agent) => sum + agent.gifts_sent, 0),
+      returned_help: agents.reduce((sum, agent) => sum + agent.returned_gifts, 0),
       received: agents.reduce((sum, agent) => sum + agent.gifts_received, 0),
       energy_paid: agents.reduce((sum, agent) => sum + agent.gift_paid, 0),
       energy_gained: agents.reduce((sum, agent) => sum + agent.gift_gained, 0),
@@ -1011,7 +1036,7 @@
 
   root.MaleCNSEco = {
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
-    spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation,
+    spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation, helperView, rememberHelper,
     actionScore, learnAction, settleAttackLearning,
     lifespanOf, familyTree,
     DEFAULTS: DEFAULTS,

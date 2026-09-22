@@ -31,6 +31,7 @@ DEFAULTS = {
     'hazard_radius': 3.5,
     'hazard_drain': 0.02,
     'gifts': False,
+    'reciprocity': False,
     'gift_amount': 0.15,
     'gift_keep': 0.10,
     'gift_range': 4.0,
@@ -167,7 +168,7 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
@@ -913,6 +914,8 @@ def compete_hazard(agent, choice, hazards, rules):
 
 
 def init_gifts(agent):
+    agent.setdefault('helpers', [])
+    agent.setdefault('returned_gifts', 0)
     agent.setdefault('last_gift', -10 ** 9)
     agent.setdefault('gifts_sent', 0)
     agent.setdefault('gifts_received', 0)
@@ -927,6 +930,23 @@ def gift_willing(agent, tick, rules):
     roll = ((agent['id'] + 1) * 137 + tick * 53 + 91) % 1009 / 1009
     scale = gene_value(agent, 'generosity') * 2.0 * action_score(agent, 'gift', tick, rules)
     return roll < min(1.0, rules['gift_chance'] * scale)
+
+
+def helper_view(agent, tick):
+    """Read-only received-energy evidence: eight helpers, 400-tick half-life."""
+    return [dict(row, energy=row['energy'] * 2 ** (-max(0, tick - row['tick']) / 400))
+            for row in agent.get('helpers', []) if tick - row['tick'] < 1200]
+
+
+def remember_helper(agent, source, energy, tick):
+    if energy <= 0:
+        return
+    rows = helper_view(agent, tick)
+    prior = next((row['energy'] for row in rows if row['source'] == source), 0)
+    rows = [dict(row) for row in agent.get('helpers', [])
+            if row['source'] != source and tick - row['tick'] < 1200]
+    rows.append({'source': source, 'energy': min(4, prior + energy), 'tick': tick})
+    agent['helpers'] = sorted(rows, key=lambda row: (row['tick'], row['source']))[-8:]
 
 
 def exchange_gifts(agents, tick, rules, events):
@@ -949,6 +969,9 @@ def exchange_gifts(agents, tick, rules, events):
     if not rules['gifts']:
         return 0
     sent = 0
+    # Decisions only use help received before this tick; no instant payback bias.
+    evidence = {a['id']: {r['source']: r['energy'] for r in helper_view(a, tick)
+                          if r['tick'] < tick} for a in agents}
     for donor in sorted((agent for agent in agents if agent['alive']), key=lambda agent: agent['id']):
         if tick - donor['last_gift'] < rules['gift_cooldown']:
             continue
@@ -962,7 +985,8 @@ def exchange_gifts(agents, tick, rules, events):
         if not gift_willing(donor, tick, rules):
             continue
         recipient = min(neighbours, key=lambda other: (
-            math.hypot(donor['x'] - other['x'], donor['y'] - other['y']), other['id']))
+            math.hypot(donor['x'] - other['x'], donor['y'] - other['y']) /
+            (1 + (2 * min(1, evidence[donor['id']].get(other['id'], 0)) if rules['reciprocity'] else 0)), other['id']))
         gain = min(rules['energy_max'] - recipient['energy'], rules['gift_keep'])
         gain = max(0.0, gain)
         donor['energy'] -= rules['gift_amount']
@@ -971,12 +995,17 @@ def exchange_gifts(agents, tick, rules, events):
         donor['gift_paid'] += rules['gift_amount']
         recipient['gifts_received'] += 1
         recipient['gift_gained'] += gain
+        returned = evidence[donor['id']].get(recipient['id'], 0) > 0 and gain > 0
+        donor['returned_gifts'] += int(returned)
+        remember_helper(recipient, donor['id'], gain, tick)
         donor['gift_pending'].append({
             'tick': tick, 'recipient': recipient['id'], 'check': tick + rules['gift_follow'],
             'energy': donor['energy'],
         })
         sent += 1
         events.append({'tick': tick, 'kind': 'gift', 'agent': donor['id'], 'recipient': recipient['id'],
+                       'returned_help': returned, 'x': donor['x'], 'y': donor['y'],
+                       'to_x': recipient['x'], 'to_y': recipient['y'],
                        'paid': rules['gift_amount'], 'gained': round(gain, 6),
                        'text': f'F{donor["id"]} gave energy to F{recipient["id"]} ({rules["gift_amount"]:.2f} paid, {gain:.2f} received)'})
     return sent
@@ -987,6 +1016,7 @@ def gift_totals(agents):
         init_gifts(agent)
     return {
         'sent': sum(agent['gifts_sent'] for agent in agents),
+        'returned_help': sum(agent['returned_gifts'] for agent in agents),
         'received': sum(agent['gifts_received'] for agent in agents),
         'energy_paid': round(sum(agent['gift_paid'] for agent in agents), 6),
         'energy_gained': round(sum(agent['gift_gained'] for agent in agents), 6),
@@ -1210,6 +1240,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 row = snapshot_agent(agent, *motor_by_id.get(agent['id'], (0.0, 0.0, 0.0)))
                 row['life_span'] = lifespan_of(agent, rules)
                 row['relationships'] = social.relationship_view(agent, tick)
+                row['helpers'] = helper_view(agent, tick)
                 row['action_scores'] = action_view(agent, tick, rules)
                 row['action_history'] = copy.deepcopy(agent.get('action_history') or [])
                 frames.append(row)

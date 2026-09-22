@@ -46,7 +46,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'communication', 'social_learning', 'sense_range', 'signal_range', 'signal_ticks', 'signal_cooldown',
                            'signal_cost', 'memory_ticks', 'scavenging', 'scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost',
                            'hazards', 'hazard_count', 'hazard_radius', 'hazard_drain',
-                           'gifts', 'gift_amount', 'gift_keep', 'gift_range', 'gift_cooldown', 'gift_chance', 'gift_follow',
+                           'gifts', 'gift_amount', 'gift_keep', 'gift_range', 'gift_cooldown', 'gift_chance', 'gift_follow', 'reciprocity',
                            'predation', 'attack_range', 'attack_cost', 'attack_damage', 'attack_cooldown',
                            'attack_chance', 'attack_floor', 'lifetime_learning'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
