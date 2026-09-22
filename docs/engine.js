@@ -2,11 +2,13 @@
 (function (root) {
   const Social = root.MaleCNSSocial || (typeof require === 'function' ? (require('./social.js'), globalThis.MaleCNSSocial) : null);
   const Gardening = root.MaleCNSGardening || (typeof require === 'function' ? (require('./gardening.js'), globalThis.MaleCNSGardening) : null);
+  const Soil = root.MaleCNSSoil || (typeof require === 'function' ? (require('./soil.js'), globalThis.MaleCNSSoil) : null);
   const DEFAULTS = {
     agents: 8,
     patches: 8,
     map_half: 20,
     gardening: false,
+    soil_limits: false,
     energy_start: 1,
     energy_max: 2,
     base_drain: 0.0012,
@@ -185,7 +187,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -215,6 +217,7 @@
       patches: patches,
       map_half: half,
       gardening: ui.gardening == null ? false : ui.gardening,
+      soil_limits: ui.soil_limits == null ? false : ui.soil_limits,
       food_rate: food,
       aging_rate: aging,
       repro_rate: repro,
@@ -387,7 +390,8 @@
     return count;
   }
 
-  function compostCorpse(corpse, patches, tick, rules, events) {
+  function compostCorpse(corpse, patches, tick, rules, events, substrate = null) {
+    if (substrate) return Soil.compost(substrate, corpse, tick, events);
     const growing = patches.filter(p => ['seed','growing'].includes(p.stage) &&
       Math.hypot(p.x-corpse.x,p.y-corpse.y) <= rules.compost_radius);
     growing.sort((a,b) => Math.hypot(a.x-corpse.x,a.y-corpse.y)-Math.hypot(b.x-corpse.x,b.y-corpse.y) || a.id-b.id);
@@ -697,6 +701,7 @@
       agents: spawnAgents(rules.agents, rules.map_half * 0.85, rules.energy_start),
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
       hazards: spawnHazards(rules, seed),
+      soil: Soil.create(rules),
       circuits: [],
       events: [], signals: [],
       births: 0, scavenged: 0, composted: 0,
@@ -788,6 +793,7 @@
     const rules = world.rules;
     const decoder = world.decoder;
     const environment = seasonAt(world.tick, rules);
+    const growthRates = Soil.growthBudget(world.soil, world.patches, environment.growth, rules);
     if (rules.seasons && world.tick % rules.season_length === 0) {
       world.events.push({tick: world.tick, kind: 'season', text: environment.name+': plant growth ×'+environment.growth.toFixed(2)});
     }
@@ -831,7 +837,7 @@
     const taken = {};
     world.patches.forEach((patch) => {
       if (patch.stage !== 'mature') {
-        if (advancePatch(patch, rules, world.random, environment.growth) === 'food_mature') {
+        if (advancePatch(patch, rules, world.random, growthRates[patch.id] ?? environment.growth) === 'food_mature') {
           world.events.push({ tick: world.tick, kind: 'food_mature', text: 'patch ' + patch.id + ' matured' });
         }
         return;
@@ -885,12 +891,13 @@
     });
     world.agents.forEach((agent) => {
       if (agent.corpse_until != null && world.tick >= agent.corpse_until) {
-        world.composted += Number(compostCorpse(agent, world.patches, world.tick, rules, world.events));
+        world.composted += Number(compostCorpse(agent, world.patches, world.tick, rules, world.events, world.soil));
         world.events.push({ tick: world.tick, kind: 'corpse_decayed', text: 'F' + agent.id + ' corpse decayed' });
         agent.corpse_until = null;
       }
     });
     settleAttackLearning(world.agents, world.tick, rules);
+    Soil.observe(world.soil, world.patches, world.tick);
     const alive = world.agents.filter((agent) => agent.alive).length;
     world.peak = Math.max(world.peak, alive);
     if (world.tick % 4 === 0) {
@@ -939,6 +946,7 @@
       predation_deaths: world.agents.filter((agent) => agent.cause_of_death === 'predation').length,
       gifts: giftTotals(world.agents),
       gardens: Gardening.totals(world.patches),
+      soil: Soil.snapshot(world.soil, world.patches),
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null)

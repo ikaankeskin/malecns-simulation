@@ -4,12 +4,14 @@ import math
 import random
 import social
 import gardening
+import soil
 import copy
 from pathlib import Path
 from sim import Circuit, integrate_motion, nearest_point, sensory_drives, validate_decoder, validate_graph
 
 DEFAULTS = {
     'agents': 8,
+    'soil_limits': False,
     'patches': 8,
     'map_half': 20.0,
     'energy_start': 1.0,
@@ -170,7 +172,7 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
@@ -258,7 +260,9 @@ def scavenge_corpses(agents, tick, rules, events):
     return count
 
 
-def compost_corpse(corpse, patches, tick, rules, events):
+def compost_corpse(corpse, patches, tick, rules, events, substrate=None):
+    if substrate is not None:
+        return soil.compost(substrate, corpse, tick, events)
     growing = [p for p in patches if p['stage'] in ('seed', 'growing') and
                math.hypot(p['x']-corpse['x'], p['y']-corpse['y']) <= rules['compost_radius']]
     if not growing or rules['compost_boost'] <= 0:
@@ -1152,6 +1156,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     agents = spawn_agents(rules['agents'], rules['map_half'] * 0.85, rules['energy_start'])
     patches = spawn_patches(rules['patches'], rules['map_half'] * 0.4, rng, rules)
     hazards = spawn_hazards(rules, seed)
+    substrate = soil.create(rules)
     hazard_deaths = 0
     hazard_entries = 0
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
@@ -1165,6 +1170,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     scavenged = composted = 0
     for tick in range(ticks):
         environment = season_at(tick, rules)
+        growth_rates = soil.growth_budget(substrate, patches, environment['growth'], rules)
         if rules['seasons'] and tick % rules['season_length'] == 0:
             events.append({'tick': tick, 'kind': 'season', 'text': f'{environment["name"]}: plant growth ×{environment["growth"]:.2f}'})
         social.begin_tick(agents, patches, signals, tick, rules, events)
@@ -1190,7 +1196,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 events.append({'tick': tick, 'kind': 'ate', 'agent': eater['id'], 'patch': patch['id'],
                                'text': f'F{eater["id"]} ate patch {patch["id"]}'})
             else:
-                matured = advance_patch(patch, rules, rng, environment['growth'])
+                matured = advance_patch(patch, rules, rng, growth_rates.get(patch['id'], environment['growth']))
                 if matured:
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
@@ -1227,7 +1233,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             if agent['corpse_until'] is None:
                 continue
             if tick >= agent['corpse_until']:
-                composted += int(compost_corpse(agent, patches, tick, rules, events))
+                composted += int(compost_corpse(agent, patches, tick, rules, events, substrate))
                 events.append({'tick': tick, 'kind': 'corpse_decayed', 'agent': agent['id'],
                                'text': f'F{agent["id"]} corpse decayed'})
                 agent['corpse_until'] = None
@@ -1235,6 +1241,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 corpses.append({'id': agent['id'], 'x': round(agent['x'], 6), 'y': round(agent['y'], 6),
                                 'cause': agent['cause_of_death'], 'freshness': round(corpse_freshness(agent, tick, rules), 6)})
         settle_attack_learning(agents, tick, rules)
+        soil.observe(substrate, patches, tick)
         alive = [agent for agent in agents if agent['alive']]
         peak = max(peak, len(alive))
         means, stds = genome_stats(agents)
@@ -1256,6 +1263,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'agents': frames,
                 'patches': [snapshot_patch(patch) for patch in patches],
                 'gardens': gardening.totals(patches),
+                'soil': soil.snapshot(substrate, patches),
                 'corpses': corpses,
                 'alive': len(alive),
                 'born': births,
@@ -1281,6 +1289,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
         'mode': 'ecosystem',
         'rules': rules,
         'gardens': gardening.totals(patches),
+        'soil': soil.snapshot(substrate, patches),
         'events': events,
         'final': {
             'alive': sum(agent['alive'] for agent in agents),

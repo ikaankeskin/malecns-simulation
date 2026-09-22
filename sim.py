@@ -232,6 +232,7 @@ def main():
     eco.add_argument('--gifts', dest='gifts', action='store_true')
     eco.add_argument('--reciprocity', action='store_true', help='Prefer previous helpers when choosing gift recipients')
     eco.add_argument('--gardening', action='store_true', help='Carry seeds and plant persistent gardens')
+    eco.add_argument('--soil-limits', action='store_true', help='Shared nutrient budgets limit growth; soil recovers over time')
     eco.add_argument('--predation', dest='predation', action='store_true')
     eco.add_argument('--no-lifetime-learning', dest='lifetime_learning', action='store_false')
     eco.add_argument('--season-length', type=int, default=400)
@@ -261,7 +262,7 @@ def main():
                               record_every=a.record_every, seasons=a.seasons,
                               scavenging=a.scavenging, season_length=a.season_length,
                               hazards=a.hazards, gifts=a.gifts, predation=a.predation, reciprocity=a.reciprocity,
-                              lifetime_learning=a.lifetime_learning, gardening=a.gardening,
+                              lifetime_learning=a.lifetime_learning, gardening=a.gardening, soil_limits=a.soil_limits,
                               communication=a.communication, sense_range=a.sense_range,
                               social_learning=a.social_learning)
                 if a.max_age is not None:

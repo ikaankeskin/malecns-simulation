@@ -48,7 +48,7 @@ def ecosystem_document(path, ticks, seed, **kwargs):
                            'hazards', 'hazard_count', 'hazard_radius', 'hazard_drain',
                            'gifts', 'gift_amount', 'gift_keep', 'gift_range', 'gift_cooldown', 'gift_chance', 'gift_follow', 'reciprocity',
                            'predation', 'attack_range', 'attack_cost', 'attack_damage', 'attack_cooldown',
-                           'attack_chance', 'attack_floor', 'lifetime_learning', 'gardening'}}
+                           'attack_chance', 'attack_floor', 'lifetime_learning', 'gardening', 'soil_limits'}}
     result = simulate_ecosystem(path, ticks, seed, **decoder, **eco_keys)
     document = _document(path, graph, decoder, seed, result['ticks'])
     document.update({
