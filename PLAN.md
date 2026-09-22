@@ -23,6 +23,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 
 ## Status
 
+- [x] Persistent garden engine: one carried seed from a plant meal, 600-tick expiry, minimum 20-tick carry and 3-unit displacement, 2-unit patch spacing, 0.08 planting cost with 0.8 energy eligibility. At most 64 added gardens. Gardens retain their coordinates and ancestry through regrowth and planter death; bounded recent eaters plus descendant/posthumous meal counters. Python and browser implementations preserve the disabled baseline. Soil depletion remains a later phase.
+
 - [x] Live helper verification (2026-09-22): Pages deployment succeeded for `de8ab36`; both toggles applied, gifts transferred energy, and F1 displayed F2 as a past helper (0.088 remembered energy at tick 255 from a tick-183 gift). Preview captured. Software suite: 94 passing tests.
 
 - [x] Helper observatory and ablation: optional live control, animated transfer trails, per-agent helper evidence in live and replay inspectors, and five paired seeds with gifts held on. Preference off/on: births 7/7, meals 27.6/27.6, alive 0/0, gifts to remembered donors 5.4/6.0. No survival benefit in this sample. Validation: 94 tests pass, including cross-engine helper fixtures and executable page controls.

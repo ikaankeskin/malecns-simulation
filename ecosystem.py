@@ -3,6 +3,7 @@ import json
 import math
 import random
 import social
+import gardening
 import copy
 from pathlib import Path
 from sim import Circuit, integrate_motion, nearest_point, sensory_drives, validate_decoder, validate_graph
@@ -69,6 +70,7 @@ DEFAULTS = {
 }
 
 DEFAULTS.update(social.DEFAULTS)
+DEFAULTS.update(gardening.DEFAULTS)
 
 INT_KEYS = ('agents', 'patches', 'max_age', 'seed_ticks', 'grow_ticks', 'cooldown_ticks',
             'corpse_ticks', 'max_population', 'min_repro_age', 'repro_cooldown',
@@ -168,7 +170,7 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
@@ -365,7 +367,7 @@ def advance_patch(patch, rules, rng=None, growth=1.0):
         patch['stage'] = 'seed'
         patch['timer'] = rules['seed_ticks']
         patch['consumed_by'] = None
-        if rng is not None:
+        if rng is not None and patch.get('planter') is None:
             relocate_patch(patch, rng, rules)
     elif patch['stage'] == 'seed':
         patch['stage'] = 'growing'
@@ -708,6 +710,8 @@ def snapshot_agent(agent, left, right, speed):
         'intent': agent.get('intent', 'searching'),
         'target': copy.deepcopy(agent.get('target')),
         'memories': copy.deepcopy(agent.get('memories', [])),
+        'carried_seed': copy.deepcopy(agent.get('carried_seed')),
+        'planted': agent.get('planted', 0),
         'social_history': copy.deepcopy(agent.get('social_history', [])),
         'social': dict(agent.get('social', {})),
         'left_motor': round(left, 6),
@@ -718,6 +722,7 @@ def snapshot_agent(agent, left, right, speed):
 
 def snapshot_patch(patch):
     return {
+        **copy.deepcopy(patch),
         'id': patch['id'],
         'x': round(patch['x'], 6),
         'y': round(patch['y'], 6),
@@ -1175,6 +1180,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
             if patch['id'] in claimed:
                 eater = next(agent for agent in agents if agent['id'] == claimed[patch['id']])
                 eater['meal_position'] = {'x': patch['x'], 'y': patch['y']}
+                gardening.on_meal(eater, patch, agents, tick, rules)
                 eater['ate'] = True
                 eater['meals'] += 1
                 eater['energy'] = min(rules['energy_max'], eater['energy'] + rules['meal'] * patch['nutrition'])
@@ -1189,6 +1195,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                     events.append({'tick': tick, 'kind': 'food_mature', 'patch': patch['id'],
                                    'text': f'patch {patch["id"]} matured at ({patch["x"]:.1f},{patch["y"]:.1f})'})
         social.end_tick(agents, tick, rules, events)
+        gardening.plant_seeds(agents, patches, tick, rules, events)
         exchange_gifts(agents, tick, rules, events)
         resolve_predation(agents, patches, tick, rules, events)
         scavenged += scavenge_corpses(agents, tick, rules, events)
@@ -1248,6 +1255,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
                 'tick': tick,
                 'agents': frames,
                 'patches': [snapshot_patch(patch) for patch in patches],
+                'gardens': gardening.totals(patches),
                 'corpses': corpses,
                 'alive': len(alive),
                 'born': births,
@@ -1272,6 +1280,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     return {
         'mode': 'ecosystem',
         'rules': rules,
+        'gardens': gardening.totals(patches),
         'events': events,
         'final': {
             'alive': sum(agent['alive'] for agent in agents),

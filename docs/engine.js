@@ -1,10 +1,12 @@
 /* Live ecosystem engine. Dynamics are simulation abstractions; DNg13 topology is MaleCNS-derived. */
 (function (root) {
   const Social = root.MaleCNSSocial || (typeof require === 'function' ? (require('./social.js'), globalThis.MaleCNSSocial) : null);
+  const Gardening = root.MaleCNSGardening || (typeof require === 'function' ? (require('./gardening.js'), globalThis.MaleCNSGardening) : null);
   const DEFAULTS = {
     agents: 8,
     patches: 8,
     map_half: 20,
+    gardening: false,
     energy_start: 1,
     energy_max: 2,
     base_drain: 0.0012,
@@ -183,7 +185,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -194,7 +196,9 @@
     const aging = Math.max(0.2, Number(ui.aging_rate) || 1);
     const repro = Math.max(0, Number(ui.repro_rate) || 0);
     const agents = clamp(Math.round(Number(ui.agents) || 8), 2, 24);
-    const patches = clamp(Math.round(Number(ui.patches) || 6), 2, 12);
+    const half = ui.map_half == null ? 20 : ui.map_half;
+    if (!Number.isFinite(half) || half < 10 || half > 80) throw new Error('map_half must be 10–80');
+    const patches = clamp(Math.round(Number(ui.patches) || 6), 2, 192);
     return Object.assign({}, DEFAULTS, {
       communication: ui.communication == null ? true : ui.communication,
       social_learning: ui.social_learning == null ? true : ui.social_learning,
@@ -209,6 +213,8 @@
       season_length: ui.season_length == null ? DEFAULTS.season_length : ui.season_length,
       agents: agents,
       patches: patches,
+      map_half: half,
+      gardening: ui.gardening == null ? false : ui.gardening,
       food_rate: food,
       aging_rate: aging,
       repro_rate: repro,
@@ -330,7 +336,7 @@
       patch.stage = 'seed';
       patch.timer = rules.seed_ticks;
       patch.consumed_by = null;
-      if (random) relocatePatch(patch, random, rules);
+      if (random && patch.planter == null) relocatePatch(patch, random, rules);
     } else if (patch.stage === 'seed') {
       patch.stage = 'growing';
       patch.timer = rules.grow_ticks;
@@ -847,6 +853,7 @@
           text: 'F' + winner.id + ' beat ' + (contenders.length - 1) + ' rival(s) to patch ' + patch.id });
       }
       winner.meal_position = {x:patch.x,y:patch.y};
+      Gardening.onMeal(winner, patch, world.agents, world.tick, rules);
       winner.ate = true;
       winner.meals += 1;
       winner.energy = Math.min(rules.energy_max, winner.energy + rules.meal * patch.nutrition);
@@ -856,6 +863,7 @@
       world.events.push({ tick: world.tick, kind: 'ate', text: 'F' + winner.id + ' ate patch ' + patch.id });
     });
     Social.endTick(world.agents, world.tick, rules, world.events);
+    Gardening.plantSeeds(world.agents, world.patches, world.tick, rules, world.events);
     exchangeGifts(world.agents, world.tick, rules, world.events);
     resolvePredation(world.agents, world.patches, world.tick, rules, world.events);
     world.scavenged += scavengeCorpses(world.agents, world.tick, rules, world.events);
@@ -930,6 +938,7 @@
       hazard_deaths: world.agents.filter((agent) => agent.cause_of_death === 'hazard').length,
       predation_deaths: world.agents.filter((agent) => agent.cause_of_death === 'predation').length,
       gifts: giftTotals(world.agents),
+      gardens: Gardening.totals(world.patches),
       lineages: lineageTable(world.agents),
       living_by_gen: livingByGen(world.agents),
       corpses: world.agents.filter((agent) => !agent.alive && agent.corpse_until != null)

@@ -19,6 +19,7 @@ const sandbox = {console, document:{getElementById(id){assert.ok(elements.has(id
 sandbox.window=sandbox; sandbox.addEventListener=()=>{};
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync('docs/social.js','utf8'),sandbox);
+vm.runInContext(fs.readFileSync('docs/gardening.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/engine.js','utf8'),sandbox);
 const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
 vm.runInContext(script,sandbox);
