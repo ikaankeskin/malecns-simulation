@@ -2,6 +2,21 @@
 
 Long-term vision: evolve this repository from a small foraging experiment into an inspectable artificial-life ecosystem.
 
+## Game direction: become the riverkeeper
+
+The player shapes habitat while autonomous agents live with the consequences. The first implemented interaction is a finite watering reserve for gardens, with seasonal water, moisture inspection and slower playback. This is a sandbox, not yet a balanced game.
+
+Next priority is one complete, short mission: **survive the first drought**. Start paused, show a weather forecast, give a limited water budget, and test attainable targets for survivors and productive gardens. End with a clear result, a timeline of the player's interventions and an immediate same-seed retry. Compare against doing nothing to tune difficulty before fixing numerical targets.
+
+Then add choices that compete for the same resources:
+
+1. **Cisterns versus channels:** store rain for later or divert some river supply now. Each should have a build cost and a downstream consequence; unlimited water would erase the choice.
+2. **Living legacy:** pin and name a lineage or ancestral garden, receive a few meaningful event notifications, and take on optional rescue goals. Attachment should make losses and recoveries matter.
+3. **Wetlands and crossings:** create fertile floodplains with flood risk, then bridges or routes that make river geography affect movement. This requires explicit movement constraints and flood mechanics first.
+4. **Progression through scenarios:** unlock tools through distinct maps and objectives, with save/load and reproducible player-action logs before longer campaigns.
+
+Keep the neural inspector as an optional layer for curious players. The main screen should answer: what is threatened, what can I do, what will it cost, and did it help? More population counters alone will not provide that loop.
+
 Soil follow-on implemented: shared local nutrient limits, proportional growth allocation, slow recovery, corpse nutrient returns, fertility overlay and garden soil history. Controlled results: `docs/soil-comparison.json`. Migration remains an open experimental question; nutrient diffusion, calibration and explicit movement/occupancy metrics are not implemented.
 
 Latest extension: large maps and persistent gardens. Agents carry one seed, spend energy to plant, and leave food sources that can feed descendants after the planter dies. Patch history and an on/off comparison are implemented. The subsequent soil mode adds depletion and recovery; its replenishment still represents an external environmental input.

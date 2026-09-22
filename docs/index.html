@@ -76,6 +76,9 @@
       <label class="ctrl"><span>world size</span><select id="world-size"><option value="20">40 × 40 · original</option><option value="40">80 × 80 · 4× area</option><option value="80">160 × 160 · 16× area</option></select></label>
       <label class="ctrl"><span>seed carrying and planting</span><input id="gardening" type="checkbox"></label>
       <label class="ctrl"><span>soil limits and recovery</span><input id="soil-limits" type="checkbox"></label>
+      <label class="ctrl"><span>rivers and water (requires soil)</span><input id="water-enabled" type="checkbox"></label>
+      <label class="ctrl"><span>overlay</span><select id="overlay-mode"><option value="fertility">Soil fertility</option value="moisture">Soil moisture</option></select></label>
+      <label class="ctrl"><span>playback</span><select id="playback-speed"><option value="0.25">Slow · 8 ticks/s</option><option value="1">Normal · 32 ticks/s</option><option value="4" selected>Fast · 128 ticks/s</option></select></label>
       <label class="ctrl"><span>show soil fertility</span><input id="soil-overlay" type="checkbox" checked></label>
       <div class="meta">Soil limits take effect with Apply. Green soil is fertile; brown is depleted. Plants in the same cell share nutrients. Resting soil recovers; uneaten corpses replenish it.</div>
       <div class="meta">Larger maps scale starting food by area. Garden world starts 24 agents with hazards off. Planting costs energy; gardens regrow in place and can outlive their planters.</div>
@@ -146,6 +149,10 @@
       <h2>Gardens and inheritance</h2>
       <div id="garden-stats" class="meta">No gardens yet</div>
       <div id="soil-stats" class="meta">Soil limits off</div>
+      <h2>Riverkeeper · player experiment</h2>
+      <div id="water-stats" class="meta">Enable rivers and water, or start a garden world.</div>
+      <button id="water-garden" type="button" disabled>Water selected garden</button>
+      <div class="meta">Choose a planted garden. Spend up to 0.25 water on its soil cell; nearby plants share it. Your 3-unit reserve lasts the whole run. Pause to decide what to protect before drought. This is a sandbox prototype; scored missions come next.</div>
       <div id="seed-status" class="meta"></div>
       <div id="garden-list" style="display:flex;flex-wrap:wrap;gap:4px;max-height:156px;overflow:auto"></div>
       <div id="patch-history" class="meta" style="white-space:pre-line">Click a patch on the map or a garden below to inspect its history.</div>
@@ -230,6 +237,7 @@
         communication: document.getElementById('communication').checked,
         gardening: document.getElementById('gardening').checked,
         soil_limits: document.getElementById('soil-limits').checked,
+        water: document.getElementById('water-enabled').checked,
         map_half: Number(document.getElementById('world-size').value || 20),
         social_learning: document.getElementById('social-learning').checked,
         lifetime_learning: document.getElementById('lifetime-learning').checked,
@@ -360,10 +368,19 @@
           const x=-soil.half+(index%soil.n)*soil.size,y=-soil.half+Math.floor(index/soil.n)*soil.size;
           const a=worldToCanvas(x,y+soil.size,bounds),b=worldToCanvas(x+soil.size,y,bounds);
           ctx.fillStyle='rgb('+Math.round(112-60*fertility)+','+Math.round(63+65*fertility)+','+Math.round(40+30*fertility)+')';
+          if(soil.water && document.getElementById('overlay-mode').value==='moisture'){
+            const m=soil.water.moisture[index];ctx.fillStyle='rgb('+Math.round(112-80*m)+','+Math.round(63+65*m)+','+Math.round(40+155*m)+')';
+          }
           ctx.globalAlpha=.65;ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
         });ctx.globalAlpha=1;
       }
       ctx.strokeStyle = '#28303b';
+      if(snap.soil?.water){
+        const water=snap.soil.water;ctx.beginPath();
+        water.river.forEach((p,i)=>{const q=worldToCanvas(p.x,p.y,bounds);if(i===0)ctx.moveTo(q[0],q[1]);else ctx.lineTo(q[0],q[1]);});
+        ctx.strokeStyle='#63bce6';ctx.lineWidth=(.4+1.8*water.flow)*worldToCanvas(0,0,bounds)[2];ctx.stroke();
+        ctx.strokeStyle='#28303b';
+      }
       ctx.lineWidth = 1;
       for (let g = -half; g <= half; g += half > 40 ? 10 : 4) {
         const a = worldToCanvas(g, -half, bounds);
@@ -485,6 +502,9 @@
       document.getElementById('garden-list').innerHTML = snap.patches.filter(p=>p.planter!=null).map(p=>'<button type="button" data-patch="'+p.id+'">P'+p.id+' · F'+p.planter+'</button>').join('');
       Array.from(document.querySelectorAll('[data-patch]')).forEach(button=>button.onclick=()=>{selectedPatch=Number(button.getAttribute('data-patch'));draw();});
       const watchedPatch=snap.patches.find(p=>p.id===selectedPatch);
+      const water=snap.soil?.water;
+      document.getElementById('water-stats').textContent=water ? water.weather+' · river flow '+Math.round(water.flow*100)+'% · reserve '+water.reserve.toFixed(2)+'/3 · moisture '+(watchedPatch ? Math.round(100*watchedPatch.moisture)+'% at selected patch' : 'select a patch')+' · '+(world.rules.seasons ? (world.rules.season_length-snap.tick%world.rules.season_length)+' ticks until weather changes' : 'fixed weather') : 'Water off';
+      document.getElementById('water-garden').disabled=!(water && water.reserve>0 && watchedPatch?.planter!=null && watchedPatch.moisture<1);
       document.getElementById('patch-history').textContent = watchedPatch ? 'P'+watchedPatch.id+' · '+watchedPatch.stage+' · ('+watchedPatch.x.toFixed(1)+', '+watchedPatch.y.toFixed(1)+')\n'+
         (watchedPatch.planter == null ? 'Wild food · relocates after harvest' : 'Planted by F'+watchedPatch.planter+' (agent generation '+watchedPatch.planter_generation+') at t'+watchedPatch.planted_tick+'\nSeed from P'+watchedPatch.parent_patch+' · root P'+watchedPatch.root_patch+' · plant generation '+watchedPatch.plant_generation)+
         '\nHarvests '+(watchedPatch.harvests||0)+' · descendants '+(watchedPatch.descendant_meals||0)+' · after death '+(watchedPatch.posthumous_meals||0)+
@@ -571,11 +591,13 @@
       drawChart(snap.series);
     }
 
+    let stepCredit=0;
     function startLoop() {
       clearInterval(handle);
       handle = setInterval(() => {
         if (!playing || !world) return;
-        for (let n = 0; n < 4; n += 1) Eco.step(world);
+        stepCredit+=Number(document.getElementById('playback-speed').value || 4);
+        while(stepCredit>=1){Eco.step(world);stepCredit-=1;}
         draw();
       }, 1000 / 32);
     }
@@ -583,6 +605,8 @@
     function restart(nextSeed) {
       if (!graph) return;
       seed = nextSeed == null ? seed : nextSeed;
+      if(document.getElementById('water-enabled').checked)document.getElementById('soil-limits').checked=true;
+      stepCredit=0;
       world = Eco.createWorld(graph, ui(), seed);
       selected = 0;
       selectedPatch = null;
@@ -612,10 +636,16 @@
     document.getElementById('apply').onclick = () => restart(seed);
     document.getElementById('camera').onchange = draw;
     document.getElementById('soil-overlay').onchange = draw;
+    document.getElementById('overlay-mode').onchange = draw;
+    document.getElementById('water-garden').onclick = () => {if(world){Eco.waterGarden(world,selectedPatch);draw();}};
     document.getElementById('garden-world').onclick = () => {
       fields.preset.value='balanced'; applyPreset('balanced'); fields.agents.value='24';
       document.getElementById('world-size').value='80'; document.getElementById('gardening').checked=true;
       document.getElementById('soil-limits').checked=true;
+      document.getElementById('water-enabled').checked=true;
+      document.getElementById('overlay-mode').value='moisture';
+      document.getElementById('playback-speed').value='1';
+      document.getElementById('seasons').checked=true;
       document.getElementById('hazards').checked=false; document.getElementById('predation-enabled').checked=false;
       document.getElementById('camera').value='1'; selectedPatch=null;
       showUi(); restart(seed);

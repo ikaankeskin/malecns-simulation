@@ -5,6 +5,12 @@
 - Added `--water`, independent trace snapshots and a finite irrigation reserve for the upcoming player controls.
 - Validation: eight focused synthetic soil/water tests pass, including conservation, bounds, drought starvation, reserve exhaustion and cross-engine parity; live-page wiring smoke test passes. These are software checks, not biological validation.
 
+## Riverkeeper player prototype
+- Added visible rivers, fertility/moisture overlay selection, weather countdown, patch moisture, finite watering reserve, event logging and slow/normal/fast playback. Garden-world preset enables water and seasons. Reset restores the reserve.
+- Player watering affects a shared soil cell rather than granting an immediate meal. Wild patches cannot be watered through the player control. Replay shows the recorded river and water state without editable actions.
+- Validation: 107 synthetic software tests pass, including player-button reserve debit, event logging, slow playback and reset. Browser layout verification is tracked separately.
+- Next: tune and implement a first-drought mission with an explicit result and retry, before channels, cisterns or floods. See ROADMAP.md for gameplay priorities and README.md for controls and limitations.
+
 ## Goal
 Build an inspectable artificial-life simulation whose agents are controlled by circuits derived from the MaleCNS connectome. Start on CPU with a small, reproducible circuit; measure before moving to GPU or multiple agents.
 

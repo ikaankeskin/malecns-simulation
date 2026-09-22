@@ -134,6 +134,7 @@
         <div class="stat"><span>gift / attack outcome</span><strong id="eco-actions">50 / 50</strong></div>
         <h2>Garden history</h2><div id="eco-gardens" class="meta"></div>
         <label><input type="checkbox" id="eco-soil-overlay" checked> Soil fertility overlay</label><div id="eco-soil" class="meta"></div>
+        <div id="eco-water" class="meta"></div>
         <select id="eco-garden-picker" aria-label="Garden history"></select>
         <div id="eco-garden-history" class="meta" style="white-space:pre-line"></div>
         <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
@@ -502,6 +503,7 @@
 
       function drawEco(tick) {
         const soil=tick.soil;
+        document.getElementById('eco-water').textContent=soil?.water ? soil.water.weather+' · river flow '+Math.round(100*soil.water.flow)+'% · mean soil moisture '+Math.round(100*soil.water.moisture.reduce((a,b)=>a+b,0)/soil.water.moisture.length)+'% · recorded replay (no player actions)' : '';
         document.getElementById('eco-soil-overlay').onchange=draw;
         document.getElementById('eco-soil').textContent=soil ? Math.round(100*soil.occupied_mean)+'% mean fertility at food sites · '+soil.depleted_cells+' depleted cells. Green = fertile; brown = depleted.' : 'Soil limits off';
         if(soil && document.getElementById('eco-soil-overlay').checked){
@@ -514,6 +516,10 @@
         }
         selected = followSelection(tick.agents || [], selected);
         const [, , scale] = worldToCanvas(0, 0);
+        if(soil?.water){
+          ctx.beginPath();soil.water.river.forEach((p,i)=>{const q=worldToCanvas(p.x,p.y);if(i===0)ctx.moveTo(q[0],q[1]);else ctx.lineTo(q[0],q[1]);});
+          ctx.strokeStyle='#63bce6';ctx.lineWidth=(.4+1.8*soil.water.flow)*scale;ctx.stroke();
+        }
         tick.agents.forEach((agent) => {
           ctx.strokeStyle = flyColor(agent.id);
           ctx.globalAlpha = agent.id === selected ? 0.9 : 0.35;

@@ -2,7 +2,13 @@
 
 A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron graph, applies bounded continuous activity updates, maps sensory inputs and motor outputs, and records every tick. **This is an exploratory controller, not a biological reconstruction.** The included `demo.json` is synthetic. **`circuits/dng13.json` contains a verified MaleCNS v1.0 subgraph: 11 neurons and 32 connections.** With the default decoder it turns away from the pellet. Reversing the turn sign is an interface choice that produces collection; it is not evidence that this pathway encodes food. See [the first experiment](docs/DNG13_EXPERIMENT.md) and [the decoder report](docs/DNG13_DECODER.md).
 
-## Project plan
+## Play the riverkeeper prototype
+
+On the live page, choose **Start garden world**, then select a planted garden on the map or in the garden list. **Water selected garden** adds up to 0.25 moisture to its shared soil cell, spending from a 3-unit reserve for the entire run. Pause or slow playback to decide which gardens to protect. Reset restores the same seeded world and reserve. Player watering appears in the timeline; there is no score or win condition yet.
+
+Rivers wet nearby soil; rain, evaporation and conservative moisture diffusion change conditions across seasons. Drought reduces river supply and increases drying. Plants need both nutrients and moisture to regrow. Toggle the overlay between fertility and moisture. Water mode requires soil limits. Python runs support `--water` and record water state in replays.
+
+This is engineered ecology: rivers are water sources, not physical barriers; agents do not drink, swim or experience thirst yet. River flow is a seasonal supply multiplier, not simulated fluid velocity. Rain and rivers are external inputs, and initial mature plants are provisioned. Player actions currently last only for the active browser run; no save-game or action replay is implemented.
 
 See [PLAN.md](PLAN.md) for current status, [ROADMAP.md](ROADMAP.md) for the artificial-life sequence, and [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md) for the remaining work. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
 

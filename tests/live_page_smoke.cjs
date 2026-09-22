@@ -69,6 +69,20 @@ setImmediate(()=>{
   assert.equal(vm.runInContext('world.rules.gardening',sandbox),true);
   assert.equal(vm.runInContext('world.rules.soil_limits',sandbox),true);
   assert.equal(vm.runInContext('world.soil.cells.length',sandbox),256);
+  assert.equal(vm.runInContext('world.rules.water',sandbox),true);
+  assert.equal(elements.get('water-garden').disabled,true);
+  // Synthetic planted patch: exercise the actual player button and shared cell debit.
+  vm.runInContext('world.patches[0].planter=0; selectedPatch=world.patches[0].id; draw()',sandbox);
+  assert.equal(elements.get('water-garden').disabled,false);
+  const reserve=vm.runInContext('world.soil.water.reserve',sandbox);
+  elements.get('water-garden').onclick();
+  assert.ok(vm.runInContext('world.soil.water.reserve',sandbox)<reserve);
+  assert.equal(vm.runInContext('world.events.at(-1).kind',sandbox),'irrigated');
+  assert.equal(vm.runInContext('Eco.waterGarden(world,999999)',sandbox),0);
+  elements.get('playback-speed').value='0.25';
+  const tickBefore=vm.runInContext('world.tick',sandbox);
+  for(let i=0;i<4;i++)interval();
+  assert.equal(vm.runInContext('world.tick',sandbox),tickBefore+1);
   elements.get('soil-overlay').checked=false;elements.get('soil-overlay').onchange();
   assert.match(elements.get('soil-stats').textContent,/fertility/);
   elements.get('camera').value='4';elements.get('camera').onchange();
@@ -77,4 +91,5 @@ setImmediate(()=>{
   assert.match(elements.get('garden-stats').textContent,/gardens/);
   elements.get('reset').onclick();
   assert.equal(vm.runInContext('selectedPatch',sandbox),null);
+  assert.equal(vm.runInContext('world.soil.water.reserve',sandbox),3);
 });

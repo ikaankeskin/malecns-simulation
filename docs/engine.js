@@ -714,6 +714,7 @@
       random: random,
     };
     for (let i = 0; i < world.agents.length; i += 1) world.circuits.push(new Circuit(graph));
+    Soil.observe(world.soil,world.patches,0);
     return world;
   }
 
@@ -1053,7 +1054,21 @@
     return { focus: focus, depth: maxDepth, omitted: Object.keys(omitted).length, nodes: nodes };
   }
 
+  function waterGarden(world, id) {
+    const patch=world.patches.find(p=>p.id===id && p.planter!=null);
+    if(!patch || !world.soil?.water)return 0;
+    const cell=Soil.cellIndex(world.soil,patch.x,patch.y);
+    const amount=root.MaleCNSWater.irrigate(world.soil,cell);
+    if(amount>0){
+      world.events.push({tick:world.tick,kind:'irrigated',patch:id,cell,water:amount,
+        text:'Player watered garden P'+id+' soil cell '+cell+' with '+amount.toFixed(2)+' water'});
+      world.events=world.events.slice(-80);Soil.observe(world.soil,world.patches,world.tick);
+    }
+    return amount;
+  }
+
   root.MaleCNSEco = {
+    waterGarden,
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
     spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation, helperView, rememberHelper,
     actionScore, learnAction, settleAttackLearning,
