@@ -23,6 +23,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 
 ## Status
 
+- [x] Large-world garden observatory: 40/80/160-unit square worlds; starting food scales by area up to 192; one-click 24-agent garden setup; 2×/4× follow camera; carried-seed marks, persistent garden outlines, clickable patch history and replay garden inspector. Five seeds at 2,000 ticks: planting off/on alive 13.4/45.6, births 45.4/83.8, meals 241.2/618.2. On runs all reached the 64-garden cap; mean descendant/posthumous meals 244.4/195.2 (overlapping counters). Validation: 99 tests, CLI playback generation, paired-run repeatability, and a 2,000-tick browser-engine smoke run. Soil depletion and resource-limited garden growth remain future work.
+
 - [x] Persistent garden engine: one carried seed from a plant meal, 600-tick expiry, minimum 20-tick carry and 3-unit displacement, 2-unit patch spacing, 0.08 planting cost with 0.8 energy eligibility. At most 64 added gardens. Gardens retain their coordinates and ancestry through regrowth and planter death; bounded recent eaters plus descendant/posthumous meal counters. Python and browser implementations preserve the disabled baseline. Soil depletion remains a later phase.
 
 - [x] Live helper verification (2026-09-22): Pages deployment succeeded for `de8ab36`; both toggles applied, gifts transferred energy, and F1 displayed F2 as a past helper (0.088 remembered energy at tick 255 from a tick-183 gift). Preview captured. Software suite: 94 passing tests.

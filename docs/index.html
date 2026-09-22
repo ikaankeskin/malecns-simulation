@@ -72,6 +72,11 @@
     <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
     <aside>
       <h2>Rules</h2>
+      <button id="garden-world" type="button">Start garden world · 16× area</button>
+      <label class="ctrl"><span>world size</span><select id="world-size"><option value="20">40 × 40 · original</option><option value="40">80 × 80 · 4× area</option><option value="80">160 × 160 · 16× area</option></select></label>
+      <label class="ctrl"><span>seed carrying and planting</span><input id="gardening" type="checkbox"></label>
+      <div class="meta">Larger maps scale starting food by area. Garden world starts 24 agents with hazards off. Planting costs energy; gardens regrow in place and can outlive their planters.</div>
+      <label class="ctrl"><span>camera</span><select id="camera"><option value="1">Whole world</option><option value="2">Follow selection · 2×</option><option value="4">Follow selection · 4×</option></select></label>
       <label class="ctrl"><span>preset</span>
         <select id="preset" aria-label="Rule preset">
           <option value="balanced">balanced</option>
@@ -136,6 +141,12 @@
       <div class="meta">Mint trails show donor → recipient. Memory fades by half every 400 ticks and expires after 1,200. These records are separate from sender usefulness and are not inherited.</div>
       <div class="meta">Rose rings show corpse freshness. Uneaten remains can fertilize nearby growing plants. Apply restarts with the chosen rules and same seed.</div>
       <h2>World</h2>
+      <h2>Gardens and inheritance</h2>
+      <div id="garden-stats" class="meta">No gardens yet</div>
+      <div id="seed-status" class="meta"></div>
+      <div id="garden-list" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+      <div id="patch-history" class="meta" style="white-space:pre-line">Click a patch on the map or a garden below to inspect its history.</div>
+      <div class="meta">Green outlines mark persistent gardens. Small green dots beside agents mark carried seeds. Descendant meals use parent links; meals after a planter dies may feed anyone.</div>
       <div class="row"><span>tick</span><strong id="tick">0</strong></div>
       <div class="row"><span>alive</span><strong id="alive">0</strong></div>
       <div class="row"><span>born</span><strong id="born">0</strong></div>
@@ -206,10 +217,13 @@
       preset: document.getElementById('preset'),
     };
     let graph = null, world = null, selected = 0, playing = true, handle = null, seed = 4;
+    let selectedPatch = null, cameraBounds = null;
 
     function ui() {
       return {
         communication: document.getElementById('communication').checked,
+        gardening: document.getElementById('gardening').checked,
+        map_half: Number(document.getElementById('world-size').value || 20),
         social_learning: document.getElementById('social-learning').checked,
         lifetime_learning: document.getElementById('lifetime-learning').checked,
         sense_range: Number(document.getElementById('sense-range').value),
@@ -225,7 +239,7 @@
         aging_rate: Number(fields.aging.value),
         repro_rate: Number(fields.repro.value),
         mutation_rate: Number(fields.mutation.value),
-        patches: (Eco.PRESETS[fields.preset.value] || Eco.PRESETS.balanced).patches,
+        patches: Math.min(192, (Eco.PRESETS[fields.preset.value] || Eco.PRESETS.balanced).patches * Math.pow(Number(document.getElementById('world-size').value || 20) / 20, 2)),
       };
     }
 
@@ -242,7 +256,7 @@
     function worldToCanvas(x, y, bounds) {
       const w = canvas.width, h = canvas.height, m = 28;
       const scale = Math.min((w - 2 * m) / (bounds.max - bounds.min), (h - 2 * m) / (bounds.max - bounds.min));
-      return [m + (x - bounds.min) * scale, h - m - (y - bounds.min) * scale, scale];
+      return [m + (x - (bounds.cx || 0) - bounds.min) * scale, h - m - (y - (bounds.cy || 0) - bounds.min) * scale, scale];
     }
 
     function triangle(x, y, heading, fill, faded) {
@@ -324,18 +338,23 @@
       const snap = Eco.snapshot(world);
       selected = followSelection(snap.agents || [], selected);
       const half = world.rules.map_half;
-      const bounds = { min: -half - 1, max: half + 1 };
+      const zoom = Number(document.getElementById('camera').value || 1);
+      const focus = snap.patches.find(p => p.id === selectedPatch) || snap.agents.find(a => a.id === selected);
+      const span = half / zoom;
+      const bounds = {min:-span-1,max:span+1,cx:zoom>1 && focus ? Math.max(-half+span,Math.min(half-span,focus.x)) : 0,
+        cy:zoom>1 && focus ? Math.max(-half+span,Math.min(half-span,focus.y)) : 0};
+      cameraBounds = bounds;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = ['#101f1c', '#141e22', '#251c17', '#151c29'][snap.environment.index] || '#111722';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.strokeStyle = '#28303b';
       ctx.lineWidth = 1;
-      for (let g = Math.floor(bounds.min); g <= bounds.max; g += 2) {
-        const a = worldToCanvas(g, bounds.min, bounds);
-        const b = worldToCanvas(g, bounds.max, bounds);
+      for (let g = -half; g <= half; g += half > 40 ? 10 : 4) {
+        const a = worldToCanvas(g, -half, bounds);
+        const b = worldToCanvas(g, half, bounds);
         ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-        const c = worldToCanvas(bounds.min, g, bounds);
-        const d = worldToCanvas(bounds.max, g, bounds);
+        const c = worldToCanvas(-half, g, bounds);
+        const d = worldToCanvas(half, g, bounds);
         ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
       }
       (snap.hazards || []).forEach((disc) => {
@@ -376,6 +395,11 @@
         if (patch.stage === 'mature') { ctx.shadowColor = '#e6c15a'; ctx.shadowBlur = 12; }
         ctx.beginPath(); ctx.arc(p[0], p[1], style[1], 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        if (patch.planter != null || patch.id === selectedPatch) {
+          ctx.strokeStyle = patch.id === selectedPatch ? '#ffffff' : '#80ef98'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(p[0],p[1],style[1]+3,0,2*Math.PI); ctx.stroke();
+          ctx.fillStyle='#80ef98'; ctx.font='10px sans-serif'; ctx.fillText('P'+patch.id,p[0]+9,p[1]+12);
+        }
       });
       snap.corpses.forEach((corpse) => {
         const p = worldToCanvas(corpse.x, corpse.y, bounds);
@@ -402,6 +426,7 @@
         if (!show) return;
         const p = worldToCanvas(agent.x, agent.y, bounds);
         triangle(p[0], p[1], agent.heading, color(agent.id), !agent.alive);
+        if (agent.alive && agent.carried_seed) {ctx.fillStyle='#80ef98';ctx.beginPath();ctx.arc(p[0]-9,p[1]-8,3,0,Math.PI*2);ctx.fill();}
         ctx.fillStyle = '#ece7dc';
         ctx.font = '11px sans-serif';
         ctx.fillText('F' + agent.id, p[0] + 8, p[1] - 8);
@@ -438,6 +463,15 @@
       document.getElementById('gift-totals').textContent = (gifts.energy_paid || 0).toFixed(2) + ' / ' + (gifts.energy_gained || 0).toFixed(2);
       document.getElementById('returned-gifts').textContent = gifts.returned_help || 0;
       document.getElementById('seed-val').textContent = seed;
+      const gardens = snap.gardens;
+      document.getElementById('garden-stats').textContent = gardens.planted + '/64 gardens · ' + gardens.harvests + ' garden meals · ' + gardens.descendant_meals + ' descendant meals · ' + gardens.posthumous_meals + ' meals after planter death';
+      document.getElementById('garden-list').innerHTML = snap.patches.filter(p=>p.planter!=null).map(p=>'<button type="button" data-patch="'+p.id+'">P'+p.id+' · F'+p.planter+'</button>').join('');
+      Array.from(document.querySelectorAll('[data-patch]')).forEach(button=>button.onclick=()=>{selectedPatch=Number(button.getAttribute('data-patch'));draw();});
+      const watchedPatch=snap.patches.find(p=>p.id===selectedPatch);
+      document.getElementById('patch-history').textContent = watchedPatch ? 'P'+watchedPatch.id+' · '+watchedPatch.stage+' · ('+watchedPatch.x.toFixed(1)+', '+watchedPatch.y.toFixed(1)+')\n'+
+        (watchedPatch.planter == null ? 'Wild food · relocates after harvest' : 'Planted by F'+watchedPatch.planter+' (agent generation '+watchedPatch.planter_generation+') at t'+watchedPatch.planted_tick+'\nSeed from P'+watchedPatch.parent_patch+' · root P'+watchedPatch.root_patch+' · plant generation '+watchedPatch.plant_generation)+
+        '\nHarvests '+(watchedPatch.harvests||0)+' · descendants '+(watchedPatch.descendant_meals||0)+' · after death '+(watchedPatch.posthumous_meals||0)+
+        '\nRecent eaters: '+((watchedPatch.recent_eaters||[]).map(e=>'F'+e.agent+' at t'+e.tick).join(', ')||'none') : 'Click a patch on the map or choose a garden to inspect its history.';
       const rules = world.rules;
       document.getElementById('rule-readout').textContent =
         'max age ' + rules.max_age + ' · grow ' + rules.grow_ticks + ' ticks · cooldown ' +
@@ -452,9 +486,10 @@
           '</button>';
       }).join('');
       Array.from(document.querySelectorAll('#board [data-fly]')).forEach((button) => {
-        button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
+        button.onclick = () => { selected = Number(button.getAttribute('data-fly')); selectedPatch=null; draw(); };
       });
       const sel = snap.agents.find((agent) => agent.id === selected) || snap.agents[0];
+      document.getElementById('seed-status').textContent = sel ? 'F'+sel.id+' · planted '+(sel.planted||0)+' · '+(sel.alive && sel.carried_seed ? 'carrying seed from P'+sel.carried_seed.source_patch+' ('+Math.max(0,sel.carried_seed.until-snap.tick)+' ticks left)' : 'no carried seed') : '';
       document.getElementById('sel-helpers').textContent = sel ? Eco.helperView(sel, snap.tick).map(r =>
         'F' + r.source + ' · remembered energy ' + r.energy.toFixed(3) + ' · last gift t' + r.tick).join('\n') || 'No recent energy received' : 'No selected agent';
       if (sel) {
@@ -532,6 +567,7 @@
       seed = nextSeed == null ? seed : nextSeed;
       world = Eco.createWorld(graph, ui(), seed);
       selected = 0;
+      selectedPatch = null;
       draw();
     }
 
@@ -556,6 +592,20 @@
       restart(seed);
     });
     document.getElementById('apply').onclick = () => restart(seed);
+    document.getElementById('camera').onchange = draw;
+    document.getElementById('garden-world').onclick = () => {
+      fields.preset.value='balanced'; applyPreset('balanced'); fields.agents.value='24';
+      document.getElementById('world-size').value='80'; document.getElementById('gardening').checked=true;
+      document.getElementById('hazards').checked=false; document.getElementById('predation-enabled').checked=false;
+      document.getElementById('camera').value='1'; selectedPatch=null;
+      showUi(); restart(seed);
+    };
+    canvas.onclick = event => {
+      if (!world || !cameraBounds) return;
+      const rect=canvas.getBoundingClientRect(), x=(event.clientX-rect.left)*canvas.width/rect.width, y=(event.clientY-rect.top)*canvas.height/rect.height;
+      const candidates=world.patches.map(p=>{const q=worldToCanvas(p.x,p.y,cameraBounds);return {p,d:Math.hypot(q[0]-x,q[1]-y)};}).filter(row=>row.d<14).sort((a,b)=>a.d-b.d);
+      if(candidates.length){selectedPatch=candidates[0].p.id;draw();}
+    };
     document.getElementById('reset').onclick = () => restart(seed);
     document.getElementById('randomize').onclick = () => {
       const pick = Eco.randomize();

@@ -132,6 +132,9 @@
         <div class="stat"><span>fertility</span><strong id="eco-fert">1</strong></div>
         <div class="stat"><span>caution / generosity / aggression</span><strong id="eco-personality">1.00 / 1.00 / 1.00</strong></div>
         <div class="stat"><span>gift / attack outcome</span><strong id="eco-actions">50 / 50</strong></div>
+        <h2>Garden history</h2><div id="eco-gardens" class="meta"></div>
+        <select id="eco-garden-picker" aria-label="Garden history"></select>
+        <div id="eco-garden-history" class="meta" style="white-space:pre-line"></div>
         <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
         <div class="stat"><span>lineage</span><strong id="eco-line">F0</strong></div>
         <h2>Family</h2>
@@ -526,6 +529,19 @@
           ctx.fillStyle = '#c45c2a33'; ctx.fill(); ctx.strokeStyle = '#e07a45'; ctx.stroke();
         });
         drawPatches(tick.patches || [], scale);
+        (tick.patches || []).filter(p=>p.planter!=null).forEach(p=>{
+          const [x,y]=worldToCanvas(p.x,p.y);ctx.strokeStyle='#80ef98';ctx.lineWidth=2;
+          ctx.beginPath();ctx.arc(x,y,10,0,2*Math.PI);ctx.stroke();
+        });
+        const gardens=(tick.patches || []).filter(p=>p.planter!=null);
+        const gardenTotals=tick.gardens || {};
+        document.getElementById('eco-gardens').textContent= gardens.length+' gardens · '+(gardenTotals.harvests||0)+' meals · '+(gardenTotals.descendant_meals||0)+' descendant meals · '+(gardenTotals.posthumous_meals||0)+' meals after planter death';
+        const picker=document.getElementById('eco-garden-picker'), prior=picker.value;
+        picker.innerHTML=gardens.map(p=>'<option value="'+p.id+'">P'+p.id+' · F'+p.planter+'</option>').join('');
+        if(gardens.some(p=>String(p.id)===prior))picker.value=prior;
+        picker.onchange=draw;
+        const garden=gardens.find(p=>String(p.id)===picker.value);
+        document.getElementById('eco-garden-history').textContent=garden ? 'Planted by F'+garden.planter+' at t'+garden.planted_tick+' · seed from P'+garden.parent_patch+' · root P'+garden.root_patch+' · plant generation '+garden.plant_generation+'\nHarvests '+garden.harvests+' · descendant meals '+garden.descendant_meals+'\nRecent eaters: '+garden.recent_eaters.map(e=>'F'+e.agent+' at t'+e.tick).join(', ') : 'No gardens in this frame';
         (tick.corpses || []).forEach((corpse) => {
           const [x, y] = worldToCanvas(corpse.x, corpse.y);
           ctx.fillStyle = '#e6a0b5';

@@ -102,7 +102,22 @@ DNg13 is shown in [Janelia's visual-to-movement example](https://male-cns.janeli
 
 The current controller is a toy continuous-activity model. The default weights stay positive: no spikes, physiological calibration, or plasticity. A separate held-out comparison can apply aggregate transmitter signs without changing the live ecosystem. Wiring plus a tuned decoder can collect synthetic food in this world; that does not establish biological food-seeking. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
 
-## Remembering help received
+## Larger worlds and ancestral gardens
+
+In the [live app](https://ikaankeskin.github.io/malecns-simulation/), click **Start garden world · 16× area**. This sets a 160 × 160 map, 24 agents, 96 starting patches, planting on and hazards/predation off; other controls stay as selected. The original balanced map is 40 × 40 with six patches. Map choices scale initial food by area (capped at 192); sense range, movement speed and energy costs are unchanged. Choose **Follow selection · 2× / 4×** to inspect agents or a garden. Click patches on the map or garden buttons for their histories.
+
+```bash
+python3 sim.py ecosystem circuits/dng13.json --gardening --map 80 --patches 96 --agents 24 --no-hazards --turn-sign -1 --turn-gain 1 --ticks 2000 --out view.html
+python3 garden_experiment.py circuits/dng13.json --out garden-comparison.json
+```
+
+Eating a plant acquires one seed if the agent has none. After at least 20 ticks and three units of displacement from pickup, an agent with at least 0.8 energy plants at its current position, paying 0.08. Sites must be two units from every other patch. Seeds expire after 600 ticks and are not passed to offspring. Planting is an engineered automatic action; the existing MaleCNS-derived circuit still determines movement. No planting reward is awarded.
+
+At most 64 gardens are added. They use the existing seasonal growth/cooldown cycle and corpse composting, but regrow **in place**; original wild patches still relocate. Gardens retain planter ID, planting tick, seed-parent/root patch, plant generation, harvest totals and six recent eaters. Descendant meals follow recorded parent links, excluding the planter itself. Posthumous meals count anyone eating after the planter dies; these counters can overlap. Green outlines mark gardens and green dots mark carried seeds. Replay also includes garden history.
+
+Five-seed, 2,000-tick large-world comparison, planting off/on: final alive **13.4/45.6**, births **45.4/83.8**, plant meals **241.2/618.2**. With planting on, mean garden meals were **439.6**, including **244.4 descendant meals** and **195.2 meals after planter death**. All runs reached the 64-garden cap. See [full settings and rows](docs/garden-comparison.json). This is an exploratory comparison of the complete planting mechanism, not proof of cooperation or biological behaviour. Added food draws on an implicit environmental supply; soil depletion and a closed nutrient budget are not implemented yet.
+
+## Helper memory
 
 Enable **energy gifts** and **prefer past helpers**, then **Apply** in the live app. Mint trails show donor → recipient; the selected agent's helper panel shows received-energy memory. Python: `python3 sim.py ecosystem circuits/dng13.json --gifts --reciprocity --turn-sign -1 --turn-gain 1 --out view.html`.
 

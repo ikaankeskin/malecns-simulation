@@ -60,4 +60,15 @@ setImmediate(()=>{
   for(let i=0;i<151;i++) interval();
   assert.match(elements.get('season-banner').textContent,/Recovery/);
   console.log('Live page wiring, pause, step, restart and ecology toggles passed.');
+  elements.get('garden-world').onclick();
+  assert.equal(vm.runInContext('world.rules.map_half',sandbox),80);
+  assert.equal(vm.runInContext('world.patches.length',sandbox),96);
+  assert.equal(vm.runInContext('world.agents.length',sandbox),24);
+  assert.equal(vm.runInContext('world.rules.gardening',sandbox),true);
+  elements.get('camera').value='4';elements.get('camera').onchange();
+  assert.equal(vm.runInContext('cameraBounds.max-cameraBounds.min',sandbox),42);
+  elements.get('step').onclick();
+  assert.match(elements.get('garden-stats').textContent,/gardens/);
+  elements.get('reset').onclick();
+  assert.equal(vm.runInContext('selectedPatch',sandbox),null);
 });
