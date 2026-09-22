@@ -8,6 +8,14 @@ from ecosystem import exchange_gifts, helper_view, remember_helper, rules_from
 
 
 class ReciprocityTests(unittest.TestCase):
+    def test_comparison_repeatability(self):
+        from reciprocity_experiment import compare
+        graph = Path(__file__).resolve().parents[1] / 'demo.json'
+        first = compare(graph, [0], ticks=8)
+        self.assertEqual(first, compare(graph, [0], ticks=8))
+        self.assertEqual([r['reciprocity'] for r in first['rows']], [False, True])
+        self.assertTrue(first['rules']['gifts'])
+
     def test_memory_decay_capacity_and_read_only_view(self):
         agent = {}
         remember_helper(agent, 1, 0, 0)

@@ -553,7 +553,7 @@
         document.getElementById('eco-hazards').textContent = tick.hazard_deaths || 0;
         document.getElementById('eco-predation').textContent = tick.predation || 0;
         const gifts = tick.gifts || {};
-        document.getElementById('eco-gifts').textContent = (gifts.sent || 0) + ' / ' + Number(gifts.energy_gained || 0).toFixed(2);
+        document.getElementById('eco-gifts').textContent = Number(gifts.energy_paid || 0).toFixed(2) + ' / ' + Number(gifts.energy_gained || 0).toFixed(2);
         document.getElementById('eco-tick').textContent = tick.tick;
         document.getElementById('eco-alive').textContent = tick.alive;
         document.getElementById('eco-born').textContent = tick.born || 0;
@@ -587,6 +587,9 @@
         document.getElementById('eco-life').textContent = Number(genome.lifespan || 1).toFixed(2);
         document.getElementById('eco-fert').textContent = Number(genome.fertility || 1).toFixed(2);
         document.getElementById('eco-personality').textContent = Number(genome.caution ?? 1).toFixed(2) + ' / ' + Number(genome.generosity ?? 1).toFixed(2) + ' / ' + Number(genome.aggression ?? 1).toFixed(2);
+        const helpers = sel.helpers || [];
+        document.getElementById('eco-memory').textContent += '\nPast helpers: ' + (helpers.map(r =>
+          'F' + r.source + ' (' + r.energy.toFixed(3) + ' remembered energy)').join(', ') || 'none');
         const actionScores = sel.action_scores || [];
         document.getElementById('eco-actions').textContent = actionScores.length
           ? actionScores.map((row) => Math.round(row.score * 100)).join(' / ')

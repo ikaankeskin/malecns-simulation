@@ -68,4 +68,6 @@ Signalling, bounded location memory, and per-sender usefulness are implemented. 
 
 Alliances and LLM cognition stay out of that plan. Learned usefulness is not honesty or friendship.
 
+Follow-on implemented: memory of received energy and optional preference for past helpers, with visible transfers and a paired recipient-policy comparison (`docs/reciprocity-comparison.json`). This adds individual relationship history, not alliances or an LLM.
+
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.

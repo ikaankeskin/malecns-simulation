@@ -23,6 +23,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 
 ## Status
 
+- [x] Helper observatory and ablation: optional live control, animated transfer trails, per-agent helper evidence in live and replay inspectors, and five paired seeds with gifts held on. Preference off/on: births 7/7, meals 27.6/27.6, alive 0/0, gifts to remembered donors 5.4/6.0. No survival benefit in this sample. Validation: 94 tests pass, including cross-engine helper fixtures and executable page controls.
+
 - [x] Helper memory engine: received energy per giver, eight records, 400-tick half-life and 1,200-tick expiry. Optional reciprocity biases recipient distance; gifts and reciprocity remain off by default. Same-tick gifts do not count as prior help. Python/JavaScript synthetic parity and energy-loss checks included. This extends the existing gifts and generosity without changing circuit topology or the default trajectories.
 
 - [x] Synthetic baseline: 6 nodes, 4 edges, deterministic foraging loop and JSON traces.

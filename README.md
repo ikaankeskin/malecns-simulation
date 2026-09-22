@@ -104,6 +104,14 @@ The current controller is a toy continuous-activity model. The default weights s
 
 ## Validation
 
+### Remembering help received
+
+Enable **energy gifts** and **prefer past helpers**, then **Apply** in the live app. Mint trails show donor → recipient; the selected agent's helper panel shows received-energy memory. Python: `python3 sim.py ecosystem circuits/dng13.json --gifts --reciprocity --turn-sign -1 --turn-gain 1 --out view.html`.
+
+Each agent retains up to eight givers. Received energy evidence is capped at 4, halves every 400 ticks and expires after 1,200 ticks. Recipient ranking is distance divided by `1 + 2 × min(1, remembered energy)` when reciprocity is on; nearest-first is preserved when off. Only help from earlier ticks influences the choice. Memories are individual and not inherited. Gift cost, attempt chance, generosity and action learning retain their existing rules. Both gifts and reciprocity default off.
+
+Run `python3 reciprocity_experiment.py circuits/dng13.json --out reciprocity-comparison.json` for five paired seeds with gifts on, hazards/predation/action learning off. At 2,000 ticks, preference off/on means were: births 7/7, plant meals 27.6/27.6, final alive 0/0, gifts to past helpers 5.4/6.0. This small exploratory sample shows no survival improvement. Counts of returned help do not establish friendship or causation. Full rules and rows: [comparison](docs/reciprocity-comparison.json). Earlier reports describe earlier engine versions and should not be treated as current paired controls.
+
 ```bash
 python3 -m unittest discover -s tests -v
 ```

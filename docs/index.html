@@ -104,6 +104,8 @@
       <label class="ctrl"><span>corpse scavenging</span><input id="scavenging" type="checkbox" checked></label>
       <label class="ctrl"><span>hazard discs</span><input id="hazards" type="checkbox" checked></label>
       <label class="ctrl"><span>energy gifts</span><input id="gifts-enabled" type="checkbox"></label>
+      <label class="ctrl"><span>prefer past helpers</span><input id="reciprocity" type="checkbox"></label>
+      <div class="meta">Enable energy gifts too, then Apply. Past help can favour a nearby recipient; it never creates an energy reward.</div>
       <label class="ctrl"><span>predation</span><input id="predation-enabled" type="checkbox"></label>
       <label class="ctrl"><span>ticks per season</span><select id="season-length"><option value="200">200 · fast</option><option value="400" selected>400 · standard</option><option value="800">800 · slow</option></select></label>
       <div class="actions">
@@ -128,6 +130,10 @@
       <div class="row"><span>hazard deaths</span><strong id="hazard-deaths">0</strong></div>
       <div class="row"><span>predation deaths</span><strong id="predation-deaths">0</strong></div>
       <div class="row"><span>gifts paid / kept</span><strong id="gift-totals">0 / 0</strong></div>
+      <div class="row"><span>gifts to past helpers</span><strong id="returned-gifts">0</strong></div>
+      <h2>Who helped this agent?</h2>
+      <div id="sel-helpers" class="meta" style="white-space:pre-line">No energy received yet</div>
+      <div class="meta">Mint trails show donor → recipient. Memory fades by half every 400 ticks and expires after 1,200. These records are separate from sender usefulness and are not inherited.</div>
       <div class="meta">Rose rings show corpse freshness. Uneaten remains can fertilize nearby growing plants. Apply restarts with the chosen rules and same seed.</div>
       <h2>World</h2>
       <div class="row"><span>tick</span><strong id="tick">0</strong></div>
@@ -210,6 +216,7 @@
         scavenging: document.getElementById('scavenging').checked,
         hazards: document.getElementById('hazards').checked,
         gifts: document.getElementById('gifts-enabled').checked,
+        reciprocity: document.getElementById('reciprocity').checked,
         predation: document.getElementById('predation-enabled').checked,
         season_length: Number(document.getElementById('season-length').value),
         agents: Number(fields.agents.value),
@@ -350,6 +357,16 @@
         ctx.fillText('FOOD', origin[0] + 10, origin[1] + 14);
       });
       const look = { seed: ['#6a5340', 3], growing: ['#7a9a4a', 5], mature: ['#e6c15a', 8], cooldown: ['#3b4254', 3] };
+      world.events.filter(e => e.kind === 'gift' && snap.tick - e.tick < 24 && e.to_x != null).forEach(e => {
+        const a = worldToCanvas(e.x, e.y, bounds), b = worldToCanvas(e.to_x, e.to_y, bounds);
+        const progress = Math.min(1, Math.max(0, (snap.tick - e.tick) / 24));
+        ctx.strokeStyle = '#76f2cf'; ctx.fillStyle = '#76f2cf'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - progress;
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+        ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * progress, a[1] + (b[1] - a[1]) * progress, 4, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillText('F' + e.agent + ' → F' + e.recipient, b[0] + 7, b[1] - 8);
+        ctx.globalAlpha = 1;
+      });
       snap.patches.forEach((patch) => {
         const style = look[patch.stage] || look.cooldown;
         const p = worldToCanvas(patch.x, patch.y, bounds);
@@ -417,7 +434,8 @@
       document.getElementById('hazard-deaths').textContent = snap.hazard_deaths || 0;
       document.getElementById('predation-deaths').textContent = snap.predation_deaths || 0;
       const gifts = snap.gifts || {};
-      document.getElementById('gift-totals').textContent = (gifts.sent || 0) + ' / ' + (gifts.energy_gained || 0).toFixed(2);
+      document.getElementById('gift-totals').textContent = (gifts.energy_paid || 0).toFixed(2) + ' / ' + (gifts.energy_gained || 0).toFixed(2);
+      document.getElementById('returned-gifts').textContent = gifts.returned_help || 0;
       document.getElementById('seed-val').textContent = seed;
       const rules = world.rules;
       document.getElementById('rule-readout').textContent =
@@ -436,6 +454,8 @@
         button.onclick = () => { selected = Number(button.getAttribute('data-fly')); draw(); };
       });
       const sel = snap.agents.find((agent) => agent.id === selected) || snap.agents[0];
+      document.getElementById('sel-helpers').textContent = sel ? Eco.helperView(sel, snap.tick).map(r =>
+        'F' + r.source + ' · remembered energy ' + r.energy.toFixed(3) + ' · last gift t' + r.tick).join('\n') || 'No recent energy received' : 'No selected agent';
       if (sel) {
         document.getElementById('sel-intent').textContent = sel.alive ? ((sel.intent || 'searching').replaceAll('_', ' ')) : 'dead';
         document.getElementById('sel-scavenges').textContent = sel.scavenges || 0;

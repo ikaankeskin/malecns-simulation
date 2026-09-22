@@ -24,6 +24,14 @@ const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].m
 vm.runInContext(script,sandbox);
 setImmediate(()=>{
   assert.equal(typeof interval,'function');
+  elements.get('gifts-enabled').checked=true;
+  elements.get('reciprocity').checked=true;
+  elements.get('apply').onclick();
+  assert.equal(vm.runInContext('world.rules.reciprocity',sandbox),true);
+  assert.match(elements.get('sel-helpers').textContent,/No recent/);
+  elements.get('gifts-enabled').checked=false;
+  elements.get('reciprocity').checked=false;
+  elements.get('apply').onclick();
   interval();
   assert.match(elements.get('season-banner').textContent,/Bloom/);
   elements.get('step').onclick();
