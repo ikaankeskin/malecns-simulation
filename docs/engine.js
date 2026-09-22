@@ -793,6 +793,7 @@
   }
 
   function step(world) {
+    if(world.mission && world.mission.status!=='running')return world;
     const rules = world.rules;
     const decoder = world.decoder;
     const environment = seasonAt(world.tick, rules);
@@ -921,7 +922,29 @@
     }
     if (world.events.length > 80) world.events.splice(0, world.events.length - 80);
     world.tick += 1;
+    if(world.mission){
+      const m=world.mission;
+      if(world.tick>=m.end || alive===0){
+        const result=missionProgress(world);
+        m.status=alive>=m.targetAlive && result.refuges>=m.targetRefuges ? 'won' : 'lost';
+        m.result={...result,tick:world.tick,waterUsed:world.soil.water.irrigated};
+        world.events.push({tick:world.tick,kind:'mission_result',text:m.status==='won'?'Drought survived: refuges ready for returning rain.':'Drought mission ended: try another watering strategy.'});
+      }
+    }
     return world;
+  }
+
+  function createMission(graph){
+    const world=createWorld(graph,{agents:24,patches:96,map_half:80,gardening:true,water:true,
+      hazards:false,predation:false,gifts:false,seasons:true,season_length:400,repro_rate:0},4);
+    world.mission={status:'running',end:1200,droughtStart:800,targetAlive:8,targetRefuges:3,actions:[]};
+    return world;
+  }
+
+  function missionProgress(world){
+    const cells=new Set(world.patches.filter(p=>p.planter!=null).map(p=>Soil.cellIndex(world.soil,p.x,p.y)));
+    return {alive:world.agents.filter(a=>a.alive).length,
+      refuges:[...cells].filter(i=>world.soil.water.moisture[i]>=.2).length};
   }
 
   function snapshot(world) {
@@ -1055,11 +1078,13 @@
   }
 
   function waterGarden(world, id) {
+    if(world.mission && world.mission.status!=='running')return 0;
     const patch=world.patches.find(p=>p.id===id && p.planter!=null);
     if(!patch || !world.soil?.water)return 0;
     const cell=Soil.cellIndex(world.soil,patch.x,patch.y);
     const amount=root.MaleCNSWater.irrigate(world.soil,cell);
     if(amount>0){
+      if(world.mission)world.mission.actions.push({tick:world.tick,patch:id,cell,amount});
       world.events.push({tick:world.tick,kind:'irrigated',patch:id,cell,water:amount,
         text:'Player watered garden P'+id+' soil cell '+cell+' with '+amount.toFixed(2)+' water'});
       world.events=world.events.slice(-80);Soil.observe(world.soil,world.patches,world.tick);
@@ -1068,6 +1093,7 @@
   }
 
   root.MaleCNSEco = {
+    createMission, missionProgress,
     waterGarden,
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
     spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation, helperView, rememberHelper,

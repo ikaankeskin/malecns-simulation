@@ -1,5 +1,11 @@
 # Implementation plan
 
+## First drought mission — engine
+- Fixed seed 4, 24 founders, 96 patches, map half 80, no reproduction, hazards or predation. Seasons last 400 ticks; finish at tick 1200 before returning rain is applied. Win requires 8 living agents and 3 distinct garden soil cells at least 20% moist. Extinction ends early.
+- Completed missions freeze simulation and watering. Mission action records persist separately from the rolling event timeline; retries recreate the same world and reserve.
+- Tuning observation: seed 4 without intervention finishes with 8 survivors and no moist garden cells. Three distinct cells watered immediately before the final tick meet the introductory goal. This intentionally teaches reserve timing; it is not evidence that watering increases survival or meals. Harvest-based goals need further balancing.
+- Validation: deterministic no-action loss, watered success, unique-cell accounting, reserve debit, terminal freeze, fresh retry and early extinction covered by `node tests/mission.cjs` (synthetic game checks).
+
 ## Rivers and water — resource model completed
 - Seeded river geometry, seasonal rain, evaporation, bank moisture and conservative diffusion now feed shared crop budgets in Python and JavaScript. Water enables soil limits; disabled mode preserves the baseline.
 - Added `--water`, independent trace snapshots and a finite irrigation reserve for the upcoming player controls.
