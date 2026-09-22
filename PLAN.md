@@ -9,6 +9,7 @@
 - Added visible rivers, fertility/moisture overlay selection, weather countdown, patch moisture, finite watering reserve, event logging and slow/normal/fast playback. Garden-world preset enables water and seasons. Reset restores the reserve.
 - Player watering affects a shared soil cell rather than granting an immediate meal. Wild patches cannot be watered through the player control. Replay shows the recorded river and water state without editable actions.
 - Validation: 107 synthetic software tests pass, including player-button reserve debit, event logging, slow playback and reset. Browser layout verification is tracked separately.
+- Live verification caught a malformed moisture option and an old cached engine loaded with new controls. Corrected the option markup and versioned the script URLs together for this release.
 - Next: tune and implement a first-drought mission with an explicit result and retry, before channels, cisterns or floods. See ROADMAP.md for gameplay priorities and README.md for controls and limitations.
 
 ## Goal

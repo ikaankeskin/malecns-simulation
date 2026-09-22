@@ -77,9 +77,9 @@
       <label class="ctrl"><span>seed carrying and planting</span><input id="gardening" type="checkbox"></label>
       <label class="ctrl"><span>soil limits and recovery</span><input id="soil-limits" type="checkbox"></label>
       <label class="ctrl"><span>rivers and water (requires soil)</span><input id="water-enabled" type="checkbox"></label>
-      <label class="ctrl"><span>overlay</span><select id="overlay-mode"><option value="fertility">Soil fertility</option value="moisture">Soil moisture</option></select></label>
+      <label class="ctrl"><span>overlay</span><select id="overlay-mode"><option value="fertility">Soil fertility</option><option value="moisture">Soil moisture</option></select></label>
       <label class="ctrl"><span>playback</span><select id="playback-speed"><option value="0.25">Slow · 8 ticks/s</option><option value="1">Normal · 32 ticks/s</option><option value="4" selected>Fast · 128 ticks/s</option></select></label>
-      <label class="ctrl"><span>show soil fertility</span><input id="soil-overlay" type="checkbox" checked></label>
+      <label class="ctrl"><span>show soil overlay</span><input id="soil-overlay" type="checkbox" checked></label>
       <div class="meta">Soil limits take effect with Apply. Green soil is fertile; brown is depleted. Plants in the same cell share nutrients. Resting soil recovers; uneaten corpses replenish it.</div>
       <div class="meta">Larger maps scale starting food by area. Garden world starts 24 agents with hazards off. Planting costs energy; gardens regrow in place and can outlive their planters.</div>
       <label class="ctrl"><span>camera</span><select id="camera"><option value="1">Whole world</option><option value="2">Follow selection · 2×</option><option value="4">Follow selection · 4×</option></select></label>
@@ -211,11 +211,11 @@
       <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are tendencies, not character traits. MaleCNS topology does not change.</div>
     </aside>
   </main>
-  <script src="social.js"></script>
-  <script src="gardening.js"></script>
-  <script src="water.js"></script>
-  <script src="soil.js"></script>
-  <script src="engine.js"></script>
+  <script src="social.js?v=riverkeeper-1"></script>
+  <script src="gardening.js?v=riverkeeper-1"></script>
+  <script src="water.js?v=riverkeeper-1"></script>
+  <script src="soil.js?v=riverkeeper-1"></script>
+  <script src="engine.js?v=riverkeeper-1"></script>
   <script>
     const Eco = window.MaleCNSEco;
     const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
