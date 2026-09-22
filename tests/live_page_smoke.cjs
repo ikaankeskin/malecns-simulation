@@ -20,6 +20,7 @@ sandbox.window=sandbox; sandbox.addEventListener=()=>{};
 vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync('docs/social.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/gardening.js','utf8'),sandbox);
+vm.runInContext(fs.readFileSync('docs/water.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/soil.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/engine.js','utf8'),sandbox);
 const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');

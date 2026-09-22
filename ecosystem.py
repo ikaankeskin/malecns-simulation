@@ -12,6 +12,7 @@ from sim import Circuit, integrate_motion, nearest_point, sensory_drives, valida
 DEFAULTS = {
     'agents': 8,
     'soil_limits': False,
+    'water': False,
     'patches': 8,
     'map_half': 20.0,
     'energy_start': 1.0,
@@ -172,11 +173,12 @@ def rules_from(overrides):
             raise ValueError(f'{key} must be a positive integer')
     for key in RATE_KEYS:
         _positive_number(key, rules[key], allow_zero=(key in ('repro_rate', 'mutation_rate', 'mutation_sigma')))
-    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits'):
+    for key in ('seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits', 'water'):
         if type(rules[key]) is not bool:
             raise ValueError(f'{key} must be boolean')
     for key in ('scavenge_below', 'corpse_meal', 'compost_radius', 'compost_boost', 'signal_cost'):
         _positive_number(key, rules[key], allow_zero=True)
+    if rules['water']:rules['soil_limits']=True
     for key in ('signal_range', 'sense_range', 'hazard_radius', 'hazard_drain', 'gift_amount', 'gift_range',
                 'attack_range', 'attack_cost', 'attack_damage'):
         _positive_number(key, rules[key])
@@ -1156,7 +1158,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     agents = spawn_agents(rules['agents'], rules['map_half'] * 0.85, rules['energy_start'])
     patches = spawn_patches(rules['patches'], rules['map_half'] * 0.4, rng, rules)
     hazards = spawn_hazards(rules, seed)
-    substrate = soil.create(rules)
+    substrate = soil.create(rules, seed)
     hazard_deaths = 0
     hazard_entries = 0
     circuits = [Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed) for _ in agents]
@@ -1170,7 +1172,7 @@ def simulate_ecosystem(path, ticks, seed, *, drive_enabled=True, disconnected=Fa
     scavenged = composted = 0
     for tick in range(ticks):
         environment = season_at(tick, rules)
-        growth_rates = soil.growth_budget(substrate, patches, environment['growth'], rules)
+        growth_rates = soil.growth_budget(substrate, patches, environment['growth'], rules, tick)
         if rules['seasons'] and tick % rules['season_length'] == 0:
             events.append({'tick': tick, 'kind': 'season', 'text': f'{environment["name"]}: plant growth ×{environment["growth"]:.2f}'})
         social.begin_tick(agents, patches, signals, tick, rules, events)

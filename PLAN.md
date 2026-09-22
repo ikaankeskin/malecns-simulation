@@ -1,5 +1,10 @@
 # Implementation plan
 
+## Rivers and water — resource model completed
+- Seeded river geometry, seasonal rain, evaporation, bank moisture and conservative diffusion now feed shared crop budgets in Python and JavaScript. Water enables soil limits; disabled mode preserves the baseline.
+- Added `--water`, independent trace snapshots and a finite irrigation reserve for the upcoming player controls.
+- Validation: eight focused synthetic soil/water tests pass, including conservation, bounds, drought starvation, reserve exhaustion and cross-engine parity; live-page wiring smoke test passes. These are software checks, not biological validation.
+
 ## Goal
 Build an inspectable artificial-life simulation whose agents are controlled by circuits derived from the MaleCNS connectome. Start on CPU with a small, reproducible circuit; measure before moving to GPU or multiple agents.
 

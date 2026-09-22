@@ -9,6 +9,7 @@
     map_half: 20,
     gardening: false,
     soil_limits: false,
+    water: false,
     energy_start: 1,
     energy_max: 2,
     base_drain: 0.0012,
@@ -187,7 +188,7 @@
   }
 
   function rulesFrom(ui) {
-    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits'].forEach(key => {
+    ['seasons', 'scavenging', 'communication', 'social_learning', 'hazards', 'gifts', 'predation', 'lifetime_learning', 'reciprocity', 'gardening', 'soil_limits', 'water'].forEach(key => {
       if (ui[key] != null && typeof ui[key] !== 'boolean') throw new Error(key + ' must be boolean');
     });
     if (ui.season_length != null && (!Number.isInteger(ui.season_length) || ui.season_length < 1)) {
@@ -217,7 +218,8 @@
       patches: patches,
       map_half: half,
       gardening: ui.gardening == null ? false : ui.gardening,
-      soil_limits: ui.soil_limits == null ? false : ui.soil_limits,
+      soil_limits: ui.water ? true : (ui.soil_limits == null ? false : ui.soil_limits),
+      water: ui.water == null ? false : ui.water,
       food_rate: food,
       aging_rate: aging,
       repro_rate: repro,
@@ -701,7 +703,7 @@
       agents: spawnAgents(rules.agents, rules.map_half * 0.85, rules.energy_start),
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
       hazards: spawnHazards(rules, seed),
-      soil: Soil.create(rules),
+      soil: Soil.create(rules, seed),
       circuits: [],
       events: [], signals: [],
       births: 0, scavenged: 0, composted: 0,
@@ -793,7 +795,7 @@
     const rules = world.rules;
     const decoder = world.decoder;
     const environment = seasonAt(world.tick, rules);
-    const growthRates = Soil.growthBudget(world.soil, world.patches, environment.growth, rules);
+    const growthRates = Soil.growthBudget(world.soil, world.patches, environment.growth, rules,world.tick);
     if (rules.seasons && world.tick % rules.season_length === 0) {
       world.events.push({tick: world.tick, kind: 'season', text: environment.name+': plant growth ×'+environment.growth.toFixed(2)});
     }
