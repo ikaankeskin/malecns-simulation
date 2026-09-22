@@ -5,6 +5,8 @@
 - Completed missions freeze simulation and watering. Mission action records persist separately from the rolling event timeline; retries recreate the same world and reserve.
 - Tuning observation: seed 4 without intervention finishes with 8 survivors and no moist garden cells. Three distinct cells watered immediately before the final tick meet the introductory goal. This intentionally teaches reserve timing; it is not evidence that watering increases survival or meals. Harvest-based goals need further balancing.
 - Validation: deterministic no-action loss, watered success, unique-cell accounting, reserve debit, terminal freeze, fresh retry and early extinction covered by `node tests/mission.cjs` (synthetic game checks).
+- Added a mission panel with forecast, live goals, paused start, result and same-world retry. Completed missions disable time and watering controls. Rule application explicitly exits to sandbox; Restart preserves mission identity. The DOM harness covers these transitions.
+- Full suite: 108 software tests passing, including the actual DNg13-derived browser scenario with artificial ecology rules. Browser visual verification follows deployment.
 
 ## Rivers and water — resource model completed
 - Seeded river geometry, seasonal rain, evaporation, bank moisture and conservative diffusion now feed shared crop budgets in Python and JavaScript. Water enables soil limits; disabled mode preserves the baseline.

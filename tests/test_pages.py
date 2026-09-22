@@ -9,6 +9,11 @@ DOCS = ROOT / 'docs'
 
 
 class PagesTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required')
+    def test_drought_mission(self):
+        result=subprocess.run(['node','tests/mission.cjs'],cwd=ROOT,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+
     @unittest.skipUnless(shutil.which('node'), 'Node.js is required for the browser-engine smoke test')
     def test_live_engine_loads_and_advances(self):
         code = """
@@ -55,4 +60,3 @@ class PagesTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

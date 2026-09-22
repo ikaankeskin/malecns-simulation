@@ -92,4 +92,19 @@ setImmediate(()=>{
   elements.get('reset').onclick();
   assert.equal(vm.runInContext('selectedPatch',sandbox),null);
   assert.equal(vm.runInContext('world.soil.water.reserve',sandbox),3);
+  elements.get('start-mission').onclick();
+  assert.equal(vm.runInContext('playing',sandbox),false);
+  assert.equal(vm.runInContext('world.mission.end',sandbox),1200);
+  assert.equal(vm.runInContext('world.rules.repro_enabled',sandbox),false);
+  interval();assert.equal(vm.runInContext('world.tick',sandbox),0);
+  // Synthetic terminal state checks UI freeze without a second long scenario run.
+  vm.runInContext("world.mission.status='lost';world.mission.result={alive:0,refuges:0,tick:1,waterUsed:0};draw()",sandbox);
+  assert.equal(elements.get('play').disabled,true);
+  assert.equal(elements.get('step').disabled,true);
+  assert.match(elements.get('mission-status').textContent,/Mission ended/);
+  elements.get('retry-mission').onclick();
+  assert.equal(vm.runInContext('world.tick',sandbox),0);
+  assert.equal(elements.get('play').disabled,false);
+  elements.get('apply').onclick();
+  assert.equal(vm.runInContext('world.mission',sandbox),undefined);
 });

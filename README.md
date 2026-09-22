@@ -4,7 +4,13 @@ A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron gra
 
 ## Play the riverkeeper prototype
 
-On the live page, choose **Start garden world**, then select a planted garden on the map or in the garden list. **Water selected garden** adds up to 0.25 moisture to its shared soil cell, spending from a 3-unit reserve for the entire run. Pause or slow playback to decide which gardens to protect. Reset restores the same seeded world and reserve. Player watering appears in the timeline; there is no score or win condition yet.
+Choose **Start drought mission** for the first playable challenge. It starts paused on seed 4 with fixed rules: 24 founders, no reproduction, hazards or predation, and three 400-tick seasons. Press Play to begin. At tick 1,200, win with at least **8 agents alive and 3 distinct garden soil cells at least 20% moist**. Extinction ends the mission early. A result panel freezes the world and **Retry same world** restores the original conditions and water reserve. At normal speed a run takes about 38 seconds plus planning pauses.
+
+Select a planted garden on the map or in the garden list. **Water selected garden** adds up to 0.25 moisture to its shared soil cell, spending from a 3-unit reserve for the entire run. Multiple gardens in one cell count as one refuge. Keep water for the end of drought: this introductory goal tests moisture at the finish, not continuous crop health. There is no bonus for spending everything. The mission panel records watering decisions and shows progress and weather timing. Apply, Randomize or Garden world leaves the mission for the sandbox.
+
+The fixed scenario without intervention finishes with 8 survivors and 0 moist garden cells. Watering three separate cells immediately before the last tick produces 8 survivors and 3 moist cells, using 0.75 water. This is a deliberately achievable tutorial, not a claim of increased survival or sustained harvests. Nutrient depletion can limit growth even after watering. Reproduce the comparison with `node tests/mission.cjs`; the same test covers terminal freeze, reset and extinction.
+
+For free play, choose **Start garden world**. Pause or slow playback to decide which gardens to protect; there is no endpoint in sandbox mode.
 
 Rivers wet nearby soil; rain, evaporation and conservative moisture diffusion change conditions across seasons. Drought reduces river supply and increases drying. Plants need both nutrients and moisture to regrow. Toggle the overlay between fertility and moisture. Water mode requires soil limits. Python runs support `--water` and record water state in replays.
 

@@ -6,7 +6,9 @@ Long-term vision: evolve this repository from a small foraging experiment into a
 
 The player shapes habitat while autonomous agents live with the consequences. The first implemented interaction is a finite watering reserve for gardens, with seasonal water, moisture inspection and slower playback. This is a sandbox, not yet a balanced game.
 
-Next priority is one complete, short mission: **survive the first drought**. Start paused, show a weather forecast, give a limited water budget, and test attainable targets for survivors and productive gardens. End with a clear result, a timeline of the player's interventions and an immediate same-seed retry. Compare against doing nothing to tune difficulty before fixing numerical targets.
+Implemented: **survive the first drought**, a fixed-seed introductory mission with a paused start, weather countdown, finite reserve, intervention history, terminal result and same-world retry. It requires 8 survivors and 3 separate garden cells at least 20% moist at tick 1,200. It tests end-of-drought reserve timing; it does not require maintaining crops throughout the drought. Baseline and winning intervention are reproducible in `tests/mission.cjs`.
+
+Next priority: playtest the tutorial, then replace the finish-line moisture target with sustained garden productivity in a second mission. Tune nutrient and water constraints together so irrigation has a measurable effect on growth and meals. Add an alert before drought and a clearer garden-selection view before introducing more tools. Save/load and replayable action logs remain unimplemented.
 
 Then add choices that compete for the same resources:
 
