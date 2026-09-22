@@ -104,6 +104,21 @@ The current controller is a toy continuous-activity model. The default weights s
 
 ## Larger worlds and ancestral gardens
 
+### Soil fertility, depletion and recovery
+
+**Start garden world** now also enables **soil limits and recovery**. Uncheck that option and Apply to restart the same seed with the prior unrestricted garden model. **Show soil fertility** only changes the view: green is fertile and brown is depleted. Select a garden to see current fertility, cumulative nutrient use and its last six fertility samples (100 ticks apart). The overlay and history are available in Python replay too.
+
+Plants share a grid of soil cells up to 10 units wide. Each starts with nutrient capacity 1, replenishing by 0.0008 per tick (1,250 ticks from empty to full without demand). The growing stage consumes 0.6 per complete crop. Simultaneous demand is allocated proportionally within each cell; neither lower patch IDs nor array order gain priority. Scarcity slows growth rather than reducing the energy of a mature meal. Cooldown and seed timers do not consume nutrients. Seasons still limit potential growth.
+
+In soil mode, uneaten corpses return up to 0.3 nutrients at their location, capped by cell capacity, **replacing** the old nearby-patch timer boost. Scavenged bodies cannot compost. Recovery, initial nutrients and initial plant growth are provisioned inputs; this is not a closed nutrient or energy model. The grid creates discrete boundaries; there is no diffusion, soil inheritance gene or scripted migration.
+
+```bash
+python3 sim.py ecosystem circuits/dng13.json --gardening --soil-limits --map 80 --patches 96 --agents 24 --no-hazards --turn-sign -1 --turn-gain 1 --ticks 2000 --out view.html
+python3 soil_experiment.py circuits/dng13.json --out soil-comparison.json
+```
+
+Five seeds at 2,000 ticks, planting enabled in both conditions: soil off/on means were final alive **45.6/10.2**, births **83.8/40.4**, total meals **618.2/237.2**, garden harvests **439.6/59**, descendant meals **244.4/11.2**. Both modes reached 64 planted gardens, but production was limited by soil. This exploratory comparison changes nutrient limits, recovery and compost policy together; it does not establish migration or cooperation. [Full paired results and parameters](docs/soil-comparison.json).
+
 In the [live app](https://ikaankeskin.github.io/malecns-simulation/), click **Start garden world · 16× area**. This sets a 160 × 160 map, 24 agents, 96 starting patches, planting on and hazards/predation off; other controls stay as selected. The original balanced map is 40 × 40 with six patches. Map choices scale initial food by area (capped at 192); sense range, movement speed and energy costs are unchanged. Choose **Follow selection · 2× / 4×** to inspect agents or a garden. Click patches on the map or garden buttons for their histories.
 
 ```bash
@@ -115,7 +130,9 @@ Eating a plant acquires one seed if the agent has none. After at least 20 ticks 
 
 At most 64 gardens are added. They use the existing seasonal growth/cooldown cycle and corpse composting, but regrow **in place**; original wild patches still relocate. Gardens retain planter ID, planting tick, seed-parent/root patch, plant generation, harvest totals and six recent eaters. Descendant meals follow recorded parent links, excluding the planter itself. Posthumous meals count anyone eating after the planter dies; these counters can overlap. Green outlines mark gardens and green dots mark carried seeds. Replay also includes garden history.
 
-Five-seed, 2,000-tick large-world comparison, planting off/on: final alive **13.4/45.6**, births **45.4/83.8**, plant meals **241.2/618.2**. With planting on, mean garden meals were **439.6**, including **244.4 descendant meals** and **195.2 meals after planter death**. All runs reached the 64-garden cap. See [full settings and rows](docs/garden-comparison.json). This is an exploratory comparison of the complete planting mechanism, not proof of cooperation or biological behaviour. Added food draws on an implicit environmental supply; soil depletion and a closed nutrient budget are not implemented yet.
+Five-seed, 2,000-tick large-world comparison, planting off/on: final alive **13.4/45.6**, births **45.4/83.8**, plant meals **241.2/618.2**. With planting on, mean garden meals were **439.6**, including **244.4 descendant meals** and **195.2 meals after planter death**. All runs reached the 64-garden cap. See [full settings and rows](docs/garden-comparison.json). This is an exploratory comparison of the complete planting mechanism, not proof of cooperation or biological behaviour. Added food draws on an implicit environmental supply; this comparison used the unrestricted baseline; the optional soil mode below adds resource limits but is not a closed nutrient budget.
+
+The garden comparison above records the earlier unrestricted baseline. Soil limits are now implemented as an optional mode described at the start of this section.
 
 ## Helper memory
 

@@ -2,7 +2,9 @@
 
 Long-term vision: evolve this repository from a small foraging experiment into an inspectable artificial-life ecosystem.
 
-Latest extension: large maps and persistent gardens. Agents carry one seed, spend energy to plant, and leave food sources that can feed descendants after the planter dies. Patch history and an on/off comparison are implemented. Next ecology question: soil depletion and recovery, since all five planting runs reached the 64-garden cap. This first version uses an implicit environmental resource supply.
+Soil follow-on implemented: shared local nutrient limits, proportional growth allocation, slow recovery, corpse nutrient returns, fertility overlay and garden soil history. Controlled results: `docs/soil-comparison.json`. Migration remains an open experimental question; nutrient diffusion, calibration and explicit movement/occupancy metrics are not implemented.
+
+Latest extension: large maps and persistent gardens. Agents carry one seed, spend energy to plant, and leave food sources that can feed descendants after the planter dies. Patch history and an on/off comparison are implemented. The subsequent soil mode adds depletion and recovery; its replenishment still represents an external environmental input.
 
 **Design principle:** MaleCNS-derived circuits control embodied, immediate behaviour. Higher-level systems may later add memory, communication, and strategic intent. Every mechanism is labelled as measured biology or a simulation abstraction.
 

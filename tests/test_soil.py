@@ -11,6 +11,17 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class SoilTests(unittest.TestCase):
+    def test_comparison_repeatability_and_disabled_baseline(self):
+        from soil_experiment import compare
+        from ecosystem import simulate_ecosystem
+        report=compare(ROOT/'demo.json',[0],ticks=8)
+        self.assertEqual(report,compare(ROOT/'demo.json',[0],ticks=8))
+        self.assertEqual([r['soil_limits'] for r in report['rows']],[False,True])
+        self.assertIsNone(report['rows'][0]['soil'])
+        a=simulate_ecosystem(ROOT/'demo.json',20,0)
+        b=simulate_ecosystem(ROOT/'demo.json',20,0,soil_limits=False)
+        self.assertEqual(a,b)
+
     def scene(self):
         rules=rules_from(dict(soil_limits=True))
         s=soil.create(rules)

@@ -23,6 +23,8 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 
 ## Status
 
+- [x] Soil observatory and paired comparison: live/replay fertility overlay, mode toggle, occupied-cell fertility/depletion metrics, nutrient accounting and bounded garden soil history. Garden-world shortcut now enables soil mode. Five seeds at 2,000 ticks: soil off/on alive 45.6/10.2, births 83.8/40.4, garden harvests 439.6/59; planting stays on and both modes reach the garden cap. No migration claim. Full suite: 104 passing tests; CLI soil replay generated and scripts/payload parsed.
+
 - [x] Shared-soil engine: optional grid of cells up to 10 units wide, capacity 1, recovery 0.0008/tick, growing-stage cost 0.6 per crop, proportional same-cell allocation. Uneaten corpses return up to 0.3 to their cell, replacing the timer shortcut in this mode. Six fertility samples per patch; aggregate nutrient accounting and immutable replay snapshots. Disabled mode retains the prior ecosystem. Synthetic budget, fairness, recovery, compost, growth-completion and Python/JavaScript parity tests added.
 
 - [x] Live garden verification (2026-09-22): deployed large-world button, 2× follow camera and patch selection worked. P96 showed F9 planting at tick 56 from wild P70 and remained at (-46.6, 50.9). At tick 171 the live world had 19 gardens and visible carried seeds. Garden list height is bounded so history remains accessible as it fills. Replay script/payload parsing passed. A separate browser-engine run reached 2,000 ticks with 230 descendant meals and 180 posthumous meals (seed 4; not a cross-engine trajectory match).

@@ -133,6 +133,7 @@
         <div class="stat"><span>caution / generosity / aggression</span><strong id="eco-personality">1.00 / 1.00 / 1.00</strong></div>
         <div class="stat"><span>gift / attack outcome</span><strong id="eco-actions">50 / 50</strong></div>
         <h2>Garden history</h2><div id="eco-gardens" class="meta"></div>
+        <label><input type="checkbox" id="eco-soil-overlay" checked> Soil fertility overlay</label><div id="eco-soil" class="meta"></div>
         <select id="eco-garden-picker" aria-label="Garden history"></select>
         <div id="eco-garden-history" class="meta" style="white-space:pre-line"></div>
         <div class="stat"><span>mutations</span><strong id="eco-mut">none</strong></div>
@@ -500,6 +501,17 @@
       }
 
       function drawEco(tick) {
+        const soil=tick.soil;
+        document.getElementById('eco-soil-overlay').onchange=draw;
+        document.getElementById('eco-soil').textContent=soil ? Math.round(100*soil.occupied_mean)+'% mean fertility at food sites · '+soil.depleted_cells+' depleted cells. Green = fertile; brown = depleted.' : 'Soil limits off';
+        if(soil && document.getElementById('eco-soil-overlay').checked){
+          soil.cells.forEach((f,i)=>{
+            const x=-soil.half+(i%soil.n)*soil.size,y=-soil.half+Math.floor(i/soil.n)*soil.size;
+            const a=worldToCanvas(x,y+soil.size),b=worldToCanvas(x+soil.size,y);
+            ctx.fillStyle='rgb('+Math.round(112-60*f)+','+Math.round(63+65*f)+','+Math.round(40+30*f)+')';
+            ctx.globalAlpha=.65;ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+          });ctx.globalAlpha=1;
+        }
         selected = followSelection(tick.agents || [], selected);
         const [, , scale] = worldToCanvas(0, 0);
         tick.agents.forEach((agent) => {
@@ -542,6 +554,7 @@
         picker.onchange=draw;
         const garden=gardens.find(p=>String(p.id)===picker.value);
         document.getElementById('eco-garden-history').textContent=garden ? 'Planted by F'+garden.planter+' at t'+garden.planted_tick+' · seed from P'+garden.parent_patch+' · root P'+garden.root_patch+' · plant generation '+garden.plant_generation+'\nHarvests '+garden.harvests+' · descendant meals '+garden.descendant_meals+'\nRecent eaters: '+garden.recent_eaters.map(e=>'F'+e.agent+' at t'+e.tick).join(', ') : 'No gardens in this frame';
+        if(garden && garden.fertility!=null)document.getElementById('eco-garden-history').textContent+='\nFertility '+Math.round(garden.fertility*100)+'% · '+(garden.soil_history||[]).map(h=>'t'+h.tick+': '+Math.round(h.fertility*100)+'%').join(' → ');
         (tick.corpses || []).forEach((corpse) => {
           const [x, y] = worldToCanvas(corpse.x, corpse.y);
           ctx.fillStyle = '#e6a0b5';

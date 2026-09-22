@@ -75,6 +75,9 @@
       <button id="garden-world" type="button">Start garden world · 16× area</button>
       <label class="ctrl"><span>world size</span><select id="world-size"><option value="20">40 × 40 · original</option><option value="40">80 × 80 · 4× area</option><option value="80">160 × 160 · 16× area</option></select></label>
       <label class="ctrl"><span>seed carrying and planting</span><input id="gardening" type="checkbox"></label>
+      <label class="ctrl"><span>soil limits and recovery</span><input id="soil-limits" type="checkbox"></label>
+      <label class="ctrl"><span>show soil fertility</span><input id="soil-overlay" type="checkbox" checked></label>
+      <div class="meta">Soil limits take effect with Apply. Green soil is fertile; brown is depleted. Plants in the same cell share nutrients. Resting soil recovers; uneaten corpses replenish it.</div>
       <div class="meta">Larger maps scale starting food by area. Garden world starts 24 agents with hazards off. Planting costs energy; gardens regrow in place and can outlive their planters.</div>
       <label class="ctrl"><span>camera</span><select id="camera"><option value="1">Whole world</option><option value="2">Follow selection · 2×</option><option value="4">Follow selection · 4×</option></select></label>
       <label class="ctrl"><span>preset</span>
@@ -142,6 +145,7 @@
       <div class="meta">Rose rings show corpse freshness. Uneaten remains can fertilize nearby growing plants. Apply restarts with the chosen rules and same seed.</div>
       <h2>Gardens and inheritance</h2>
       <div id="garden-stats" class="meta">No gardens yet</div>
+      <div id="soil-stats" class="meta">Soil limits off</div>
       <div id="seed-status" class="meta"></div>
       <div id="garden-list" style="display:flex;flex-wrap:wrap;gap:4px;max-height:156px;overflow:auto"></div>
       <div id="patch-history" class="meta" style="white-space:pre-line">Click a patch on the map or a garden below to inspect its history.</div>
@@ -224,6 +228,7 @@
       return {
         communication: document.getElementById('communication').checked,
         gardening: document.getElementById('gardening').checked,
+        soil_limits: document.getElementById('soil-limits').checked,
         map_half: Number(document.getElementById('world-size').value || 20),
         social_learning: document.getElementById('social-learning').checked,
         lifetime_learning: document.getElementById('lifetime-learning').checked,
@@ -348,6 +353,15 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = ['#101f1c', '#141e22', '#251c17', '#151c29'][snap.environment.index] || '#111722';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (snap.soil && document.getElementById('soil-overlay').checked) {
+        const soil=snap.soil;
+        soil.cells.forEach((fertility,index)=>{
+          const x=-soil.half+(index%soil.n)*soil.size,y=-soil.half+Math.floor(index/soil.n)*soil.size;
+          const a=worldToCanvas(x,y+soil.size,bounds),b=worldToCanvas(x+soil.size,y,bounds);
+          ctx.fillStyle='rgb('+Math.round(112-60*fertility)+','+Math.round(63+65*fertility)+','+Math.round(40+30*fertility)+')';
+          ctx.globalAlpha=.65;ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+        });ctx.globalAlpha=1;
+      }
       ctx.strokeStyle = '#28303b';
       ctx.lineWidth = 1;
       for (let g = -half; g <= half; g += half > 40 ? 10 : 4) {
@@ -465,6 +479,7 @@
       document.getElementById('returned-gifts').textContent = gifts.returned_help || 0;
       document.getElementById('seed-val').textContent = seed;
       const gardens = snap.gardens;
+      document.getElementById('soil-stats').textContent=snap.soil ? 'Soil at planted/food sites: '+Math.round(100*snap.soil.occupied_mean)+'% mean fertility · '+snap.soil.depleted_cells+'/'+snap.soil.occupied_cells+' cells below 20% · nutrients used '+snap.soil.consumed.toFixed(2)+' / recovered '+snap.soil.recovered.toFixed(2)+' / composted '+snap.soil.composted.toFixed(2) : 'Soil limits off · unrestricted growth';
       document.getElementById('garden-stats').textContent = gardens.planted + '/64 gardens · ' + gardens.harvests + ' garden meals · ' + gardens.descendant_meals + ' descendant meals · ' + gardens.posthumous_meals + ' meals after planter death';
       document.getElementById('garden-list').innerHTML = snap.patches.filter(p=>p.planter!=null).map(p=>'<button type="button" data-patch="'+p.id+'">P'+p.id+' · F'+p.planter+'</button>').join('');
       Array.from(document.querySelectorAll('[data-patch]')).forEach(button=>button.onclick=()=>{selectedPatch=Number(button.getAttribute('data-patch'));draw();});
@@ -472,7 +487,8 @@
       document.getElementById('patch-history').textContent = watchedPatch ? 'P'+watchedPatch.id+' · '+watchedPatch.stage+' · ('+watchedPatch.x.toFixed(1)+', '+watchedPatch.y.toFixed(1)+')\n'+
         (watchedPatch.planter == null ? 'Wild food · relocates after harvest' : 'Planted by F'+watchedPatch.planter+' (agent generation '+watchedPatch.planter_generation+') at t'+watchedPatch.planted_tick+'\nSeed from P'+watchedPatch.parent_patch+' · root P'+watchedPatch.root_patch+' · plant generation '+watchedPatch.plant_generation)+
         '\nHarvests '+(watchedPatch.harvests||0)+' · descendants '+(watchedPatch.descendant_meals||0)+' · after death '+(watchedPatch.posthumous_meals||0)+
-        '\nRecent eaters: '+((watchedPatch.recent_eaters||[]).map(e=>'F'+e.agent+' at t'+e.tick).join(', ')||'none') : 'Click a patch on the map or choose a garden to inspect its history.';
+        '\nRecent eaters: '+((watchedPatch.recent_eaters||[]).map(e=>'F'+e.agent+' at t'+e.tick).join(', ')||'none')+
+        (watchedPatch.fertility==null ? '' : '\nSoil cell '+watchedPatch.soil_cell+' · fertility '+Math.round(100*watchedPatch.fertility)+'% · nutrients used '+(watchedPatch.soil_uptake||0).toFixed(2)+'\nFertility history: '+(watchedPatch.soil_history||[]).map(h=>'t'+h.tick+': '+Math.round(h.fertility*100)+'% (cell '+h.cell+')').join(' → ')) : 'Click a patch on the map or choose a garden to inspect its history.';
       const rules = world.rules;
       document.getElementById('rule-readout').textContent =
         'max age ' + rules.max_age + ' · grow ' + rules.grow_ticks + ' ticks · cooldown ' +
@@ -594,9 +610,11 @@
     });
     document.getElementById('apply').onclick = () => restart(seed);
     document.getElementById('camera').onchange = draw;
+    document.getElementById('soil-overlay').onchange = draw;
     document.getElementById('garden-world').onclick = () => {
       fields.preset.value='balanced'; applyPreset('balanced'); fields.agents.value='24';
       document.getElementById('world-size').value='80'; document.getElementById('gardening').checked=true;
+      document.getElementById('soil-limits').checked=true;
       document.getElementById('hazards').checked=false; document.getElementById('predation-enabled').checked=false;
       document.getElementById('camera').value='1'; selectedPatch=null;
       showUi(); restart(seed);

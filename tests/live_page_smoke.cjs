@@ -66,6 +66,10 @@ setImmediate(()=>{
   assert.equal(vm.runInContext('world.patches.length',sandbox),96);
   assert.equal(vm.runInContext('world.agents.length',sandbox),24);
   assert.equal(vm.runInContext('world.rules.gardening',sandbox),true);
+  assert.equal(vm.runInContext('world.rules.soil_limits',sandbox),true);
+  assert.equal(vm.runInContext('world.soil.cells.length',sandbox),256);
+  elements.get('soil-overlay').checked=false;elements.get('soil-overlay').onchange();
+  assert.match(elements.get('soil-stats').textContent,/fertility/);
   elements.get('camera').value='4';elements.get('camera').onchange();
   assert.equal(vm.runInContext('cameraBounds.max-cameraBounds.min',sandbox),42);
   elements.get('step').onclick();
