@@ -102,9 +102,7 @@ DNg13 is shown in [Janelia's visual-to-movement example](https://male-cns.janeli
 
 The current controller is a toy continuous-activity model. The default weights stay positive: no spikes, physiological calibration, or plasticity. A separate held-out comparison can apply aggregate transmitter signs without changing the live ecosystem. Wiring plus a tuned decoder can collect synthetic food in this world; that does not establish biological food-seeking. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
 
-## Validation
-
-### Remembering help received
+## Remembering help received
 
 Enable **energy gifts** and **prefer past helpers**, then **Apply** in the live app. Mint trails show donor → recipient; the selected agent's helper panel shows received-energy memory. Python: `python3 sim.py ecosystem circuits/dng13.json --gifts --reciprocity --turn-sign -1 --turn-gain 1 --out view.html`.
 
