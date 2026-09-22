@@ -73,6 +73,14 @@ python3 experiments.py circuits/dng13.json --out experiment.json
 
 The first command uses the original avoidance decoder. The second uses the selected attraction decoder from the mapping experiment. `experiments.py` sweeps turn/sensory signs and turn gains on development seeds, then compares the selected mapping with disconnected, input-silenced, and shuffled-source controls on held-out seeds. Raw traces are local outputs. Checked-in reports: `docs/dng13-experiment.json`, `docs/dng13-decoder-experiment.json`.
 
+Transmitter signs are a separate controller comparison. They are not inferred from the wiring. Acetylcholine at confidence 0.5 or higher stays positive. GABA at that confidence would turn the outgoing weight negative. Glutamate edges are dropped. Monoamines are recorded and not applied. Unclear or lower-confidence neurons stay positive. The live page keeps the all-positive controller.
+
+```bash
+python3 neurotransmitter_experiment.py circuits/dng13.json --ticks 500 --out neurotransmitter-comparison.json
+```
+
+On held-out seeds 10–19, the all-positive controller collected a mean of 4.0 items, the same per-seed counts as the decoder report. Dropping the two outgoing edges of the one glutamate neuron (LT51, body 11670) collected 4.1. Every other neuron in the extract is acetylcholine above 0.9, so the sign shuffle matches the signed controller. Both signed runs still move the motors when the sensory input is on, and stay still when it is off. That is an interface result, not evidence that DNg13 encodes food or inhibition. Full rows: `docs/neurotransmitter-comparison.json`. The eleven source rows are in `circuits/dng13-neurotransmitters.json`.
+
 ## Extract a real MaleCNS circuit
 
 The new importer streams the official Arrow connection table in batches. It selects the left/right DNg13 descending neurons and up to eight direct visual-projection inputs per output, with at least five synapses. It then retains **every** connection within the selected neurons, including weaker and recurrent connections. Neuron IDs, annotations, and raw synapse counts are preserved.
@@ -92,7 +100,7 @@ Downloads total approximately 1.07 GB. Extraction verifies pinned SHA-256 hashes
 
 DNg13 is shown in [Janelia's visual-to-movement example](https://male-cns.janelia.org/media/). This direct-input subgraph omits retinal and upstream processing. Simulator `sensory` and `motor` roles are interface assignments; the biological output class remains `descending_neuron`. Soma-side-to-world-side mapping is a hypothesis.
 
-The current controller is a toy continuous-activity model, with no neurotransmitter signs, spikes, physiological calibration, or plasticity. Wiring plus a tuned decoder can collect synthetic food in this world; that does not establish biological food-seeking. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
+The current controller is a toy continuous-activity model. The default weights stay positive: no spikes, physiological calibration, or plasticity. A separate held-out comparison can apply aggregate transmitter signs without changing the live ecosystem. Wiring plus a tuned decoder can collect synthetic food in this world; that does not establish biological food-seeking. The original CSV importer remains available for exploratory user-supplied graphs; it does not verify official provenance.
 
 ## Validation
 

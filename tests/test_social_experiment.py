@@ -11,8 +11,9 @@ class SocialExperimentTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         digest = hashlib.sha256((root / 'circuits/dng13.json').read_bytes()).hexdigest()
         for name in ('social-comparison.json', 'reliability-comparison.json', 'ecology-comparison.json',
-                     'hazard-comparison.json', 'gift-comparison.json',                      'predation-comparison.json',
-                     'personality-comparison.json', 'lifetime-comparison.json'):
+                     'hazard-comparison.json', 'gift-comparison.json', 'predation-comparison.json',
+                     'personality-comparison.json', 'lifetime-comparison.json',
+                     'neurotransmitter-comparison.json'):
             self.assertEqual(json.loads((root / 'docs' / name).read_text())['graph_sha256'], digest)
 
     def test_paired_runs_are_repeatable(self):

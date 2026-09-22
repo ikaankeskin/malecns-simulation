@@ -1,0 +1,108 @@
+{
+  "source_url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather",
+  "source_sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621",
+  "source_bytes": 43282834,
+  "dataset": "male-cns:v1.0",
+  "license": "CC-BY-4.0",
+  "attribution": "MaleCNS v1.0: FlyEM, HHMI Janelia; University of Cambridge; MRC Laboratory of Molecular Biology; Google Research.",
+  "columns_used_for_the_sign": [
+    "consensus_nt",
+    "predicted_nt_confidence"
+  ],
+  "recorded_not_used": [
+    "predicted_nt",
+    "ground_truth",
+    "cell_type"
+  ],
+  "note": "Eleven rows joined from the aggregate body table. The per-synapse neurotransmitter table was not downloaded. ground_truth is recorded and is not the sign rule.",
+  "neurons": [
+    {
+      "body": "11074",
+      "cell_type": "DNg13",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9564808899888145,
+      "ground_truth": "acetylcholine"
+    },
+    {
+      "body": "11670",
+      "cell_type": "LT51",
+      "consensus_nt": "glutamate",
+      "predicted_nt": "glutamate",
+      "predicted_nt_confidence": 0.7588120676987248,
+      "ground_truth": null
+    },
+    {
+      "body": "12014",
+      "cell_type": "LoVP90b",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9254407529754738,
+      "ground_truth": null
+    },
+    {
+      "body": "12202",
+      "cell_type": "LoVP90b",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9221146001012428,
+      "ground_truth": null
+    },
+    {
+      "body": "18635",
+      "cell_type": "LoVP92",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9372580612667715,
+      "ground_truth": null
+    },
+    {
+      "body": "19577",
+      "cell_type": "LoVP92",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9111855890792352,
+      "ground_truth": null
+    },
+    {
+      "body": "20472",
+      "cell_type": "LC19",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9241608301598521,
+      "ground_truth": null
+    },
+    {
+      "body": "25574",
+      "cell_type": "LoVP92",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9370290993039426,
+      "ground_truth": null
+    },
+    {
+      "body": "512006",
+      "cell_type": "DNg13",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.950240738278002,
+      "ground_truth": "acetylcholine"
+    },
+    {
+      "body": "529724",
+      "cell_type": "LoVP92",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9476769025961838,
+      "ground_truth": null
+    },
+    {
+      "body": "559817",
+      "cell_type": "LoVP92",
+      "consensus_nt": "acetylcholine",
+      "predicted_nt": "acetylcholine",
+      "predicted_nt_confidence": 0.9573345070444542,
+      "ground_truth": null
+    }
+  ]
+}

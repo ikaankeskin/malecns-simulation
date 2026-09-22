@@ -49,7 +49,7 @@ Build an inspectable artificial-life simulation whose agents are controlled by c
 - [x] Optional predation: a costly attack that can kill, default off, corpse scavenged under the existing rules.
 - [x] Inherited caution, generosity, and aggression. Neutral scale is 1. One gene varies at a time.
 - [x] Lifetime gift and attack scores. Individual, decaying, and not inherited. Synapses stay fixed.
-- [ ] Neurotransmitter signs. See [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md). LLM cognition stays deferred.
+- [x] DNg13 neurotransmitter signs from the aggregate table. Glutamate edges dropped; no GABA in this extract. The live controller stays all-positive.
 
 ## First scientific decision
 
@@ -164,3 +164,9 @@ Choose an annotated visual-to-descending-neuron pathway using official MaleCNS a
 - Pre-registered outcomes: a living donor compares their energy 100 ticks later with the energy just after the gift. Eating one's own kill is useful; reaching that spot after the corpse is gone is empty. A corpse the attacker never reaches adds nothing. A non-killing hit adds nothing. Recipient survival is not the training signal.
 - Comparison freezes caution, generosity, and aggression at 1 and leaves hazards, seasons, scavenging, gifts, predation, and sender learning on. Five seeds, 2,000 ticks, range 12. Learning off/on: alive 0/0, births 1.4/1.4, gifts 4.2/4.4, attacks 5.2/5.2, hazard entries 1/1. Gift outcomes useful/empty 0/0 versus 1.2/2.4. Attack outcomes 0/0 versus 0.4/0.4. The off cell matches the all-frozen personality run. Exploratory. Empty gift outcomes were more common than useful ones in this sample.
 - Validation: energy comparison, decay, a low score blocking a neutral attempt, eating a kill, a missed corpse, and an arrival after someone else ate. The gene does not change. The live checkbox is on. A founder reads 50/100 for both actions. The browser gift update matched the Python score.
+
+### Neurotransmitter signs
+- Joined the aggregate MaleCNS body table onto the 11 DNg13 neurons. The per-synapse table was not downloaded. Confidence threshold 0.5 was fixed to match the connectome release cut. Acetylcholine at or above that threshold keeps a positive weight. GABA would negate the outgoing weight. Glutamate edges are dropped. Monoamines would be recorded and left positive. Unclear or lower-confidence neurons stay positive. Ground truth in the table is recorded and is not the rule.
+- In this extract, 10 neurons are acetylcholine with confidence above 0.9. Body 11670 (LT51) is glutamate, so its two outgoing edges are dropped. There is no GABA, so shuffling the applied signs does not change the controller.
+- Held-out seeds 10–19, 500 ticks, selected decoder `turn_sign=-1`, `turn_gain=1`. All-positive mean food 4.0, the same per-seed counts as the decoder report. Signed and sign-shuffled both collected 4.1. Motors still move when the sensory input is on and stay at 0 when it is off. Exploratory interface result. The live ecosystem is unchanged.
+- Validation: glutamate is dropped, low-confidence GABA stays positive, a negative weight cannot push activity below 0, the DNg13 shuffle matches the signed map, and the held-out runner repeats. The live page was not given a sign control.

@@ -7,6 +7,15 @@ import random
 from pathlib import Path
 
 
+def _sign_multiplier(signs, source):
+    if signs is None:
+        return 1.0
+    value = signs.get(str(source), 1.0)
+    if isinstance(value, bool) or value not in (-1, 0, 1):
+        raise ValueError('neurotransmitter multipliers must be -1, 0, or 1')
+    return float(value)
+
+
 def validate_graph(graph):
     if not isinstance(graph, dict) or not isinstance(graph.get('nodes'), list) or not isinstance(graph.get('edges'), list):
         raise ValueError('Graph must contain nodes and edges lists')
@@ -44,8 +53,8 @@ def validate_graph(graph):
 
 
 class Circuit:
-    """All-excitatory rate controller; NOT a physiological spiking model."""
-    def __init__(self, graph, disconnected=False, shuffle_seed=None):
+    """Rate controller. Stored synapse counts stay positive. An optional sign map can flip or drop an edge."""
+    def __init__(self, graph, disconnected=False, shuffle_seed=None, signs=None):
         validate_graph(graph)
         self.nodes = graph['nodes']
         ids = {str(n['id']): i for i, n in enumerate(self.nodes)}
@@ -58,7 +67,10 @@ class Circuit:
             random.Random(shuffle_seed).shuffle(sources)
         if not disconnected:
             for source, e in zip(sources, edges):
-                self.incoming[ids[str(e['post'])]].append((ids[str(source)], e['weight'] / 100.0))
+                multiplier = _sign_multiplier(signs, source)
+                if multiplier == 0.0:
+                    continue
+                self.incoming[ids[str(e['post'])]].append((ids[str(source)], e['weight'] / 100.0 * multiplier))
         self.activity = [0.0] * len(self.nodes)
 
     def step(self, drives):
@@ -121,12 +133,12 @@ def validate_decoder(turn_sign=1, turn_gain=0.15, turn_clip=0.3, speed_gain=0.13
 
 def simulate(path, ticks, seed, *, drive_enabled=True, disconnected=False,
              shuffle_seed=None, initial_food=(5.0, 3.0), turn_sign=1, turn_gain=0.15,
-             turn_clip=0.3, speed_gain=0.13, sensory_sign=1):
+             turn_clip=0.3, speed_gain=0.13, sensory_sign=1, signs=None):
     if type(ticks) is not int or ticks < 1:
         raise ValueError('ticks must be a positive integer')
     decoder = validate_decoder(turn_sign, turn_gain, turn_clip, speed_gain, sensory_sign)
     graph = json.loads(Path(path).read_text())
-    circuit = Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed)
+    circuit = Circuit(graph, disconnected=disconnected, shuffle_seed=shuffle_seed, signs=signs)
     rng = random.Random(seed)
     x = y = heading = 0.0
     food = initial_food

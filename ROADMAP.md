@@ -64,7 +64,7 @@ Signalling, bounded location memory, and per-sender usefulness are implemented. 
 5. Optional predation, default off. Done: `docs/predation-comparison.json`.
 6. Inherited personality multipliers for those actions. Done: `docs/personality-comparison.json`.
 7. Lifetime learning of action outcomes, without changing synapses or inheriting the scores. Done: `docs/lifetime-comparison.json`.
-8. Neurotransmitter signs from MaleCNS predictions, as a separate controller comparison.
+8. Neurotransmitter signs from MaleCNS predictions, as a separate controller comparison. Done: `docs/neurotransmitter-comparison.json`.
 
 Alliances and LLM cognition stay out of that plan. Learned usefulness is not honesty or friendship.
 

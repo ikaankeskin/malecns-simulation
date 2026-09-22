@@ -1,0 +1,217 @@
+{
+  "ablation": "neurotransmitter_signs",
+  "graph": "circuits/dng13.json",
+  "graph_sha256": "1697c9b68d30cd23b2f05e78dfaa8b3ac228e2b8addfd0a5ee3ef69ed283b772",
+  "table": "/Users/kaankeskin/malecns-simulation/circuits/dng13-neurotransmitters.json",
+  "table_source_sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621",
+  "confidence_threshold": 0.5,
+  "ticks": 500,
+  "seeds": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "decoder": {
+    "name": "sensory+1_turn-1_gain1.00",
+    "turn_sign": -1,
+    "turn_gain": 1.0,
+    "sensory_sign": 1
+  },
+  "shuffle_seed": 0,
+  "shuffle_identical_to_signed": true,
+  "neurons": [
+    {
+      "id": "11074",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9564808899888145,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": "acetylcholine",
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "11670",
+      "consensus_nt": "glutamate",
+      "confidence": 0.7588120676987248,
+      "predicted_nt": "glutamate",
+      "ground_truth": null,
+      "decision": "dropped",
+      "multiplier": 0,
+      "reason": "glutamate"
+    },
+    {
+      "id": "12014",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9254407529754738,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "12202",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9221146001012428,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "18635",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9372580612667715,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "19577",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9111855890792352,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "20472",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9241608301598521,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "25574",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9370290993039426,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "512006",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.950240738278002,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": "acetylcholine",
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "529724",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9476769025961838,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    },
+    {
+      "id": "559817",
+      "consensus_nt": "acetylcholine",
+      "confidence": 0.9573345070444542,
+      "predicted_nt": "acetylcholine",
+      "ground_truth": null,
+      "decision": "excitatory",
+      "multiplier": 1,
+      "reason": "acetylcholine"
+    }
+  ],
+  "edges_dropped": 2,
+  "conditions": {
+    "all_positive": {
+      "mean_food_collected": 4,
+      "mean_motor_activity": 0.5019172792,
+      "food_collected": [
+        4,
+        5,
+        4,
+        3,
+        3,
+        1,
+        6,
+        4,
+        6,
+        4
+      ],
+      "moves_when_input_is_on": true,
+      "probe": {
+        "input_on_left": 0.2439141199930807,
+        "input_on_right": 0.26889427025497625,
+        "input_off_left": 0.0,
+        "input_off_right": 0.0,
+        "moves_when_input_is_on": true
+      }
+    },
+    "signed": {
+      "mean_food_collected": 4.1,
+      "mean_motor_activity": 0.4816645258,
+      "food_collected": [
+        4,
+        4,
+        4,
+        3,
+        4,
+        1,
+        7,
+        4,
+        6,
+        4
+      ],
+      "moves_when_input_is_on": true,
+      "probe": {
+        "input_on_left": 0.24364127978738004,
+        "input_on_right": 0.23354702929050494,
+        "input_off_left": 0.0,
+        "input_off_right": 0.0,
+        "moves_when_input_is_on": true
+      }
+    },
+    "sign_shuffled": {
+      "mean_food_collected": 4.1,
+      "mean_motor_activity": 0.4816645258,
+      "food_collected": [
+        4,
+        4,
+        4,
+        3,
+        4,
+        1,
+        7,
+        4,
+        6,
+        4
+      ],
+      "moves_when_input_is_on": true,
+      "probe": {
+        "input_on_left": 0.24364127978738004,
+        "input_on_right": 0.23354702929050494,
+        "input_off_left": 0.0,
+        "input_off_right": 0.0,
+        "moves_when_input_is_on": true
+      }
+    }
+  },
+  "caveat": "Exploratory held-out comparison, not biological validation. Acetylcholine at or above 0.5 stays positive, GABA at or above 0.5 becomes negative, and glutamate edges are dropped. Monoamines would be recorded and not applied. The rate update still clips activity at 0. Ground truth in the table is not the sign rule. A foraging change is an interface result. The live page keeps the all-positive controller. No confidence intervals."
+}
