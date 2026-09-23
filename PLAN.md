@@ -5,6 +5,8 @@
 - Maturity is recorded only on a growing-to-mature transition. Initially mature wild food, repeated crops in one garden and end-state wetness cannot satisfy the objective. Finished missions freeze; retry retains mission kind.
 - Reproducible comparison (`node tests/productivity.cjs`): no actions = 0 productive gardens; watering the thirsty growing garden closest to maturity every 20 ticks = 2 (P96 at 1047, P97 at 1142); spending all water at tick 1199 = 0. All three finish with 24 survivors; water spent 0/3/3 respectively. No survival benefit claimed. Single designed scenario, not general ecological calibration.
 - Focused validation: both mission scenario suites pass, including old tutorial compatibility and terminal freeze. Selection helper prioritizes growing gardens below 20% moisture by remaining growth, with patch ID tie-break.
+- Interface: second mission button, slow paused start, distinct-garden maturity progress, completed garden IDs/ticks, and nearby selection/watering controls with moisture, nutrient and growth readouts. Retry/Restart preserve mission kind. DOM tests cover selection without spending, watering, and second-mission retry.
+- Full validation: 109 software tests pass, including both mission comparisons and the expanded live-page wiring harness.
 
 ## First drought mission — engine
 - Fixed seed 4, 24 founders, 96 patches, map half 80, no reproduction, hazards or predation. Seasons last 400 ticks; finish at tick 1200 before returning rain is applied. Win requires 8 living agents and 3 distinct garden soil cells at least 20% moist. Extinction ends early.

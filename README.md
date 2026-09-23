@@ -4,6 +4,12 @@ A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron gra
 
 ## Play the riverkeeper prototype
 
+**New: Gardens through drought.** Start a fresh colony at drought onset (climate tick 800), then help **2 distinct planted gardens reach maturity** by tick 1,200 while keeping at least 8 agents alive. This is a separate authored scenario, not the first mission's world fast-forwarded. It starts paused at slow speed, giving about 50 seconds of running time plus planning pauses.
+
+Let the agents eat and plant, then use **Find thirsty garden** to select a growing garden below 20% moisture, prioritizing the crop closest to maturity. **Water this garden** spends from the same 3-unit reserve. The mission panel shows growth, moisture, nutrients and successful maturations. Check regularly and pause to plan: moist soil at the end is no longer enough. Retry and Restart preserve which mission you selected.
+
+In the deterministic tuning check, no intervention produces 0 mature gardens; targeted watering every 20 ticks produces 2 (P96 at tick 1047 and P97 at 1142); spending all water on the final tick produces 0. All three runs retain 24 agents, so this demonstrates crop growth, not a survival benefit. Maturity is not the same as a meal. Run `node tests/productivity.cjs` to reproduce these software checks. The selection button suggests a candidate but never waters automatically.
+
 Choose **Start drought mission** for the first playable challenge. It starts paused on seed 4 with fixed rules: 24 founders, no reproduction, hazards or predation, and three 400-tick seasons. Press Play to begin. At tick 1,200, win with at least **8 agents alive and 3 distinct garden soil cells at least 20% moist**. Extinction ends the mission early. A result panel freezes the world and **Retry same world** restores the original conditions and water reserve. At normal speed a run takes about 38 seconds plus planning pauses.
 
 Select a planted garden on the map or in the garden list. **Water selected garden** adds up to 0.25 moisture to its shared soil cell, spending from a 3-unit reserve for the entire run. Multiple gardens in one cell count as one refuge. Keep water for the end of drought: this introductory goal tests moisture at the finish, not continuous crop health. There is no bonus for spending everything. The mission panel records watering decisions and shows progress and weather timing. Apply, Randomize or Garden world leaves the mission for the sandbox.

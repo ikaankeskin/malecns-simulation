@@ -72,12 +72,16 @@
     <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
     <aside>
       <h2>Rules</h2>
-      <section aria-label="First drought mission" style="padding:12px;border:1px solid #477688;border-radius:8px;margin-bottom:12px;background:#142832">
-        <h2>Survive the first drought</h2>
-        <div class="meta">Reach tick 1,200 with 8 agents alive and 3 separate garden soil cells at least 20% moist. Water is shared by every garden in a cell. Keep some reserve for the final dry days.</div>
+      <section aria-label="Drought missions" style="padding:12px;border:1px solid #477688;border-radius:8px;margin-bottom:12px;background:#142832">
+        <h2>Riverkeeper missions</h2>
+        <div class="meta">First drought: finish with 8 agents and 3 moist garden cells. Gardens through drought: grow 2 distinct planted gardens to maturity and keep 8 agents alive. Both use a limited 3-unit water reserve.</div>
         <button id="start-mission" type="button">Start drought mission</button>
+        <button id="start-productivity" type="button">Gardens through drought</button>
         <button id="retry-mission" type="button" disabled>Retry same world</button>
         <div id="mission-status" role="status" style="white-space:pre-line;margin-top:8px">A fixed-seed introductory challenge. Starts paused.</div>
+        <button id="find-thirsty" type="button" disabled>Find thirsty garden</button>
+        <button id="mission-water" type="button" disabled>Water this garden</button>
+        <div id="mission-garden" class="meta" style="white-space:pre-line"></div>
         <div id="mission-actions" class="meta" style="white-space:pre-line;max-height:120px;overflow:auto"></div>
         <div class="meta">Play resumes time; Pause lets you plan. Apply, Randomize or Garden world exits the mission into sandbox mode.</div>
       </section>
@@ -220,11 +224,11 @@
       <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are tendencies, not character traits. MaleCNS topology does not change.</div>
     </aside>
   </main>
-  <script src="social.js?v=drought-mission-1"></script>
-  <script src="gardening.js?v=drought-mission-1"></script>
-  <script src="water.js?v=drought-mission-1"></script>
-  <script src="soil.js?v=drought-mission-1"></script>
-  <script src="engine.js?v=drought-mission-1"></script>
+  <script src="social.js?v=productive-gardens-1"></script>
+  <script src="gardening.js?v=productive-gardens-1"></script>
+  <script src="water.js?v=productive-gardens-1"></script>
+  <script src="soil.js?v=productive-gardens-1"></script>
+  <script src="engine.js?v=productive-gardens-1"></script>
   <script>
     const Eco = window.MaleCNSEco;
     const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
@@ -366,11 +370,14 @@
       document.getElementById('retry-mission').disabled=!mission;
       if(mission){
         const progress=mission.result || Eco.missionProgress(world);
+        const productive=mission.kind==='productivity';
         const phase=world.tick<800 ? 'Drought begins in '+(800-world.tick)+' ticks' : 'Returning rain in '+Math.max(0,1200-world.tick)+' ticks';
         document.getElementById('mission-status').textContent=(finished ? (mission.status==='won'?'Mission complete — drought survived!':'Mission ended — try again') : (playing?'Mission running':'Paused — plan your watering'))+
-          '\n'+progress.alive+'/8 agents alive · '+progress.refuges+'/3 moist garden cells'+
+          '\n'+(productive ? 'Gardens through drought' : 'First drought')+
+          '\n'+progress.alive+'/8 agents alive · '+(productive ? progress.productive+'/2 distinct gardens matured' : progress.refuges+'/3 moist garden cells')+
           '\n'+(finished ? 'Finished at tick '+progress.tick+' · water spent '+progress.waterUsed.toFixed(2)+'/3' : phase+' · goals checked at tick 1,200')+
-          '\n'+(finished ? 'Retry restores seed 4, the original rules and all water.' : 'Bloom 0–399 → light rain 400–799 → drought 800–1199');
+          '\n'+(finished ? 'Retry restores seed 4, the original rules and all water.' : productive ? 'Fresh colony in drought. Let agents plant; keep growing gardens watered before they dry out. Last-minute water cannot finish a crop.' : 'Bloom 0–399 → light rain 400–799 → drought 800–1199')+
+          (productive ? '\nMatured: '+(mission.matured.map(p=>'P'+p.patch+' at t'+p.tick).join(', ')||'none yet') : '');
         document.getElementById('mission-actions').textContent='Your watering decisions ('+mission.actions.length+')\n'+(mission.actions.slice(-12).map(a=>'t'+a.tick+' · P'+a.patch+' · cell '+a.cell+' · '+a.amount.toFixed(2)+' water').join('\n') || 'None yet');
       }else{
         document.getElementById('mission-status').textContent='Sandbox active. Start the mission for a fixed world and a clear goal.';
@@ -530,6 +537,13 @@
       const water=snap.soil?.water;
       document.getElementById('water-stats').textContent=water ? water.weather+' · river flow '+Math.round(water.flow*100)+'% · reserve '+water.reserve.toFixed(2)+'/3 · moisture '+(watchedPatch ? Math.round(100*watchedPatch.moisture)+'% at selected patch' : 'select a patch')+' · '+(world.rules.seasons ? (world.rules.season_length-snap.tick%world.rules.season_length)+' ticks until weather changes' : 'fixed weather') : 'Water off';
       document.getElementById('water-garden').disabled=Boolean(finished) || !(water && water.reserve>0 && watchedPatch?.planter!=null && watchedPatch.moisture<1);
+      document.getElementById('mission-water').disabled=document.getElementById('water-garden').disabled;
+      document.getElementById('find-thirsty').disabled=Boolean(finished) || Eco.thirstyGarden(world)==null;
+      document.getElementById('mission-garden').textContent=watchedPatch?.planter!=null ?
+        'P'+watchedPatch.id+' · '+watchedPatch.stage+' · moisture '+Math.round(100*(watchedPatch.moisture||0))+'% · nutrients '+Math.round(100*(watchedPatch.fertility||0))+'%'+
+        (watchedPatch.stage==='growing' ? '\nGrowth '+Math.round(100*(1-watchedPatch.timer/world.rules.grow_ticks))+'% · needs both water and nutrients' : '')+
+        '\nReserve '+(water?.reserve||0).toFixed(2)+'/3' :
+        'Find thirsty garden selects a growing garden below 20% moisture, closest to maturity. It spends no water. Pause to plan; watch nutrients too.';
       document.getElementById('patch-history').textContent = watchedPatch ? 'P'+watchedPatch.id+' · '+watchedPatch.stage+' · ('+watchedPatch.x.toFixed(1)+', '+watchedPatch.y.toFixed(1)+')\n'+
         (watchedPatch.planter == null ? 'Wild food · relocates after harvest' : 'Planted by F'+watchedPatch.planter+' (agent generation '+watchedPatch.planter_generation+') at t'+watchedPatch.planted_tick+'\nSeed from P'+watchedPatch.parent_patch+' · root P'+watchedPatch.root_patch+' · plant generation '+watchedPatch.plant_generation)+
         '\nHarvests '+(watchedPatch.harvests||0)+' · descendants '+(watchedPatch.descendant_meals||0)+' · after death '+(watchedPatch.posthumous_meals||0)+
@@ -666,6 +680,8 @@
     document.getElementById('soil-overlay').onchange = draw;
     document.getElementById('overlay-mode').onchange = draw;
     document.getElementById('water-garden').onclick = () => {if(world){Eco.waterGarden(world,selectedPatch);draw();}};
+    document.getElementById('mission-water').onclick = document.getElementById('water-garden').onclick;
+    document.getElementById('find-thirsty').onclick = () => {if(world){selectedPatch=Eco.thirstyGarden(world);draw();}};
     document.getElementById('garden-world').onclick = () => {
       fields.preset.value='balanced'; applyPreset('balanced'); fields.agents.value='24';
       document.getElementById('world-size').value='80'; document.getElementById('gardening').checked=true;
@@ -684,22 +700,23 @@
       const candidates=world.patches.map(p=>{const q=worldToCanvas(p.x,p.y,cameraBounds);return {p,d:Math.hypot(q[0]-x,q[1]-y)};}).filter(row=>row.d<14).sort((a,b)=>a.d-b.d);
       if(candidates.length){selectedPatch=candidates[0].p.id;draw();}
     };
-    function startMission(){
+    function startMission(kind='refuge'){
       if(!graph)return;
       fields.preset.value='balanced';applyPreset('balanced');fields.agents.value='24';fields.repro.value='0';fields.mutation.value='0.85';
       document.getElementById('world-size').value='80';document.getElementById('season-length').value='400';
       document.getElementById('sense-range').value='24';
       for(const id of ['gardening','soil-limits','water-enabled','seasons','communication','social-learning','lifetime-learning','scavenging'])document.getElementById(id).checked=true;
       for(const id of ['hazards','predation-enabled','gifts-enabled','reciprocity'])document.getElementById(id).checked=false;
-      seed=4;world=Eco.createMission(graph);selected=0;selectedPatch=null;stepCredit=0;playing=false;
+      seed=4;world=Eco.createMission(graph,kind);selected=0;selectedPatch=null;stepCredit=0;playing=false;
       document.getElementById('play').textContent='Play';
-      document.getElementById('playback-speed').value='1';document.getElementById('camera').value='1';
+      document.getElementById('playback-speed').value=kind==='productivity'?'0.25':'1';document.getElementById('camera').value='1';
       document.getElementById('overlay-mode').value='moisture';document.getElementById('soil-overlay').checked=true;
       showUi();draw();
     }
-    document.getElementById('start-mission').onclick=startMission;
-    document.getElementById('retry-mission').onclick=startMission;
-    document.getElementById('reset').onclick = () => world?.mission ? startMission() : restart(seed);
+    document.getElementById('start-mission').onclick=()=>startMission('refuge');
+    document.getElementById('start-productivity').onclick=()=>startMission('productivity');
+    document.getElementById('retry-mission').onclick=()=>startMission(world?.mission?.kind || 'refuge');
+    document.getElementById('reset').onclick = () => world?.mission ? startMission(world.mission.kind) : restart(seed);
     document.getElementById('randomize').onclick = () => {
       const pick = Eco.randomize();
       fields.preset.value = pick.preset;

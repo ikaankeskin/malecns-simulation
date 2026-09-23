@@ -8,7 +8,9 @@ The player shapes habitat while autonomous agents live with the consequences. Th
 
 Implemented: **survive the first drought**, a fixed-seed introductory mission with a paused start, weather countdown, finite reserve, intervention history, terminal result and same-world retry. It requires 8 survivors and 3 separate garden cells at least 20% moist at tick 1,200. It tests end-of-drought reserve timing; it does not require maintaining crops throughout the drought. Baseline and winning intervention are reproducible in `tests/mission.cjs`.
 
-Next priority: playtest the tutorial, then replace the finish-line moisture target with sustained garden productivity in a second mission. Tune nutrient and water constraints together so irrigation has a measurable effect on growth and meals. Add an alert before drought and a clearer garden-selection view before introducing more tools. Save/load and replayable action logs remain unimplemented.
+Implemented: **Gardens through drought**, a second authored scenario beginning with a fresh colony at drought onset. Two distinct planted gardens must reach maturity before rain returns. Regular targeted watering succeeds in the fixed test; no intervention and final-tick watering fail. This measures crop maturation, not meals or survival gains. The mission panel now offers thirsty-garden selection, growth and nutrient inspection, and watering controls.
+
+Next priority: playtest both missions for readable timing and meaningful choice, then add save/load and replayable player decisions. A third scenario can link crop production to actual meals and lineage survival; that outcome still needs calibration. Add a drought warning before introducing more construction tools.
 
 Then add choices that compete for the same resources:
 
