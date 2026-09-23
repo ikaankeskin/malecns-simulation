@@ -57,6 +57,114 @@ Do not claim that food-seeking, survival, social behaviour, or evolution are pro
 
 Suggested later layout (gradual, not a rewrite): `simulation/`, `agents/`, `controllers/`, `viewer/`, `experiments/`. Keep a CPU path.
 
+
+## Research track: neural computation and connectome learning
+
+This track asks whether biologically derived connectivity provides useful computational properties beyond producing interesting-looking behaviour. It should be developed as a controlled benchmark suite rather than as a claim that the MaleCNS connectome itself implements these abstractions.
+
+### R1. Can the MaleCNS topology learn?
+
+Test whether a fixed MaleCNS-derived graph can support learned behaviour when trainable dynamics are added around or within the graph.
+
+Start with increasingly difficult tasks:
+
+1. Tiny supervised input/output mappings.
+2. Directional navigation and foraging.
+3. Noisy and partially observed navigation.
+4. Memory-dependent tasks.
+5. Competitive/cooperative tasks.
+6. 5x5 Go as a non-biological cognitive benchmark; consider 7x7 and 9x9 only after the small-board experiment is stable.
+
+The Go experiment is not intended to reproduce fly cognition. Its purpose is to test how general the computational capacity of the topology is when used as a constrained recurrent substrate.
+
+For every task, compare at least:
+
+- Real MaleCNS-derived topology.
+- Degree/weight-matched shuffled topology.
+- Random sparse recurrent topology with a similar connection budget.
+- A conventional small RNN/MLP baseline appropriate to the task.
+
+Record learning curves, sample efficiency, final task performance, compute cost, robustness to lesioning/noise, and transfer/generalisation.
+
+### R2. Neural-state representation experiment
+
+The current controller is already continuous-valued: neuron activity is a floating-point value in [0, 1]. Do not describe the present simulator as binary.
+
+Add interchangeable neural-dynamics backends while keeping topology, environment, inputs, outputs, seeds and training budget controlled:
+
+1. **Binary:** two states, e.g. inactive/active.
+2. **Ternary:** inhibitory/neutral/excitatory or -1/0/+1.
+3. **Five-state experimental representation:** **NO / MAYBE / YES / VOID / INFINITY**.
+4. **Current continuous rate model:** activity in [0, 1].
+5. **Spiking baseline:** begin with a simple leaky-integrate-and-fire implementation.
+
+The five-state system is an experimental computational abstraction, not a claim that biological neurons literally use five-valued logic.
+
+Working interpretation:
+
+| State | Computational interpretation |
+|---|---|
+| NO | active negative/inhibitory evidence |
+| MAYBE | weak, conflicting or unresolved evidence |
+| YES | positive/excitatory evidence |
+| VOID | missing input / unavailable information, distinct from negative evidence |
+| INFINITY | saturated or overwhelming activity; implement as a finite saturated state, never IEEE infinity |
+
+A central hypothesis is that explicitly separating **NO**, **MAYBE**, and **VOID** may improve behaviour under partial observability, conflicting sensory evidence, circuit damage and changing environments.
+
+### R3. Controlled benchmark suite
+
+Use the same tasks to compare neural representations and topologies:
+
+- Deterministic left/right sensory decision.
+- Sensory noise.
+- Missing observations, where VOID can be tested directly.
+- Conflicting sensory signals.
+- Delayed-response / short-term-memory task.
+- Foraging and navigation.
+- Circuit lesioning at increasing fractions of removed neurons.
+- Environment distribution shift.
+- 5x5 Go once the simpler tests are validated.
+
+Primary measurements:
+
+- Task accuracy / reward.
+- Episodes or games required to reach fixed performance thresholds.
+- Robustness after 5%, 10%, 20%, 30% and 50% neuron/edge lesions where meaningful.
+- Performance under missing and corrupted observations.
+- Generalisation to unseen maps/seeds.
+- Computational cost and active-state sparsity.
+- Stability across random seeds.
+
+The useful scientific result does not require the biological topology or five-state representation to win. A null result, such as no advantage over matched random graphs, is still informative if the experiment is controlled.
+
+### R4. Local learning and biological plausibility
+
+After baseline trainability is established, compare ordinary optimisation with increasingly local learning rules:
+
+- Gradient-based training as the engineering baseline.
+- Hebbian updates.
+- Reward-modulated Hebbian learning.
+- STDP-like local plasticity for the spiking model.
+- Homeostatic mechanisms where needed to prevent runaway activity.
+
+Ask whether useful behaviour can be learned using information locally available to neurons/synapses, and how much performance is lost or gained relative to backpropagation.
+
+### R5. Connect neural representations back to the ecosystem
+
+Only after the benchmark suite works, introduce the best-understood neural backends into the artificial-life world.
+
+Questions to test:
+
+- Does representation type change survival without changing the environment rules?
+- Does explicit uncertainty/missing-information handling improve resilience under drought, hazards or damaged sensors?
+- Do different representations produce different evolutionary pressures?
+- Does a representation that performs well on benchmarks also produce more robust embodied behaviour?
+- Can lesion/ablation experiments identify causal circuit contributions rather than visually suggestive correlations?
+
+Keep game design and scientific evaluation separable: the player-facing simulation may use whichever controller is enjoyable and performant, while research modes keep fixed seeds, controlled baselines and reproducible metrics.
+
+
 ## Ecosystem v0.1 decisions
 
 These are simulation abstractions unless noted.
