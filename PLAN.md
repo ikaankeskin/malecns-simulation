@@ -1,5 +1,11 @@
 # Implementation plan
 
+## Gardens through drought — second mission engine
+- A fresh, provisioned seed-4 colony starts at climate tick 800, age zero, with no pre-grown gardens. This is an authored drought-onset scenario, not an 800-tick pre-run. Same ecology, 3 water units, no reproduction/hazards/predation. Deadline 1200; goals: 8 living agents and 2 distinct planted gardens reaching maturity during play.
+- Maturity is recorded only on a growing-to-mature transition. Initially mature wild food, repeated crops in one garden and end-state wetness cannot satisfy the objective. Finished missions freeze; retry retains mission kind.
+- Reproducible comparison (`node tests/productivity.cjs`): no actions = 0 productive gardens; watering the thirsty growing garden closest to maturity every 20 ticks = 2 (P96 at 1047, P97 at 1142); spending all water at tick 1199 = 0. All three finish with 24 survivors; water spent 0/3/3 respectively. No survival benefit claimed. Single designed scenario, not general ecological calibration.
+- Focused validation: both mission scenario suites pass, including old tutorial compatibility and terminal freeze. Selection helper prioritizes growing gardens below 20% moisture by remaining growth, with patch ID tie-break.
+
 ## First drought mission — engine
 - Fixed seed 4, 24 founders, 96 patches, map half 80, no reproduction, hazards or predation. Seasons last 400 ticks; finish at tick 1200 before returning rain is applied. Win requires 8 living agents and 3 distinct garden soil cells at least 20% moist. Extinction ends early.
 - Completed missions freeze simulation and watering. Mission action records persist separately from the rolling event timeline; retries recreate the same world and reserve.

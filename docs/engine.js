@@ -843,6 +843,10 @@
       if (patch.stage !== 'mature') {
         if (advancePatch(patch, rules, world.random, growthRates[patch.id] ?? environment.growth) === 'food_mature') {
           world.events.push({ tick: world.tick, kind: 'food_mature', text: 'patch ' + patch.id + ' matured' });
+          const m=world.mission;
+          if(m?.kind==='productivity' && patch.planter!=null && world.tick>=m.droughtStart && !m.matured.some(row=>row.patch===patch.id)){
+            m.matured.push({patch:patch.id,tick:world.tick});
+          }
         }
         return;
       }
@@ -926,24 +930,33 @@
       const m=world.mission;
       if(world.tick>=m.end || alive===0){
         const result=missionProgress(world);
-        m.status=alive>=m.targetAlive && result.refuges>=m.targetRefuges ? 'won' : 'lost';
+        const goal=m.kind==='productivity' ? result.productive>=m.targetProductive : result.refuges>=m.targetRefuges;
+        m.status=alive>=m.targetAlive && goal ? 'won' : 'lost';
         m.result={...result,tick:world.tick,waterUsed:world.soil.water.irrigated};
-        world.events.push({tick:world.tick,kind:'mission_result',text:m.status==='won'?'Drought survived: refuges ready for returning rain.':'Drought mission ended: try another watering strategy.'});
+        world.events.push({tick:world.tick,kind:'mission_result',text:m.status==='won'?'Drought mission complete: goals met.':'Drought mission ended: try another watering strategy.'});
       }
     }
     return world;
   }
 
-  function createMission(graph){
+  function createMission(graph,kind='refuge'){
+    if(!['refuge','productivity'].includes(kind))throw new Error('Unknown mission');
     const world=createWorld(graph,{agents:24,patches:96,map_half:80,gardening:true,water:true,
       hazards:false,predation:false,gifts:false,seasons:true,season_length:400,repro_rate:0},4);
-    world.mission={status:'running',end:1200,droughtStart:800,targetAlive:8,targetRefuges:3,actions:[]};
+    world.mission={kind,status:'running',start:kind==='productivity'?800:0,end:1200,droughtStart:800,
+      targetAlive:8,targetRefuges:3,targetProductive:2,matured:[],actions:[]};
+    if(kind==='productivity'){
+      // Authored fresh colony at drought onset, not a pre-simulated 800-tick world.
+      world.tick=800;world.soil.water.weather='drought';world.soil.water.flow=.12;
+      world.patches.forEach(p=>{p.soil_history=[];});Soil.observe(world.soil,world.patches,800);
+    }
     return world;
   }
 
   function missionProgress(world){
     const cells=new Set(world.patches.filter(p=>p.planter!=null).map(p=>Soil.cellIndex(world.soil,p.x,p.y)));
     return {alive:world.agents.filter(a=>a.alive).length,
+      productive:world.mission?.matured.length || 0,
       refuges:[...cells].filter(i=>world.soil.water.moisture[i]>=.2).length};
   }
 
@@ -963,7 +976,7 @@
       mean_lifespan: living.length ? living.reduce((sum, agent) => sum + agent.genome.lifespan, 0) / living.length : 1,
       mean_fertility: living.length ? living.reduce((sum, agent) => sum + agent.genome.fertility, 0) / living.length : 1,
       signals: world.signals, social: Social.totals(world.agents),
-      environment: seasonAt(Math.max(0,world.tick-1),world.rules),
+      environment: seasonAt(world.mission && world.tick===world.mission.start ? world.tick : Math.max(0,world.tick-1),world.rules),
       scavenged: world.scavenged, composted: world.composted,
       contested: world.contested || 0,
       displaced: world.displaced || 0,
@@ -1077,6 +1090,11 @@
     return { focus: focus, depth: maxDepth, omitted: Object.keys(omitted).length, nodes: nodes };
   }
 
+  function thirstyGarden(world){
+    return world.patches.filter(p=>p.planter!=null && p.stage==='growing' && p.moisture<.2)
+      .sort((a,b)=>a.timer-b.timer || a.id-b.id)[0]?.id ?? null;
+  }
+
   function waterGarden(world, id) {
     if(world.mission && world.mission.status!=='running')return 0;
     const patch=world.patches.find(p=>p.id===id && p.planter!=null);
@@ -1093,7 +1111,7 @@
   }
 
   root.MaleCNSEco = {
-    createMission, missionProgress,
+    createMission, missionProgress, thirstyGarden,
     waterGarden,
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
     spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation, helperView, rememberHelper,
