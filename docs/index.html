@@ -44,6 +44,7 @@
     button.primary { background: #2a3b34; border-color: #3e5c52; color: #d7f0e6; width: 100%; margin: 4px 0; }
     button.ghost { width: 100%; margin: 4px 0; }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .actions.transport { grid-template-columns: 1fr 1fr 1fr; }
     #events { max-height: 120px; overflow: auto; font-size: 11px; color: var(--muted); }
     .event { padding: 2px 0; border-bottom: 1px solid #232a38; }
     #popchart { width: 100%; height: 64px; display: block; background: #10131a; border: 1px solid var(--line); border-radius: 4px; }
@@ -52,6 +53,19 @@
     .fly.dead { opacity: .45; }
     .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
     .warn { color: #d4a24c; font-size: 12px; }
+    .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+    .tab { width: 100%; padding: 8px 6px; font-size: 12px; line-height: 1.25; background: #1d2330; }
+    .tab.on { background: #24362f; border-color: #3e5c52; color: #d7f0e6; }
+    .guide { padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #10151d; margin: 8px 0 12px; }
+    .guide p { margin: 0 0 8px; }
+    .guide p:last-child { margin-bottom: 0; }
+    .guide strong { color: var(--text); }
+    .status-strip { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; margin: 8px 0; }
+    details.stats { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 8px; }
+    details.stats summary { cursor: pointer; color: var(--text); font-size: 13px; margin-bottom: 6px; }
+    details.stats:not([open]) > :not(summary) { display: none; }
+    #panel-mission { padding: 10px 12px; border: 1px solid #477688; border-radius: 8px; background: #142832; margin-bottom: 12px; }
+    .pour { min-height: 3.2em; margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: #102833; border: 1px solid #3d6d86; color: #d7f3ff; font-size: 13px; }
     .bar-row { display: grid; grid-template-columns: 52px 1fr 36px; gap: 6px; align-items: center; font-size: 11px; margin: 3px 0; color: var(--muted); }
     .bar-row .track { height: 7px; background: #10131a; border-radius: 3px; overflow: hidden; }
     .bar-row i { display: block; height: 100%; background: var(--teal); }
@@ -66,32 +80,73 @@
 <body>
   <header>
     <h1>MaleCNS ecosystem <span class="badge">malecns-derived controller</span></h1>
-    <div class="meta">MaleCNS DNg13 circuits steer bodies. Food, energy, aging, and reproduction are labelled simulation rules, not fly physiology. Topology does not mutate.</div>
+    <div class="meta">Sandbox is the laboratory. Play is one riverkeeper game with two goals. A challenge world starts only when you choose it. A pour shows the moisture change on the map.</div>
   </header>
   <main>
     <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
     <aside>
-      <h2>Rules</h2>
-      <section aria-label="Drought missions" style="padding:12px;border:1px solid #477688;border-radius:8px;margin-bottom:12px;background:#142832">
-        <h2>Riverkeeper missions</h2>
-        <div class="meta">First drought: finish with 8 agents and 3 moist garden cells. Gardens through drought: grow 2 distinct planted gardens to maturity and keep 8 agents alive. Both use a limited 3-unit water reserve.</div>
-        <button id="start-mission" type="button">Start drought mission</button>
-        <button id="start-productivity" type="button">Gardens through drought</button>
-        <button id="retry-mission" type="button" disabled>Retry same world</button>
-        <div id="mission-status" role="status" style="white-space:pre-line;margin-top:8px">A fixed-seed introductory challenge. Starts paused.</div>
-        <button id="find-thirsty" type="button" disabled>Find thirsty garden</button>
-        <button id="mission-water" type="button" disabled>Water this garden</button>
+      <div class="mode-tabs" role="tablist" aria-label="Mode">
+        <button id="tab-sandbox" class="tab on" type="button" role="tab" aria-selected="true">Sandbox</button>
+        <button id="tab-play" class="tab" type="button" role="tab" aria-selected="false">Play</button>
+      </div>
+      <div id="now-playing" class="meta">Sandbox · laboratory, no win condition</div>
+      <div id="pour-result" class="pour" role="status">Pour on a planted garden to see its moisture change.</div>
+      <div class="status-strip" aria-label="Current run">
+        <div class="row"><span>tick</span><strong id="status-tick">0</strong></div>
+        <div class="row"><span>alive</span><strong id="status-alive">0</strong></div>
+        <div class="row"><span>goal</span><strong id="status-goal">none</strong></div>
+      </div>
+
+      <section id="panel-play" hidden>
+        <h2>Riverkeeper</h2>
+        <div class="guide">
+          <p><strong>What this is.</strong> One game. Agents find food, plant, and move on their own. You do not steer them. You spend a reserve of 3 water units on the soil under planted gardens.</p>
+          <p><strong>How a pour works.</strong> Click a planted garden, or Find thirsty garden. Then Pour. The map zooms to that garden, a blue splash marks the soil, and the line above states the moisture before and after. A cyan arc around the garden is its moisture. Reaching 20% turns that arc bright. A pour is not a meal.</p>
+          <p><strong>Two goals, same actions.</strong> Pick one below. The world is built when you press it. Pressing it again rebuilds that goal.</p>
+        </div>
+        <button id="start-mission" type="button">Goal · 3 moist cells by the deadline</button>
+        <p class="meta">Paused at bloom, seed 4. Win at tick 1,200 with 8 agents alive and 3 garden soil cells at least 20% moist. Pour near the end of drought. Earlier water can dry away.</p>
+        <button id="start-productivity" type="button">Goal · 2 crops mature in the drought</button>
+        <p class="meta">Paused at the start of drought, slow. Win with 8 agents alive and 2 different planted gardens maturing during play. Pour while a crop is still growing. The last tick is too late.</p>
+      <section id="panel-refuge" hidden>
+        <p class="meta">This goal checks moisture at tick 1,200, not whether the crop stayed healthy all drought. Bloom 0–399, light rain 400–799, drought 800–1,199.</p>
+      </section>
+      <section id="panel-gardens" hidden>
+        <p class="meta">Only a growing garden that becomes mature during this run counts. Wild food, a second crop in the same garden, and wet soil at the deadline do not.</p>
+      </section>
+      </section>
+
+      <section id="panel-mission" hidden aria-label="Scenario controls">
+        <div id="mission-status" role="status" style="white-space:pre-line;margin-top:8px">Open a scenario tab to build its world.</div>
         <div id="mission-garden" class="meta" style="white-space:pre-line"></div>
         <div id="mission-actions" class="meta" style="white-space:pre-line;max-height:120px;overflow:auto"></div>
-        <div class="meta">Play resumes time; Pause lets you plan. Apply, Randomize or Garden world exits the mission into sandbox mode.</div>
+        <button id="retry-mission" type="button" disabled>Retry same world</button>
+        <button id="find-thirsty" type="button" disabled>Find thirsty garden</button>
+        <button id="mission-water" type="button" disabled>Pour on this garden</button>
       </section>
+
+      <label class="ctrl"><span>playback</span><select id="playback-speed"><option value="0.25">Slow · 8 ticks/s</option><option value="1">Normal · 32 ticks/s</option><option value="4" selected>Fast · 128 ticks/s</option></select></label>
+      <div class="actions transport">
+        <button type="button" id="play" class="ghost">Pause</button>
+        <button type="button" id="step" class="ghost">Step</button>
+        <button type="button" id="reset" class="ghost">Restart</button>
+      </div>
+
+      <section id="panel-sandbox">
+      <h2>Sandbox</h2>
+      <div class="guide">
+        <p><strong>What this is.</strong> A laboratory. MaleCNS circuits steer the bodies. Food, energy, aging, and birth are labelled simulation rules, not fly physiology. There is no score and no win condition.</p>
+        <p><strong>How to use it.</strong> Pick a preset or move the controls, then press Apply. Pause and Step to inspect one agent. Randomize starts a new seed. Garden world is a larger laboratory with planting, soil, and a river. It is not a scored scenario. Returning here from a scenario restores this laboratory.</p>
+      </div>
       <button id="garden-world" type="button">Start garden world · 16× area</button>
+      <button id="water-garden" type="button" disabled>Pour on this garden</button>
+      <div id="water-stats" class="meta">Enable rivers and water, or start a garden world.</div>
+      <div class="meta">Choose a planted garden on the map. Spend up to 0.25 water on its soil cell; nearby plants share it. The 3-unit reserve lasts the whole run. Wild patches cannot be watered. Moisture helps growth only when nutrients are also available.</div>
       <label class="ctrl"><span>world size</span><select id="world-size"><option value="20">40 × 40 · original</option><option value="40">80 × 80 · 4× area</option><option value="80">160 × 160 · 16× area</option></select></label>
       <label class="ctrl"><span>seed carrying and planting</span><input id="gardening" type="checkbox"></label>
       <label class="ctrl"><span>soil limits and recovery</span><input id="soil-limits" type="checkbox"></label>
       <label class="ctrl"><span>rivers and water (requires soil)</span><input id="water-enabled" type="checkbox"></label>
       <label class="ctrl"><span>overlay</span><select id="overlay-mode"><option value="fertility">Soil fertility</option><option value="moisture">Soil moisture</option></select></label>
-      <label class="ctrl"><span>playback</span><select id="playback-speed"><option value="0.25">Slow · 8 ticks/s</option><option value="1">Normal · 32 ticks/s</option><option value="4" selected>Fast · 128 ticks/s</option></select></label>
       <label class="ctrl"><span>show soil overlay</span><input id="soil-overlay" type="checkbox" checked></label>
       <div class="meta">Soil limits take effect with Apply. Green soil is fertile; brown is depleted. Plants in the same cell share nutrients. Resting soil recovers; uneaten corpses replenish it.</div>
       <div class="meta">Larger maps scale starting food by area. Garden world starts 24 agents with hazards off. Planting costs energy; gardens regrow in place and can outlive their planters.</div>
@@ -135,13 +190,14 @@
       <div class="actions">
         <button type="button" id="randomize" class="primary">Randomize</button>
         <button type="button" id="apply">Apply</button>
-        <button type="button" id="play" class="ghost">Pause</button>
-        <button type="button" id="step" class="ghost">Step</button>
-        <button type="button" id="reset" class="ghost">Restart</button>
       </div>
       <div class="row"><span>seed</span><strong id="seed-val">4</strong></div>
       <div class="meta" id="rule-readout"></div>
+      </section>
 
+      <details class="stats" id="stats-dashboard">
+      <summary>Show stats</summary>
+      <div class="meta">Population, lineages, signals, gifts, gardens, and the selected agent. Closed until you open it. The strip above still shows tick, alive, and the scenario goal.</div>
       <h2>Communication</h2>
       <div class="row"><span>reports sent / received</span><strong id="signal-count">0 / 0</strong></div>
       <div class="row"><span>memories followed</span><strong id="signal-followed">0</strong></div>
@@ -162,10 +218,7 @@
       <h2>Gardens and inheritance</h2>
       <div id="garden-stats" class="meta">No gardens yet</div>
       <div id="soil-stats" class="meta">Soil limits off</div>
-      <h2>Riverkeeper · player experiment</h2>
-      <div id="water-stats" class="meta">Enable rivers and water, or start a garden world.</div>
-      <button id="water-garden" type="button" disabled>Water selected garden</button>
-      <div class="meta">Choose a planted garden. Spend up to 0.25 water on its soil cell; nearby plants share it. Your 3-unit reserve lasts the whole run. Pause to decide what to protect before drought. Moisture helps growth only when nutrients are also available.</div>
+      <h2>Gardens on the map</h2>
       <div id="seed-status" class="meta"></div>
       <div id="garden-list" style="display:flex;flex-wrap:wrap;gap:4px;max-height:156px;overflow:auto"></div>
       <div id="patch-history" class="meta" style="white-space:pre-line">Click a patch on the map or a garden below to inspect its history.</div>
@@ -222,13 +275,14 @@
       <div class="meta">A gift is scored from the donor's own energy 100 ticks later. An attack is scored only if that attacker eats the corpse, or reaches the spot after it is gone. A corpse never reached adds nothing. These scores are not inherited and do not change synapses.</div>
       <h2>Assumptions</h2>
       <div class="meta">Energy is an artificial budget. Food reappears in a new random place after it is eaten. Plant meals extend lifespan; scavenged meals only restore energy. Seasons change plant growth. These are engineered behaviors, not fly physiology. Offspring inherit and mutate speed, lifespan, fertility, metabolism, and decoder gains, plus a few nearly useless quirks. Caution, generosity, and aggression are inherited scales for hazard avoidance, gifts, and attacks. They are tendencies, not character traits. MaleCNS topology does not change.</div>
+      </details>
     </aside>
   </main>
-  <script src="social.js?v=productive-gardens-1"></script>
-  <script src="gardening.js?v=productive-gardens-1"></script>
-  <script src="water.js?v=productive-gardens-1"></script>
-  <script src="soil.js?v=productive-gardens-1"></script>
-  <script src="engine.js?v=productive-gardens-1"></script>
+  <script src="social.js?v=modes-1"></script>
+  <script src="gardening.js?v=modes-1"></script>
+  <script src="water.js?v=modes-1"></script>
+  <script src="soil.js?v=modes-1"></script>
+  <script src="engine.js?v=modes-1"></script>
   <script>
     const Eco = window.MaleCNSEco;
     const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
@@ -243,7 +297,7 @@
       preset: document.getElementById('preset'),
     };
     let graph = null, world = null, selected = 0, playing = true, handle = null, seed = 4;
-    let selectedPatch = null, cameraBounds = null;
+    let selectedPatch = null, cameraBounds = null, splash = null, lastPour = null, heldForMenu = false;
 
     function ui() {
       return {
@@ -379,9 +433,11 @@
           '\n'+(finished ? 'Retry restores seed 4, the original rules and all water.' : productive ? 'Fresh colony in drought. Let agents plant; keep growing gardens watered before they dry out. Last-minute water cannot finish a crop.' : 'Bloom 0–399 → light rain 400–799 → drought 800–1199')+
           (productive ? '\nMatured: '+(mission.matured.map(p=>'P'+p.patch+' at t'+p.tick).join(', ')||'none yet') : '');
         document.getElementById('mission-actions').textContent='Your watering decisions ('+mission.actions.length+')\n'+(mission.actions.slice(-12).map(a=>'t'+a.tick+' · P'+a.patch+' · cell '+a.cell+' · '+a.amount.toFixed(2)+' water').join('\n') || 'None yet');
+        document.getElementById('status-goal').textContent=productive ? progress.productive+'/2 gardens' : progress.refuges+'/3 moist';
       }else{
-        document.getElementById('mission-status').textContent='Sandbox active. Start the mission for a fixed world and a clear goal.';
+        document.getElementById('mission-status').textContent='Sandbox. No win condition. Change the rules below and press Apply.';
         document.getElementById('mission-actions').textContent='';
+        document.getElementById('status-goal').textContent='none';
       }
       selected = followSelection(snap.agents || [], selected);
       const half = world.rules.map_half;
@@ -465,7 +521,45 @@
           ctx.beginPath(); ctx.arc(p[0],p[1],style[1]+3,0,2*Math.PI); ctx.stroke();
           ctx.fillStyle='#80ef98'; ctx.font='10px sans-serif'; ctx.fillText('P'+patch.id,p[0]+9,p[1]+12);
         }
+        if (patch.planter != null && patch.moisture != null) {
+          const moist = Math.max(0, Math.min(1, patch.moisture));
+          ctx.strokeStyle = moist >= 0.2 ? '#7ee0ff' : '#c47a4a';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], style[1] + 8, -Math.PI / 2, -Math.PI / 2 + moist * Math.PI * 2);
+          ctx.stroke();
+          if (patch.id === selectedPatch) {
+            ctx.fillStyle = moist >= 0.2 ? '#b9f3ff' : '#f0d2b4';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(lastPour && lastPour.id === patch.id ? lastPour.label : Math.round(100 * moist) + '%', p[0] + 12, p[1] - 10);
+          }
+        }
       });
+      if (splash && cameraBounds) {
+        const age = (Date.now() - splash.t0) / 3200;
+        if (age < 1) {
+          const p = worldToCanvas(splash.x, splash.y, cameraBounds);
+          ctx.globalAlpha = 1 - age;
+          if (splash.cell != null && world.soil) {
+            const soil = world.soil;
+            const x = -soil.half + (splash.cell % soil.n) * soil.size;
+            const y = -soil.half + Math.floor(splash.cell / soil.n) * soil.size;
+            const a = worldToCanvas(x, y + soil.size, cameraBounds);
+            const b = worldToCanvas(x + soil.size, y, cameraBounds);
+            ctx.fillStyle = '#7ee0ff';
+            ctx.fillRect(a[0], a[1], b[0] - a[0], b[1] - a[1]);
+          }
+          ctx.strokeStyle = '#d8f6ff';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], 16 + age * 64, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = '#f4fcff';
+          ctx.font = 'bold 18px sans-serif';
+          ctx.fillText(splash.label, p[0] + 14, p[1] - 16 - age * 28);
+          ctx.globalAlpha = 1;
+        }
+      }
       snap.corpses.forEach((corpse) => {
         const p = worldToCanvas(corpse.x, corpse.y, bounds);
         ctx.fillStyle = '#e6a0b5'; ctx.globalAlpha = 0.25 + 0.65 * corpse.freshness;
@@ -513,6 +607,8 @@
       document.getElementById('composted').textContent = snap.composted;
       document.getElementById('tick').textContent = snap.tick;
       document.getElementById('alive').textContent = snap.alive;
+      document.getElementById('status-tick').textContent = snap.tick;
+      document.getElementById('status-alive').textContent = snap.alive;
       document.getElementById('born').textContent = snap.births;
       document.getElementById('generation').textContent = snap.generation;
       document.getElementById('mean-speed').textContent = Number(snap.mean_speed || 1).toFixed(2);
@@ -644,6 +740,111 @@
       }, 1000 / 32);
     }
 
+    function showChallenge(kind) {
+      document.getElementById('panel-refuge').hidden = kind !== 'refuge';
+      document.getElementById('panel-gardens').hidden = kind !== 'productivity';
+      document.getElementById('panel-mission').hidden = !kind;
+      document.getElementById('now-playing').textContent = kind === 'refuge'
+        ? 'Riverkeeper · 3 moist cells by the deadline'
+        : kind === 'productivity'
+          ? 'Riverkeeper · 2 crops mature in the drought'
+          : 'Riverkeeper · pick a goal';
+    }
+
+    function setModeChrome(mode) {
+      const sandboxOn = mode !== 'play';
+      document.getElementById('panel-sandbox').hidden = !sandboxOn;
+      document.getElementById('panel-play').hidden = sandboxOn;
+      for (const [id, on] of [['tab-sandbox', sandboxOn], ['tab-play', !sandboxOn]]) {
+        const el = document.getElementById(id);
+        el.className = on ? 'tab on' : 'tab';
+        if (el.setAttribute) el.setAttribute('aria-selected', on ? 'true' : 'false');
+      }
+      if (sandboxOn) {
+        showChallenge(null);
+        document.getElementById('now-playing').textContent = 'Sandbox · laboratory, no win condition';
+      } else {
+        showChallenge(world && world.mission ? world.mission.kind : null);
+      }
+    }
+
+    function enterSandbox() {
+      const leaving = Boolean(world && world.mission);
+      setModeChrome('sandbox');
+      if (!leaving) {
+        if (heldForMenu) {
+          heldForMenu = false;
+          playing = true;
+          document.getElementById('play').textContent = 'Pause';
+        }
+        return;
+      }
+      heldForMenu = false;
+      fields.preset.value = 'balanced';
+      applyPreset('balanced');
+      document.getElementById('world-size').value = '20';
+      document.getElementById('gardening').checked = false;
+      document.getElementById('soil-limits').checked = false;
+      document.getElementById('water-enabled').checked = false;
+      document.getElementById('hazards').checked = true;
+      document.getElementById('playback-speed').value = '4';
+      document.getElementById('camera').value = '1';
+      document.getElementById('overlay-mode').value = 'fertility';
+      fields.mutation.value = '0.9';
+      playing = true;
+      document.getElementById('play').textContent = 'Pause';
+      showUi();
+      restart(seed);
+    }
+
+    function openPlay() {
+      setModeChrome('play');
+      if (world && world.mission) return;
+      if (playing) {
+        playing = false;
+        heldForMenu = true;
+        document.getElementById('play').textContent = 'Play';
+      }
+    }
+
+    function pourOnSelected() {
+      if (!world) return;
+      const patch = world.patches.find((p) => p.id === selectedPatch);
+      const before = patch && patch.moisture != null ? patch.moisture : null;
+      const amount = Eco.waterGarden(world, selectedPatch);
+      const afterPatch = world.patches.find((p) => p.id === selectedPatch);
+      const after = afterPatch && afterPatch.moisture != null ? afterPatch.moisture : before;
+      const note = document.getElementById('pour-result');
+      const pct = (value) => Math.round(100 * value);
+      if (amount > 0 && patch && before != null && after != null) {
+        const productive = world.mission && world.mission.kind === 'productivity';
+        const crossed = before < 0.2 && after >= 0.2;
+        const meaning = !world.mission
+          ? 'Nearby plants share this wetter soil.'
+          : productive
+            ? 'The crop is still ' + afterPatch.stage + '. Wetter soil lets it keep growing. This click does not finish it.'
+            : crossed
+              ? 'This cell crossed 20% and counts toward the 3-cell goal.'
+              : 'Still under 20%. This cell does not count yet.';
+        note.textContent = 'Poured ' + amount.toFixed(2) + ' on P' + patch.id + '. Moisture ' + pct(before) + '% → ' + pct(after) + '%. ' + meaning;
+        if (note.scrollIntoView) note.scrollIntoView({ block: 'nearest' });
+        lastPour = { id: patch.id, label: pct(before) + '% → ' + pct(after) + '%' };
+        splash = { t0: Date.now(), x: patch.x, y: patch.y, cell: afterPatch.soil_cell, label: lastPour.label };
+        document.getElementById('camera').value = '4';
+        if (typeof requestAnimationFrame === 'function') {
+          const frame = () => {
+            draw();
+            if (splash && Date.now() - splash.t0 < 3200) requestAnimationFrame(frame);
+            else { splash = null; draw(); }
+          };
+          requestAnimationFrame(frame);
+        }
+      } else if (note) {
+        note.textContent = 'No water moved. Click a planted garden first. Wild food and a soaked cell take nothing.';
+      }
+      draw();
+    }
+
     function restart(nextSeed) {
       if (!graph) return;
       seed = nextSeed == null ? seed : nextSeed;
@@ -652,6 +853,7 @@
       world = Eco.createWorld(graph, ui(), seed);
       selected = 0;
       selectedPatch = null;
+      setModeChrome('sandbox');
       draw();
     }
 
@@ -679,9 +881,21 @@
     document.getElementById('camera').onchange = draw;
     document.getElementById('soil-overlay').onchange = draw;
     document.getElementById('overlay-mode').onchange = draw;
-    document.getElementById('water-garden').onclick = () => {if(world){Eco.waterGarden(world,selectedPatch);draw();}};
+    document.getElementById('water-garden').onclick = () => pourOnSelected();
     document.getElementById('mission-water').onclick = document.getElementById('water-garden').onclick;
-    document.getElementById('find-thirsty').onclick = () => {if(world){selectedPatch=Eco.thirstyGarden(world);draw();}};
+    document.getElementById('find-thirsty').onclick = () => {
+      if (!world) return;
+      selectedPatch = Eco.thirstyGarden(world);
+      const patch = world.patches.find((p) => p.id === selectedPatch);
+      const note = document.getElementById('pour-result');
+      if (patch) {
+        note.textContent = 'Selected P' + patch.id + '. Moisture ' + Math.round(100 * (patch.moisture || 0)) + '%. No water spent. Press Pour to wet this soil.';
+        document.getElementById('camera').value = '4';
+      } else {
+        note.textContent = 'No growing garden is below 20% moisture yet. Wait until an agent plants one.';
+      }
+      draw();
+    };
     document.getElementById('garden-world').onclick = () => {
       fields.preset.value='balanced'; applyPreset('balanced'); fields.agents.value='24';
       document.getElementById('world-size').value='80'; document.getElementById('gardening').checked=true;
@@ -711,8 +925,13 @@
       document.getElementById('play').textContent='Play';
       document.getElementById('playback-speed').value=kind==='productivity'?'0.25':'1';document.getElementById('camera').value='1';
       document.getElementById('overlay-mode').value='moisture';document.getElementById('soil-overlay').checked=true;
-      showUi();draw();
+      heldForMenu = false;
+      showUi();
+      setModeChrome('play');
+      draw();
     }
+    document.getElementById('tab-sandbox').onclick = () => enterSandbox();
+    document.getElementById('tab-play').onclick = () => openPlay();
     document.getElementById('start-mission').onclick=()=>startMission('refuge');
     document.getElementById('start-productivity').onclick=()=>startMission('productivity');
     document.getElementById('retry-mission').onclick=()=>startMission(world?.mission?.kind || 'refuge');

@@ -1,5 +1,10 @@
 # Implementation plan
 
+## Live page modes
+- Sandbox and Play are the two tabs. Play is one riverkeeper game. A challenge world is created only when a goal button is pressed. Returning to Sandbox restores the laboratory.
+- A pour zooms to the garden, flashes its soil cell, and states moisture before and after, including whether the cell crossed 20%. Find thirsty garden selects without spending water and says so.
+- The long population, lineage, signal, garden, and inspector readouts sit behind Show stats. Scenario goals are unchanged.
+
 ## Gardens through drought — second mission engine
 - A fresh, provisioned seed-4 colony starts at climate tick 800, age zero, with no pre-grown gardens. This is an authored drought-onset scenario, not an 800-tick pre-run. Same ecology, 3 water units, no reproduction/hazards/predation. Deadline 1200; goals: 8 living agents and 2 distinct planted gardens reaching maturity during play.
 - Maturity is recorded only on a growing-to-mature transition. Initially mature wild food, repeated crops in one garden and end-state wetness cannot satisfy the objective. Finished missions freeze; retry retains mission kind.
