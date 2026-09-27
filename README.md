@@ -4,6 +4,12 @@ A minimal, inspectable 2D foraging loop. It takes a directed weighted neuron gra
 
 ## Play the riverkeeper prototype
 
+### Save an attempt and return later
+
+Open **Save / resume** under the playback controls. **Save in browser** replaces one local slot; **Load browser save** restores it paused. **Download save** keeps a JSON file for multiple attempts or another device, and **Load save file** imports it. Loading replaces the active run only after the file has been checked and reconstructed. Errors keep your current world. Browser storage can be cleared by the browser, so download important runs.
+
+Saves include the active scenario (or sandbox), settings, seed, tick and successful pours. They reconstruct agents, neural state, ecology, reserve and mission progress by replaying those inputs. The limits are 5,000 ticks/actions and 256 KB; compatible engine version and identical circuit are required. Saves do not include camera selection, playback speed, other tab runs or pending unapplied slider edits. A loaded run starts paused. These files support reproducible attempts, not competitive anti-cheat.
+
 The live page opens in **Sandbox**, a laboratory with no win condition. **Play** is one riverkeeper game. Choose a goal there and the world is built then, paused. Both goals use the same pour. The map zooms to the garden, marks the soil, and states the moisture before and after. **Show stats** keeps population, lineages, signals, gardens, and the selected agent out of the way until you open it. Pause, Step, and Restart stay available in every mode. Opening Sandbox again leaves the game and restores the laboratory.
 
 **Grow two crops in the drought.** In Play, choose that goal. A fresh colony starts at drought onset (climate tick 800). Help **2 distinct planted gardens reach maturity** by tick 1,200 while keeping at least 8 agents alive. This is a separate authored scenario, not the first mission's world fast-forwarded. It starts paused at slow speed, giving about 50 seconds of running time plus planning pauses.
@@ -22,7 +28,7 @@ For free play, stay on **Sandbox** and choose **Start garden world**. Pause or s
 
 Rivers wet nearby soil; rain, evaporation and conservative moisture diffusion change conditions across seasons. Drought reduces river supply and increases drying. Plants need both nutrients and moisture to regrow. Toggle the overlay between fertility and moisture. Water mode requires soil limits. Python runs support `--water` and record water state in replays.
 
-This is engineered ecology: rivers are water sources, not physical barriers; agents do not drink, swim or experience thirst yet. River flow is a seasonal supply multiplier, not simulated fluid velocity. Rain and rivers are external inputs, and initial mature plants are provisioned. Player actions currently last only for the active browser run; no save-game or action replay is implemented.
+This is engineered ecology: rivers are water sources, not physical barriers; agents do not drink, swim or experience thirst yet. River flow is a seasonal supply multiplier, not simulated fluid velocity. Rain and rivers are external inputs, and initial mature plants are provisioned. Save/resume reconstructs recorded pours; an interactive replay timeline is not yet implemented.
 
 See [PLAN.md](PLAN.md) for current status, [ROADMAP.md](ROADMAP.md) for the artificial-life sequence, and [docs/NEXT_PHASES.md](docs/NEXT_PHASES.md) for the remaining work. Each completed implementation step is committed separately. Contributor instructions are in [AGENTS.md](AGENTS.md).
 

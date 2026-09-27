@@ -10,7 +10,9 @@ Implemented: **survive the first drought**, a fixed-seed introductory mission wi
 
 Implemented: **Gardens through drought**, a second authored scenario beginning with a fresh colony at drought onset. Two distinct planted gardens must reach maturity before rain returns. Regular targeted watering succeeds in the fixed test; no intervention and final-tick watering fail. This measures crop maturation, not meals or survival gains. The mission panel now offers thirsty-garden selection, growth and nutrient inspection, and watering controls.
 
-Next priority: playtest both missions for readable timing and meaningful choice, then add save/load and replayable player decisions. A third scenario can link crop production to actual meals and lineage survival; that outcome still needs calibration. Add a drought warning before introducing more construction tools.
+Implemented: versioned save/resume for sandbox and missions, one browser slot, downloadable/importable runs, and deterministic reconstruction from recorded pours. Invalid files retain the current world. There is no interactive replay timeline or competitive score verification yet.
+
+Next priority: playtest both missions for readable timing and meaningful choice. Add a drought warning, then a third scenario linking crop production to actual meals and lineage survival; that outcome still needs calibration before construction tools.
 
 Then add choices that compete for the same resources:
 

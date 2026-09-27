@@ -82,7 +82,7 @@
     <h1>MaleCNS ecosystem <span class="badge">malecns-derived controller</span></h1>
     <div class="meta">Sandbox is the laboratory. Play is one riverkeeper game with two goals. A challenge world starts only when you choose it. A pour shows the moisture change on the map.</div>
   </header>
-  <main>
+  <main id="game-workspace">
     <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
     <aside>
       <div class="mode-tabs" role="tablist" aria-label="Mode">
@@ -132,6 +132,17 @@
         <button type="button" id="reset" class="ghost">Restart</button>
       </div>
 
+      <details class="stats" id="save-panel">
+        <summary>Save / resume</summary>
+        <p class="meta">Save the active Sandbox or Play run. Loading resumes paused, with its water reserve and decisions restored. One browser slot; saving replaces that slot. Download a file to keep multiple attempts or move between devices.</p>
+        <div class="actions">
+          <button id="save-browser" type="button">Save in browser</button>
+          <button id="load-browser" type="button">Load browser save</button>
+          <button id="download-save" type="button">Download save</button>
+        </div>
+        <label class="ctrl"><span>Load save file</span><input id="load-file" type="file" accept=".json,application/json"></label>
+        <div id="save-status" class="meta" role="status">Up to 5,000 ticks per run. Saves require the same circuit and compatible game version. Browser saves may be removed if you clear site data.</div>
+      </details>
       <section id="panel-sandbox">
       <h2>Sandbox</h2>
       <div class="guide">
@@ -282,9 +293,11 @@
   <script src="gardening.js?v=modes-1"></script>
   <script src="water.js?v=modes-1"></script>
   <script src="soil.js?v=modes-1"></script>
-  <script src="engine.js?v=modes-1"></script>
+  <script src="engine.js?v=saves-1"></script>
+  <script src="saves.js?v=saves-1"></script>
   <script>
     const Eco = window.MaleCNSEco;
+    const Saves = window.MaleCNSSaves;
     const palette = ['#7eb6ff', '#ff8b7a', '#6fbfa3', '#e6c15a', '#c9a0ff', '#f0a36b', '#8fd3ff', '#ffb3c6', '#b6e388', '#d4a24c'];
     const canvas = document.getElementById('arena');
     const ctx = canvas.getContext('2d');
@@ -955,6 +968,73 @@
       playing = !playing;
       document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
       draw();
+    };
+    const SAVE_KEY='malecns-run-v1';
+    let restoring=false;
+    function saveText(){
+      if(!world || restoring)throw new Error('Wait until the world is ready.');
+      const text=JSON.stringify(Saves.exportRun(world));
+      if(text.length>262144)throw new Error('Save files must be under 256 KB.');
+      return text;
+    }
+    function savedSettings(rules){
+      fields.preset.value='custom';
+      for(const [key,value] of Object.entries({agents:rules.agents,food:rules.food_rate,aging:rules.aging_rate,repro:rules.repro_rate,mutation:rules.mutation_rate}))fields[key].value=String(value);
+      const ids={'world-size':'map_half','season-length':'season_length','sense-range':'sense_range',
+        'gardening':'gardening','soil-limits':'soil_limits','water-enabled':'water','seasons':'seasons',
+        'communication':'communication','social-learning':'social_learning','lifetime-learning':'lifetime_learning',
+        'scavenging':'scavenging','hazards':'hazards','predation-enabled':'predation','gifts-enabled':'gifts','reciprocity':'reciprocity'};
+      for(const [id,key] of Object.entries(ids)){
+        const el=document.getElementById(id);if(typeof rules[key]==='boolean')el.checked=rules[key];else el.value=String(rules[key]);
+      }
+      showUi();
+    }
+    async function loadRun(text){
+      const status=document.getElementById('save-status');
+      if(restoring)return;
+      let locks=[];
+      try{
+        if(!graph)throw new Error('The game is still loading.');
+        if(typeof text!=='string' || text.length>262144)throw new Error('Save files must be under 256 KB.');
+        const restorer=Saves.createRestorer(graph,JSON.parse(text));
+        restoring=true;playing=false;document.getElementById('play').textContent='Play';
+        document.getElementById('game-workspace').inert=true;
+        locks=Array.from(document.querySelectorAll('button,input,select')).map(el=>[el,el.disabled]);
+        locks.forEach(([el])=>el.disabled=true);
+        while(!restorer.done){
+          restorer.advance(100);status.textContent='Restoring decisions… tick '+restorer.world.tick;
+          if(!restorer.done)await new Promise(resolve=>setTimeout(resolve,0));
+        }
+        world=restorer.world;seed=world.seed;selected=0;selectedPatch=null;stepCredit=0;heldForMenu=false;
+        savedSettings(world.rules);document.getElementById('camera').value='1';
+        document.getElementById('playback-speed').value=world.mission?.kind==='productivity'?'0.25':'1';
+        setModeChrome(world.mission?'play':'sandbox');
+        document.getElementById('pour-result').textContent='Run restored. Select a garden to inspect it; press Play to continue.';
+        status.textContent='Loaded '+(world.mission?.kind || 'sandbox')+' at tick '+world.tick+' · paused · '+world.inputLog.length+' pours restored.';
+      }catch(error){status.textContent='Could not load: '+error.message+' Current run kept.';}
+      finally{restoring=false;document.getElementById('game-workspace').inert=false;locks.forEach(([el,disabled])=>el.disabled=disabled);if(world)draw();}
+    }
+    document.getElementById('save-browser').onclick=()=>{
+      try{localStorage.setItem(SAVE_KEY,saveText());document.getElementById('save-status').textContent='Saved in this browser at tick '+world.tick+'. Previous slot replaced.';}
+      catch(error){document.getElementById('save-status').textContent='Could not save: '+error.message+' Try Download save if browser storage is unavailable.';}
+    };
+    document.getElementById('load-browser').onclick=()=>{
+      try{const text=localStorage.getItem(SAVE_KEY);if(!text)throw new Error('No browser save yet.');return loadRun(text);}
+      catch(error){document.getElementById('save-status').textContent=error.message;}
+    };
+    document.getElementById('download-save').onclick=()=>{
+      try{
+        const text=saveText(),url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='malecns-'+(world.mission?.kind||'sandbox')+'-t'+world.tick+'.json';
+        document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        document.getElementById('save-status').textContent='Save download requested at tick '+world.tick+'.';
+      }catch(error){document.getElementById('save-status').textContent='Could not download: '+error.message;}
+    };
+    document.getElementById('load-file').onchange=async event=>{
+      const file=event.target.files?.[0];if(!file)return;
+      try{if(file.size>262144)throw new Error('Save files must be under 256 KB.');await loadRun(await file.text());}
+      catch(error){document.getElementById('save-status').textContent='Could not read file: '+error.message+' Current run kept.';}
+      finally{event.target.value='';}
     };
     window.addEventListener('resize', draw);
 

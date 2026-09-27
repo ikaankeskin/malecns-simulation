@@ -13,8 +13,10 @@ for (const match of html.matchAll(/<[^>]*\bid="([^"]+)"[^>]*>/g)) {
 }
 elements.get('preset').value='balanced'; elements.get('season-length').value='400'; elements.get('sense-range').value='24';
 let interval;
+const savedSlots=new Map();
 const sandbox = {console, document:{getElementById(id){assert.ok(elements.has(id),id);return elements.get(id);},querySelectorAll(){return[];}},
-  setInterval(fn){interval=fn;return 1;},clearInterval(){},
+  setInterval(fn){interval=fn;return 1;},clearInterval(){},setTimeout,
+  localStorage:{setItem(k,v){savedSlots.set(k,v);},getItem(k){return savedSlots.get(k)||null;}},
   fetch:async()=>({ok:true,json:async()=>JSON.parse(fs.readFileSync('demo.json','utf8'))})};
 sandbox.window=sandbox; sandbox.addEventListener=()=>{};
 vm.createContext(sandbox);
@@ -23,9 +25,10 @@ vm.runInContext(fs.readFileSync('docs/gardening.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/water.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/soil.js','utf8'),sandbox);
 vm.runInContext(fs.readFileSync('docs/engine.js','utf8'),sandbox);
+vm.runInContext(fs.readFileSync('docs/saves.js','utf8'),sandbox);
 const script = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
 vm.runInContext(script,sandbox);
-setImmediate(()=>{
+setImmediate(async()=>{
   assert.equal(typeof interval,'function');
   elements.get('gifts-enabled').checked=true;
   elements.get('reciprocity').checked=true;
@@ -92,6 +95,20 @@ setImmediate(()=>{
   elements.get('reset').onclick();
   assert.equal(vm.runInContext('selectedPatch',sandbox),null);
   assert.equal(vm.runInContext('world.soil.water.reserve',sandbox),3);
+  elements.get('save-browser').onclick();
+  assert.match(elements.get('save-status').textContent,/Saved in this browser/);
+  elements.get('step').onclick();
+  const beforeLoad=vm.runInContext('world.tick',sandbox);
+  await elements.get('load-browser').onclick();
+  assert.equal(vm.runInContext('world.tick',sandbox),beforeLoad-1);
+  assert.equal(vm.runInContext('playing',sandbox),false);
+  assert.equal(elements.get('game-workspace').inert,false);
+  const kept=vm.runInContext('world',sandbox);
+  savedSlots.set('malecns-run-v1','{"version":99}');
+  await elements.get('load-browser').onclick();
+  assert.equal(vm.runInContext('world',sandbox),kept);
+  assert.match(elements.get('save-status').textContent,/Current run kept/);
+  elements.get('play').onclick();
   elements.get('start-mission').onclick();
   assert.equal(vm.runInContext('playing',sandbox),false);
   assert.equal(vm.runInContext('world.mission.end',sandbox),1200);
