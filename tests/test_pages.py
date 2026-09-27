@@ -10,6 +10,11 @@ DOCS = ROOT / 'docs'
 
 class PagesTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('node'), 'Node.js required')
+    def test_save_resume(self):
+        result=subprocess.run(['node','tests/saves.cjs'],cwd=ROOT,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+
+    @unittest.skipUnless(shutil.which('node'), 'Node.js required')
     def test_productivity_mission(self):
         result=subprocess.run(['node','tests/productivity.cjs'],cwd=ROOT,capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)

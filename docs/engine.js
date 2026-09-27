@@ -699,6 +699,8 @@
       decoder: decoder,
       rules: rules,
       seed: seed,
+      initialSettings: JSON.parse(JSON.stringify(ui || {})),
+      inputLog: [],
       tick: 0,
       agents: spawnAgents(rules.agents, rules.map_half * 0.85, rules.energy_start),
       patches: spawnPatches(rules.patches, rules.map_half * 0.4, random, rules),
@@ -1102,6 +1104,7 @@
     const cell=Soil.cellIndex(world.soil,patch.x,patch.y);
     const amount=root.MaleCNSWater.irrigate(world.soil,cell);
     if(amount>0){
+      world.inputLog.push({tick:world.tick,patch:id,amount});
       if(world.mission)world.mission.actions.push({tick:world.tick,patch:id,cell,amount});
       world.events.push({tick:world.tick,kind:'irrigated',patch:id,cell,water:amount,
         text:'Player watered garden P'+id+' soil cell '+cell+' with '+amount.toFixed(2)+' water'});

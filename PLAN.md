@@ -1,5 +1,10 @@
 # Implementation plan
 
+## Save and resume — replay format
+- Added versioned run saves containing scenario/settings, circuit identity, seed, current tick and actual watering decisions. Restore re-simulates into a separate world before replacing the active run; invalid input cannot mutate the current world.
+- Bounded to 5,000 ticks/actions and matching circuit/rules/version. Restoring can advance in short batches to keep the interface responsive. Both missions and sandbox are supported; this is persistence, not a tamper-proof competitive score format.
+- Validation: save/load and subsequent trajectories match in all three modes, including circuit state; terminal results survive. Changed versions, circuits, impossible actions, invalid amounts/settings and out-of-range times are rejected by `tests/saves.cjs`.
+
 ## Live page modes
 - Sandbox and Play are the two tabs. Play is one riverkeeper game. A challenge world is created only when a goal button is pressed. Returning to Sandbox restores the laboratory.
 - A pour zooms to the garden, flashes its soil cell, and states moisture before and after, including whether the cell crossed 20%. Find thirsty garden selects without spending water and says so.
