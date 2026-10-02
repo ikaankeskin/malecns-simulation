@@ -80,7 +80,7 @@
 <body>
   <header>
     <h1>MaleCNS ecosystem <span class="badge">malecns-derived controller</span></h1>
-    <div class="meta">Sandbox is the laboratory. Play is one riverkeeper game with two goals. A challenge world starts only when you choose it. A pour shows the moisture change on the map.</div>
+    <div class="meta">Explore in Sandbox or choose a Riverkeeper challenge in Play. Shape a refuge with stored river water, or practice keeping gardens alive. Each challenge loads when you choose it.</div>
   </header>
   <main id="game-workspace">
     <div class="stage"><div id="season-banner" role="status" style="position:absolute;top:18px;left:24px;padding:10px 14px;background:#101722e8;border:1px solid #384657;border-radius:8px;pointer-events:none">Bloom · growth ×1.65</div><canvas id="arena" width="960" height="720" aria-label="Live ecosystem"></canvas></div>
@@ -102,12 +102,22 @@
         <div class="guide">
           <p><strong>What this is.</strong> One game. Agents find food, plant, and move on their own. You do not steer them. You spend a reserve of 3 water units on the soil under planted gardens.</p>
           <p><strong>How a pour works.</strong> Click a planted garden, or Find thirsty garden. Then Pour. The map zooms to that garden, a blue splash marks the soil, and the line above states the moisture before and after. A cyan arc around the garden is its moisture. Reaching 20% turns that arc bright. A pour is not a meal.</p>
-          <p><strong>Two goals, same actions.</strong> Pick one below. The world is built when you press it. Pressing it again rebuilds that goal.</p>
+          <p><strong>Choose a challenge.</strong> The world starts paused when you choose a goal. Drought Refuge adds building and valve control. Choosing again rebuilds that challenge; save first to keep your attempt.</p>
         </div>
         <button id="start-mission" type="button">Goal · 3 moist cells by the deadline</button>
         <p class="meta">Paused at bloom, seed 4. Win at tick 1,200 with 8 agents alive and 3 garden soil cells at least 20% moist. Pour near the end of drought. Earlier water can dry away.</p>
         <button id="start-productivity" type="button">Goal · 2 crops mature in the drought</button>
         <p class="meta">Paused at the start of drought, slow. Win with 8 agents alive and 2 different planted gardens maturing during play. Pour while a crop is still growing. The last tick is too late.</p>
+        <button id="start-builder" type="button">Goal · Build a Drought Refuge</button>
+        <p class="meta">Build before drought. Keep one connected garden cell at least 20% moist for the final 150 drought ticks, with 8 agents alive at tick 1,200.</p>
+      <section id="panel-builder" hidden>
+        <details class="guide">
+          <summary>How to build and win</summary>
+          <p><strong>Plan → build → store → release.</strong> Start at tick 600 with 200 wet ticks and three established gardens. Spend 6 building points on one riverbank reservoir (2 points) and one channel (1 point per cell, up to 4). Routes run across, then down or up.</p>
+          <p><strong>How to build.</strong> Choose Reservoir, select a blue riverbank cell, then Confirm build. Choose Channel, select a garden's soil cell and confirm. Selection previews the cost; nothing is spent until confirmation. The helper buttons select sites without building.</p>
+          <p><strong>Timing wins.</strong> Leave the valve closed while the reservoir fills. Open it later in drought when the outlet needs water. Releasing early can empty it before the deadline; releasing too late cannot earn 150 continuous moist ticks. Pausing is free. Moisture falling below 20% resets the streak.</p>
+        </details>
+      </section>
       <section id="panel-refuge" hidden>
         <p class="meta">This goal checks moisture at tick 1,200, not whether the crop stayed healthy all drought. Bloom 0–399, light rain 400–799, drought 800–1,199.</p>
       </section>
@@ -123,6 +133,18 @@
         <button id="retry-mission" type="button" disabled>Retry same world</button>
         <button id="find-thirsty" type="button" disabled>Find thirsty garden</button>
         <button id="mission-water" type="button" disabled>Pour on this garden</button>
+      </section>
+
+      <section id="construction-panel" hidden aria-label="Water construction" style="border:1px solid #477688;border-radius:8px;padding:12px;margin-bottom:12px">
+        <h2>Build a refuge</h2>
+        <div id="construction-stats" class="meta" role="status" style="white-space:pre-line"></div>
+        <label class="ctrl"><span>Map tool</span><select id="build-tool"><option value="inspect">Inspect gardens</option><option value="reservoir">Reservoir · 2 points</option><option value="channel">Channel · 1 per cell</option></select></label>
+        <label class="ctrl"><span>Soil cell</span><input id="build-cell" type="number" min="0" max="255" value="137" step="1"></label>
+        <div class="actions"><button id="select-bank" type="button" class="ghost">Select riverbank site</button><button id="select-outlet" type="button" class="ghost">Select refuge garden</button></div>
+        <div id="build-preview" class="meta" role="status">Choose a tool and click a soil cell to preview.</div>
+        <div class="actions"><button id="confirm-build" type="button" disabled>Confirm build</button><button id="toggle-valve" type="button" disabled>Open valve</button></div>
+        <div id="build-feedback" class="meta" role="status"></div>
+        <p class="meta">Blue outlines mark reservoir sites. Gold shows a valid preview; red means blocked. The channel feeds only its outlet cell, shared by nearby plants. Reservoir capacity: 8 water. No refill in drought. Sandbox uses the same 6-point budget.</p>
       </section>
 
       <label class="ctrl"><span>playback</span><select id="playback-speed"><option value="0.25">Slow · 8 ticks/s</option><option value="1">Normal · 32 ticks/s</option><option value="4" selected>Fast · 128 ticks/s</option></select></label>
@@ -291,10 +313,10 @@
   </main>
   <script src="social.js?v=modes-1"></script>
   <script src="gardening.js?v=modes-1"></script>
-  <script src="water.js?v=modes-1"></script>
+  <script src="water.js?v=construction-1"></script>
   <script src="soil.js?v=modes-1"></script>
-  <script src="engine.js?v=saves-1"></script>
-  <script src="saves.js?v=saves-1"></script>
+  <script src="engine.js?v=construction-1"></script>
+  <script src="saves.js?v=construction-1"></script>
   <script>
     const Eco = window.MaleCNSEco;
     const Saves = window.MaleCNSSaves;
@@ -424,6 +446,41 @@
         row.value + '</span></div>').join('') || '<div class="meta">none yet</div>';
     }
 
+    function drawConstruction(snap,bounds,finished){
+      const panel=document.getElementById('construction-panel'),s=snap.soil,w=s?.water;
+      panel.hidden=!(w && (!world.mission || world.mission.kind==='builder'));
+      if(panel.hidden)return;
+      const a=w.works,tool=document.getElementById('build-tool').value,raw=document.getElementById('build-cell').value;
+      const cell=raw===''?-1:Number(raw),validCell=Number.isInteger(cell)&&cell>=0&&cell<s.n*s.n;
+      document.getElementById('build-cell').max=String(s.n*s.n-1);
+      const p=tool==='inspect'?null:Eco.constructionPreview(world,tool,cell);
+      document.getElementById('build-preview').textContent=p ? 'Cell '+cell+' · '+p.reason : 'Choose Reservoir or Channel, then select a soil cell. Preview first, confirm to spend.';
+      document.getElementById('confirm-build').disabled=Boolean(finished)||!p?.ok;
+      document.getElementById('toggle-valve').disabled=Boolean(finished)||!a?.path.length;
+      document.getElementById('toggle-valve').textContent=a?.open?'Close valve':'Open valve';
+      for(const id of ['select-bank','select-outlet','build-tool','build-cell'])document.getElementById(id).disabled=Boolean(finished);
+      const outlet=a?.path.at(-1),moist=outlet==null?'no outlet':Math.round(100*w.moisture[outlet])+'% outlet moisture';
+      document.getElementById('construction-stats').textContent=(a?.points??6)+'/6 points left · stored '+(a?.stored||0).toFixed(2)+'/8 water · '+(a?.open?'valve OPEN':'valve closed')+
+        '\n'+moist+' · delivered '+(a?.delivered||0).toFixed(2)+' · '+(w.weather==='drought'?'drought: no refill':'wet season: collecting when built');
+      const center=i=>worldToCanvas(-s.half+(i%s.n+.5)*s.size,-s.half+(Math.floor(i/s.n)+.5)*s.size,bounds);
+      const outline=(i,color)=>{const q=center(i),side=s.size*q[2];ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(q[0]-side/2,q[1]-side/2,side,side);};
+      if(tool==='reservoir' && a?.reservoir==null)w.banks.forEach((b,i)=>{if(b>=.3)outline(i,'#4a93ba');});
+      if(a?.reservoir!=null){
+        const q=center(a.reservoir),side=s.size*q[2]*.65;
+        ctx.fillStyle='#111d2a';ctx.fillRect(q[0]-side/2,q[1]-side/2,side,side);
+        ctx.fillStyle='#53bfff';ctx.fillRect(q[0]-side/2,q[1]+side/2-side*a.stored/8,side,side*a.stored/8);
+        ctx.strokeStyle='#b0dfff';ctx.lineWidth=2;ctx.strokeRect(q[0]-side/2,q[1]-side/2,side,side);
+        ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.fillText('R',q[0]-4,q[1]+4);
+        if(a.path.length){
+          ctx.beginPath();ctx.moveTo(q[0],q[1]);for(const i of a.path){const v=center(i);ctx.lineTo(v[0],v[1]);}
+          ctx.strokeStyle=a.lastDelivery>0?'#7fe9ff':'#597285';ctx.lineWidth=5;ctx.stroke();
+          outline(outlet,'#7fe9ff');
+          if(a.lastDelivery>0){const path=[a.reservoir,...a.path],t=(world.tick%32)/32*(path.length-1),i=Math.floor(t),u=t-i,v=center(path[i]),z=center(path[Math.min(i+1,path.length-1)]);ctx.beginPath();ctx.arc(v[0]+u*(z[0]-v[0]),v[1]+u*(z[1]-v[1]),4,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();}
+        }
+      }
+      if(p){for(const i of p.path)outline(i,'#f3d56c');if(validCell)outline(cell,p.ok?'#f3d56c':'#ff8b7a');}
+    }
+
     function draw() {
       if (!world) return;
       const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
@@ -447,6 +504,14 @@
           (productive ? '\nMatured: '+(mission.matured.map(p=>'P'+p.patch+' at t'+p.tick).join(', ')||'none yet') : '');
         document.getElementById('mission-actions').textContent='Your watering decisions ('+mission.actions.length+')\n'+(mission.actions.slice(-12).map(a=>'t'+a.tick+' · P'+a.patch+' · cell '+a.cell+' · '+a.amount.toFixed(2)+' water').join('\n') || 'None yet');
         document.getElementById('status-goal').textContent=productive ? progress.productive+'/2 gardens' : progress.refuges+'/3 moist';
+        if(mission.kind==='builder'){
+          document.getElementById('mission-status').textContent=(finished ? (mission.status==='won'?'Mission complete — refuge sustained!':'Mission ended — try another release time') : playing?'Refuge running':'Paused — plan your refuge')+
+            '\n'+progress.alive+'/8 agents alive · '+Math.min(150,progress.hydratedTicks)+'/150 continuous moist ticks'+
+            '\n'+phase+' · finish at tick 1,200'+
+            '\nKeep the channel outlet on a planted garden at least 20% moist for the final 150 drought ticks. A dry tick resets the streak.';
+          document.getElementById('status-goal').textContent=Math.min(150,progress.hydratedTicks)+'/150 moist ticks';
+          document.getElementById('mission-actions').textContent='Your decisions ('+world.inputLog.length+')\n'+world.inputLog.slice(-8).map(a=>'t'+a.tick+' · '+(a.type==='valve'?(a.open?'opened':'closed')+' valve':a.type?a.type+' at cell '+a.cell:'poured on P'+a.patch)).join('\n');
+        }
       }else{
         document.getElementById('mission-status').textContent='Sandbox. No win condition. Change the rules below and press Apply.';
         document.getElementById('mission-actions').textContent='';
@@ -491,6 +556,7 @@
         const d = worldToCanvas(half, g, bounds);
         ctx.beginPath(); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
       }
+      drawConstruction(snap,bounds,finished);
       (snap.hazards || []).forEach((disc) => {
         const center = worldToCanvas(disc.x, disc.y, bounds);
         ctx.beginPath();
@@ -640,7 +706,7 @@
       const gardens = snap.gardens;
       document.getElementById('soil-stats').textContent=snap.soil ? 'Soil at planted/food sites: '+Math.round(100*snap.soil.occupied_mean)+'% mean fertility · '+snap.soil.depleted_cells+'/'+snap.soil.occupied_cells+' cells below 20% · nutrients used '+snap.soil.consumed.toFixed(2)+' / recovered '+snap.soil.recovered.toFixed(2)+' / composted '+snap.soil.composted.toFixed(2) : 'Soil limits off · unrestricted growth';
       document.getElementById('garden-stats').textContent = gardens.planted + '/64 gardens · ' + gardens.harvests + ' garden meals · ' + gardens.descendant_meals + ' descendant meals · ' + gardens.posthumous_meals + ' meals after planter death';
-      document.getElementById('garden-list').innerHTML = snap.patches.filter(p=>p.planter!=null).map(p=>'<button type="button" data-patch="'+p.id+'">P'+p.id+' · F'+p.planter+'</button>').join('');
+      document.getElementById('garden-list').innerHTML = snap.patches.filter(p=>p.planter!=null).map(p=>'<button type="button" data-patch="'+p.id+'">P'+p.id+' · '+(p.planter===-1?'established garden':'F'+p.planter)+'</button>').join('');
       Array.from(document.querySelectorAll('[data-patch]')).forEach(button=>button.onclick=()=>{selectedPatch=Number(button.getAttribute('data-patch'));draw();});
       const watchedPatch=snap.patches.find(p=>p.id===selectedPatch);
       const water=snap.soil?.water;
@@ -756,12 +822,13 @@
     function showChallenge(kind) {
       document.getElementById('panel-refuge').hidden = kind !== 'refuge';
       document.getElementById('panel-gardens').hidden = kind !== 'productivity';
+      document.getElementById('panel-builder').hidden = kind !== 'builder';
       document.getElementById('panel-mission').hidden = !kind;
       document.getElementById('now-playing').textContent = kind === 'refuge'
         ? 'Riverkeeper · 3 moist cells by the deadline'
         : kind === 'productivity'
           ? 'Riverkeeper · 2 crops mature in the drought'
-          : 'Riverkeeper · pick a goal';
+          : kind === 'builder' ? 'Riverkeeper · Build a Drought Refuge' : 'Riverkeeper · pick a goal';
     }
 
     function setModeChrome(mode) {
@@ -924,6 +991,12 @@
     canvas.onclick = event => {
       if (!world || !cameraBounds) return;
       const rect=canvas.getBoundingClientRect(), x=(event.clientX-rect.left)*canvas.width/rect.width, y=(event.clientY-rect.top)*canvas.height/rect.height;
+      if(!document.getElementById('construction-panel').hidden && document.getElementById('build-tool').value!=='inspect'){
+        const s=world.soil,scale=worldToCanvas(0,0,cameraBounds)[2];
+        const wx=(x-28)/scale+cameraBounds.min+cameraBounds.cx,wy=(canvas.height-28-y)/scale+cameraBounds.min+cameraBounds.cy;
+        if(Math.abs(wx)>s.half || Math.abs(wy)>s.half){document.getElementById('build-feedback').textContent='Click inside the soil map.';return;}
+        document.getElementById('build-cell').value=String(window.MaleCNSSoil.cellIndex(s,wx,wy));draw();return;
+      }
       const candidates=world.patches.map(p=>{const q=worldToCanvas(p.x,p.y,cameraBounds);return {p,d:Math.hypot(q[0]-x,q[1]-y)};}).filter(row=>row.d<14).sort((a,b)=>a.d-b.d);
       if(candidates.length){selectedPatch=candidates[0].p.id;draw();}
     };
@@ -935,8 +1008,9 @@
       for(const id of ['gardening','soil-limits','water-enabled','seasons','communication','social-learning','lifetime-learning','scavenging'])document.getElementById(id).checked=true;
       for(const id of ['hazards','predation-enabled','gifts-enabled','reciprocity'])document.getElementById(id).checked=false;
       seed=4;world=Eco.createMission(graph,kind);selected=0;selectedPatch=null;stepCredit=0;playing=false;
+      document.getElementById('build-tool').value='inspect';document.getElementById('build-cell').value='137';document.getElementById('build-feedback').textContent='';
       document.getElementById('play').textContent='Play';
-      document.getElementById('playback-speed').value=kind==='productivity'?'0.25':'1';document.getElementById('camera').value='1';
+      document.getElementById('playback-speed').value=kind==='refuge'?'1':'0.25';document.getElementById('camera').value='1';
       document.getElementById('overlay-mode').value='moisture';document.getElementById('soil-overlay').checked=true;
       heldForMenu = false;
       showUi();
@@ -947,6 +1021,7 @@
     document.getElementById('tab-play').onclick = () => openPlay();
     document.getElementById('start-mission').onclick=()=>startMission('refuge');
     document.getElementById('start-productivity').onclick=()=>startMission('productivity');
+    document.getElementById('start-builder').onclick=()=>startMission('builder');
     document.getElementById('retry-mission').onclick=()=>startMission(world?.mission?.kind || 'refuge');
     document.getElementById('reset').onclick = () => world?.mission ? startMission(world.mission.kind) : restart(seed);
     document.getElementById('randomize').onclick = () => {
@@ -967,6 +1042,35 @@
     document.getElementById('play').onclick = () => {
       playing = !playing;
       document.getElementById('play').textContent = playing ? 'Pause' : 'Play';
+      draw();
+    };
+    document.getElementById('build-tool').onchange=()=>draw();
+    document.getElementById('build-cell').oninput=()=>draw();
+    function refugeGarden(){
+      return world?.patches.find(p=>p.id===selectedPatch && p.planter!=null) || world?.patches.find(p=>p.planter===-1) || world?.patches.find(p=>p.planter!=null);
+    }
+    document.getElementById('select-bank').onclick=()=>{
+      if(!world?.soil?.water)return;
+      const s=world.soil,garden=refugeGarden(),dest=garden?window.MaleCNSSoil.cellIndex(s,garden.x,garden.y):Math.floor(s.n/2)*s.n+Math.floor(s.n/2);
+      const distance=i=>Math.abs(i%s.n-dest%s.n)+Math.abs(Math.floor(i/s.n)-Math.floor(dest/s.n));
+      const bank=s.water.banks.map((b,i)=>({b,i})).filter(p=>p.b>=.6).sort((a,b)=>distance(a.i)-distance(b.i)||b.b-a.b)[0];
+      if(!bank)return;
+      document.getElementById('build-cell').value=String(bank.i);document.getElementById('build-tool').value='reservoir';
+      document.getElementById('camera').value='1';document.getElementById('build-feedback').textContent='Riverbank selected. Review the preview, then Confirm build. No points spent.';draw();
+    };
+    document.getElementById('select-outlet').onclick=()=>{
+      const garden=refugeGarden();if(!garden){document.getElementById('build-feedback').textContent='No planted garden yet. Let an agent plant one, or choose an outlet on the map.';return;}
+      selectedPatch=garden.id;document.getElementById('build-cell').value=String(window.MaleCNSSoil.cellIndex(world.soil,garden.x,garden.y));document.getElementById('build-tool').value='channel';
+      document.getElementById('camera').value='1';document.getElementById('build-feedback').textContent='Garden P'+garden.id+' selected. Confirm connects its soil cell. No points spent.';draw();
+    };
+    document.getElementById('confirm-build').onclick=()=>{
+      if(!world)return;const kind=document.getElementById('build-tool').value,result=Eco.buildWaterworks(world,kind,Number(document.getElementById('build-cell').value));
+      document.getElementById('build-feedback').textContent=result.ok?'Built '+kind+' · spent '+result.cost+' points. '+(kind==='reservoir'?'Let it collect while wet; choose a Channel outlet next.':'Valve is closed. Open it when the garden needs stored water.'):result.reason;
+      if(result.ok)document.getElementById('build-tool').value='inspect';draw();
+    };
+    document.getElementById('toggle-valve').onclick=()=>{
+      if(!world)return;const a=world.soil?.water?.works;if(!a)return;
+      if(Eco.setWaterValve(world,!a.open))document.getElementById('build-feedback').textContent=a.open?'Valve open: stored water feeds the outlet as ticks advance.':'Valve closed: stored water retained; reservoir evaporation continues.';
       draw();
     };
     const SAVE_KEY='malecns-run-v1';
@@ -1007,10 +1111,11 @@
         }
         world=restorer.world;seed=world.seed;selected=0;selectedPatch=null;stepCredit=0;heldForMenu=false;
         savedSettings(world.rules);document.getElementById('camera').value='1';
-        document.getElementById('playback-speed').value=world.mission?.kind==='productivity'?'0.25':'1';
+        document.getElementById('playback-speed').value=['productivity','builder'].includes(world.mission?.kind)?'0.25':'1';
+        document.getElementById('build-tool').value='inspect';document.getElementById('build-feedback').textContent='';
         setModeChrome(world.mission?'play':'sandbox');
         document.getElementById('pour-result').textContent='Run restored. Select a garden to inspect it; press Play to continue.';
-        status.textContent='Loaded '+(world.mission?.kind || 'sandbox')+' at tick '+world.tick+' · paused · '+world.inputLog.length+' pours restored.';
+        status.textContent='Loaded '+(world.mission?.kind || 'sandbox')+' at tick '+world.tick+' · paused · '+world.inputLog.length+' decisions restored.';
       }catch(error){status.textContent='Could not load: '+error.message+' Current run kept.';}
       finally{restoring=false;document.getElementById('game-workspace').inert=false;locks.forEach(([el,disabled])=>el.disabled=disabled);if(world)draw();}
     }

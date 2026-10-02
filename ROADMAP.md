@@ -12,7 +12,9 @@ Implemented: **Gardens through drought**, a second authored scenario beginning w
 
 Implemented: versioned save/resume for sandbox and missions, one browser slot, downloadable/importable runs, and deterministic reconstruction from recorded pours. Invalid files retain the current world. There is no interactive replay timeline or competitive score verification yet.
 
-Next priority: playtest both missions for readable timing and meaningful choice. Add a drought warning, then a third scenario linking crop production to actual meals and lineage survival; that outcome still needs calibration before construction tools.
+Drought Refuge now adds one reservoir, one short channel, a six-point budget and valve timing, with continuous outlet moisture as its goal. Construction and valve inputs persist in v2 saves.
+
+Next priority: playtest all three missions for readable timing, especially reservoir depletion and moisture streak resets. Add a drought warning, then connect protected crop production to actual meals and lineage survival; that outcome still needs calibration.
 
 Then add choices that compete for the same resources:
 
@@ -204,3 +206,4 @@ Alliances and LLM cognition stay out of that plan. Learned usefulness is not hon
 Follow-on implemented: memory of received energy and optional preference for past helpers, with visible transfers and a paired recipient-policy comparison (`docs/reciprocity-comparison.json`). This adds individual relationship history, not alliances or an LLM.
 
 The live GitHub Pages app in `docs/` exposes agent count, food spawn rate, aging rate, reproduction rate, mutation rate, rule presets, and Randomize. It is a browser port of the Python ecosystem for inspection, not a second scientific engine.
+

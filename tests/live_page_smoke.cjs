@@ -12,6 +12,7 @@ for (const match of html.matchAll(/<[^>]*\bid="([^"]+)"[^>]*>/g)) {
     addEventListener(){}, getContext(){return context;}});
 }
 elements.get('preset').value='balanced'; elements.get('season-length').value='400'; elements.get('sense-range').value='24';
+elements.get('build-tool').value='inspect';
 let interval;
 const savedSlots=new Map();
 const sandbox = {console, document:{getElementById(id){assert.ok(elements.has(id),id);return elements.get(id);},querySelectorAll(){return[];}},
@@ -142,4 +143,27 @@ setImmediate(async()=>{
   assert.equal(vm.runInContext('world.tick',sandbox),800);
   assert.equal(vm.runInContext('world.mission.matured.length',sandbox),0);
   assert.equal(vm.runInContext('world.soil.water.reserve',sandbox),3);
+  elements.get('start-builder').onclick();
+  assert.equal(vm.runInContext('world.tick',sandbox),600);
+  assert.equal(elements.get('construction-panel').hidden,false);
+  elements.get('select-bank').onclick();
+  assert.equal(vm.runInContext('world.inputLog.length',sandbox),0);
+  assert.equal(elements.get('build-cell').value,'119');
+  assert.equal(elements.get('confirm-build').disabled,false);
+  elements.get('confirm-build').onclick();
+  assert.equal(vm.runInContext('world.soil.water.works.points',sandbox),4);
+  elements.get('select-outlet').onclick();
+  assert.equal(elements.get('build-cell').value,'135');
+  assert.equal(vm.runInContext('world.soil.water.works.path.length',sandbox),0);
+  elements.get('confirm-build').onclick();
+  assert.equal(vm.runInContext('world.soil.water.works.points',sandbox),3);
+  elements.get('toggle-valve').onclick();assert.equal(vm.runInContext('world.soil.water.works.open',sandbox),true);
+  elements.get('save-browser').onclick();elements.get('step').onclick();await elements.get('load-browser').onclick();
+  assert.equal(vm.runInContext('world.soil.water.works.open',sandbox),true);
+  assert.equal(vm.runInContext('world.inputLog.length',sandbox),3);
+  assert.equal(vm.runInContext('playing',sandbox),false);
+  vm.runInContext("world.mission.status='lost';world.mission.result={alive:0,hydratedTicks:0,tick:600,waterUsed:0};draw()",sandbox);
+  assert.equal(elements.get('toggle-valve').disabled,true);assert.equal(elements.get('confirm-build').disabled,true);
+  elements.get('retry-mission').onclick();assert.equal(vm.runInContext('world.mission.kind',sandbox),'builder');
+  assert.equal(vm.runInContext('world.soil.water.works',sandbox),undefined);
 });
