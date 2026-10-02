@@ -7,6 +7,7 @@
 - Construction and valve decisions replay in save format v2. Original v1 pour saves still load. Tests cover conservation, bounds, invalid builds, terminal freeze, sandbox construction, deterministic restore and continuation.
 - Interface adds lazy scenario creation, cost/site previews, confirmation, keyboard cell selection, optional sandbox construction, site-selection helpers, reservoir fill, moving channel water, valve state and continuous moisture progress. Retry and loading preserve the scenario kind. The UI harness covers builds, no-spend selection, valves, save/load and retry.
 - Validation: all 111 tests pass. In the designed construction comparison, cell 137 → 135 with valve opening at 1000 wins with 189 moist ticks; no action, early opening and last-tick opening lose. All retain 22 agents. Existing scenario tests pass unchanged.
+- Live-page checks confirm paused lazy start, selection without spending, building costs, wet-season collection, closed-valve storage and channel delivery raising outlet moisture to 21%. The run strip now uses the same current tick as saves and deadlines; focused UI checks pass after this display correction.
 
 ## Save and resume — replay format
 - Added versioned run saves containing scenario/settings, circuit identity, seed, current tick and actual watering decisions. Restore re-simulates into a separate world before replacing the active run; invalid input cannot mutate the current world.
