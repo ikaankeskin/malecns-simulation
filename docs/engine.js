@@ -930,9 +930,14 @@
     world.tick += 1;
     if(world.mission){
       const m=world.mission;
+      if(m.kind==='builder' && world.tick>m.droughtStart){
+        const a=world.soil.water.works,cell=a?.path.at(-1);
+        const garden=world.patches.some(p=>p.planter!=null && Soil.cellIndex(world.soil,p.x,p.y)===cell);
+        m.hydratedTicks=a?.delivered>0 && garden && world.soil.water.moisture[cell]>=.2 ? m.hydratedTicks+1 : 0;
+      }
       if(world.tick>=m.end || alive===0){
         const result=missionProgress(world);
-        const goal=m.kind==='productivity' ? result.productive>=m.targetProductive : result.refuges>=m.targetRefuges;
+        const goal=m.kind==='builder' ? result.hydratedTicks>=150 : m.kind==='productivity' ? result.productive>=m.targetProductive : result.refuges>=m.targetRefuges;
         m.status=alive>=m.targetAlive && goal ? 'won' : 'lost';
         m.result={...result,tick:world.tick,waterUsed:world.soil.water.irrigated};
         world.events.push({tick:world.tick,kind:'mission_result',text:m.status==='won'?'Drought mission complete: goals met.':'Drought mission ended: try another watering strategy.'});
@@ -942,7 +947,7 @@
   }
 
   function createMission(graph,kind='refuge'){
-    if(!['refuge','productivity'].includes(kind))throw new Error('Unknown mission');
+    if(!['refuge','productivity','builder'].includes(kind))throw new Error('Unknown mission');
     const world=createWorld(graph,{agents:24,patches:96,map_half:80,gardening:true,water:true,
       hazards:false,predation:false,gifts:false,seasons:true,season_length:400,repro_rate:0},4);
     world.mission={kind,status:'running',start:kind==='productivity'?800:0,end:1200,droughtStart:800,
@@ -952,12 +957,28 @@
       world.tick=800;world.soil.water.weather='drought';world.soil.water.flow=.12;
       world.patches.forEach(p=>{p.soil_history=[];});Soil.observe(world.soil,world.patches,800);
     }
+    if(kind==='builder'){
+      // Authored late-rain start with established gardens; not a historical pre-run.
+      world.tick=600;world.mission.start=600;world.mission.hydratedTicks=0;
+      world.soil.water.weather='light rain';world.soil.water.flow=.8;
+      const s=world.soil;
+      const bank=s.water.banks.map((b,i)=>({b,i})).filter(p=>Math.floor(p.i/s.n)===8).sort((a,b)=>b.b-a.b)[0].i;
+      const col=bank%s.n,dir=col<s.n/2?1:-1;
+      for(const offset of [2,3,4]){
+        const cell=bank+dir*offset;
+        world.patches.push({id:world.patches.length,x:-s.half+(cell%s.n+.5)*s.size,y:-s.half+(Math.floor(cell/s.n)+.5)*s.size,
+          stage:'growing',timer:world.rules.grow_ticks,nutrition:1,consumed_by:null,planter:-1,planted_tick:600,
+          planter_generation:0,root_patch:world.patches.length,plant_generation:0,harvests:0,recent_eaters:[],soil_history:[]});
+      }
+      Soil.observe(s,world.patches,600);
+    }
     return world;
   }
 
   function missionProgress(world){
     const cells=new Set(world.patches.filter(p=>p.planter!=null).map(p=>Soil.cellIndex(world.soil,p.x,p.y)));
     return {alive:world.agents.filter(a=>a.alive).length,
+      hydratedTicks:world.mission?.hydratedTicks || 0,
       productive:world.mission?.matured.length || 0,
       refuges:[...cells].filter(i=>world.soil.water.moisture[i]>=.2).length};
   }
@@ -1113,9 +1134,27 @@
     return amount;
   }
 
+  function constructionPreview(world,kind,cell){
+    if(world.mission && (world.mission.kind!=='builder' || world.mission.status!=='running'))return {ok:false,reason:'Construction is available in Drought Refuge or water sandbox.',path:[],cost:0};
+    return root.MaleCNSWater.preview(world.soil,kind,cell);
+  }
+  function buildWaterworks(world,kind,cell){
+    const p=constructionPreview(world,kind,cell);if(!p.ok)return p;
+    const result=root.MaleCNSWater.build(world.soil,kind,cell);
+    world.inputLog.push({tick:world.tick,type:kind,cell});
+    world.events.push({tick:world.tick,kind:'built',text:'Built '+kind+' at soil cell '+cell+' for '+p.cost+' points.'});
+    return result;
+  }
+  function setWaterValve(world,open){
+    const a=world.soil?.water?.works;
+    if(typeof open!=='boolean' || !a?.path.length || a.open===open || (world.mission && world.mission.status!=='running'))return false;
+    a.open=open;world.inputLog.push({tick:world.tick,type:'valve',open});return true;
+  }
+
   root.MaleCNSEco = {
     createMission, missionProgress, thirstyGarden,
     waterGarden,
+    constructionPreview,buildWaterworks,setWaterValve,
     seasonAt, corpseFreshness, scavengeCorpses, compostCorpse, advancePatch,
     spawnHazards, competeHazard, resolveDeath, exchangeGifts, giftTotals, resolvePredation, helperView, rememberHelper,
     actionScore, learnAction, settleAttackLearning,

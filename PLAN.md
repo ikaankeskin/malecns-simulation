@@ -1,5 +1,11 @@
 # Implementation plan
 
+## Drought Refuge — construction engine
+- One riverbank reservoir costs 2 of 6 building points. One horizontal-then-vertical channel costs 1 point per cell, maximum 4; invalid previews leave the world untouched. Optional in water sandbox; existing missions retain their rules.
+- A reservoir stores up to 8 units, collects 0.08 × bank strength × seasonal flow per wet tick, evaporates up to 0.0005 per tick and collects nothing in drought. An open outlet releases up to 0.035 per tick toward 45% moisture. Stored = collected − evaporated − delivered. Delivered water enters the existing crop/diffusion budget, independently of the manual 3-unit reserve.
+- Authored seed-4 scenario begins at climate tick 600 with three established gardens (planter -1), fresh founders and 200 wet ticks to build. At tick 1200, require 8 survivors and a connected garden cell at least 20% moist for the final 150 consecutive drought ticks, after actual channel delivery. This tests habitat management, not increased survival.
+- Construction and valve decisions replay in save format v2. Original v1 pour saves still load. Tests cover conservation, bounds, invalid builds, terminal freeze, sandbox construction, deterministic restore and continuation.
+
 ## Save and resume — replay format
 - Added versioned run saves containing scenario/settings, circuit identity, seed, current tick and actual watering decisions. Restore re-simulates into a separate world before replacing the active run; invalid input cannot mutate the current world.
 - Bounded to 5,000 ticks/actions and matching circuit/rules/version. Restoring can advance in short batches to keep the interface responsive. Both missions and sandbox are supported; this is persistence, not a tamper-proof competitive score format.
