@@ -1,5 +1,12 @@
 # Implementation plan
 
+## CPU garden scaling — 2026-10-03
+- Profiled the bundled DNg13 controller in artificial garden ecology: 50 founders, 192 patches, 1,200 ticks, gardening/soil/water on. CPU profile identifies replay copies and spatial scans ahead of neural updates; no acceleration added.
+- Count gardens once per planting phase; at the 64-garden cap, skip placement scans while preserving seed expiry, sorted planting priority, energy and events. Added a standard-library reproducibility/profile runner.
+- Validation: 114 software tests pass. Six paired complete outputs match SHA-256 `44d3c72f01c6c258b167cfe79fc47159ba1e7aa1377c2f0e305482bba00b4049`. Paired timings favor the change but host variability prevents a stable speedup claim. Measurements and reproduction instructions: [docs/CPU_PERFORMANCE.md](docs/CPU_PERFORMANCE.md). Synthetic checks are not biological validation.
+- Commit prepared locally; push attempted but HTTPS Git credentials are unavailable (`could not read Username`). Remote read access works.
+- Next: repeat profiling under controlled host load before a larger spatial-index or neural-backend change. Xcode installation is present; no license was accepted.
+
 ## Drought Refuge — construction engine
 - One riverbank reservoir costs 2 of 6 building points. One horizontal-then-vertical channel costs 1 point per cell, maximum 4; invalid previews leave the world untouched. Optional in water sandbox; existing missions retain their rules.
 - A reservoir stores up to 8 units, collects 0.08 × bank strength × seasonal flow per wet tick, evaporates up to 0.0005 per tick and collects nothing in drought. An open outlet releases up to 0.035 per tick toward 45% moisture. Stored = collected − evaporated − delivered. Delivered water enters the existing crop/diffusion budget, independently of the manual 3-unit reserve.

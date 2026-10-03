@@ -39,6 +39,7 @@ def on_meal(agent, patch, agents, tick, rules):
 def plant_seeds(agents, patches, tick, rules, events):
     if not rules['gardening']:
         return
+    garden_count = sum(p.get('planter') is not None for p in patches)
     for agent in sorted(agents, key=lambda a: a['id']):
         seed = agent.get('carried_seed')
         if not seed:
@@ -46,13 +47,15 @@ def plant_seeds(agents, patches, tick, rules, events):
         if not agent['alive'] or tick >= seed['until']:
             agent['carried_seed'] = None
             continue
+        # Once full, seeds still expire above, but no placement can succeed.
+        # Avoid scanning every patch for each otherwise eligible carrier.
+        if garden_count >= MAX_GARDENS:
+            continue
         if tick - seed['tick'] < 20 or agent['energy'] < 0.8:
             continue
         if math.hypot(agent['x'] - seed['x'], agent['y'] - seed['y']) < MIN_TRAVEL:
             continue
         if any(math.hypot(agent['x'] - p['x'], agent['y'] - p['y']) < MIN_SPACING for p in patches):
-            continue
-        if sum(p.get('planter') is not None for p in patches) >= MAX_GARDENS:
             continue
         if abs(agent['x']) > rules['map_half'] or abs(agent['y']) > rules['map_half']:
             continue
@@ -64,6 +67,7 @@ def plant_seeds(agents, patches, tick, rules, events):
                  'plant_generation': seed['plant_generation'], 'harvests': 0,
                  'descendant_meals': 0, 'posthumous_meals': 0, 'recent_eaters': []}
         patches.append(patch)
+        garden_count += 1
         agent['energy'] -= PLANT_COST
         agent['carried_seed'] = None
         agent['planted'] = agent.get('planted', 0) + 1
