@@ -1,7 +1,13 @@
 # Implementation plan
 
+## Cognition foundation — target-policy boundary, 2026-10-03
+- Added immutable local observations, typed target candidates/decisions, a policy protocol and a synchronous engine-owned resolver. `social.select_target` uses the nearest-target legacy adapter by default and preserves memory-first ties and follow-report side effects.
+- Six synthetic boundary/parity tests added; all 120 software tests pass. The full DNg13 garden workload preserves hash `44d3c72f01c6c258b167cfe79fc47159ba1e7aa1377c2f0e305482bba00b4049`. These are software checks, not biological or Jev validation.
+- Scope and measured allocation overhead: [decision interface](docs/DECISION_INTERFACE.md). No model weights, services or datasets added. Hazard reflexes remain downstream; broader actions and observations require later contract extensions.
+- Next: complete the resumable-world/checkpoint portion of Phase A, then request identities, scheduling and recorded decision replay before external inference.
+
 ## Proposed cognition direction — 2026-10-03
-- Detailed staged plan: [Open-Jev, LLM planning and MaleCNS circuit experiments](docs/COGNITION_PLAN.md). Planning only; no model integration or new biological extract is implemented yet.
+- Detailed staged plan: [Open-Jev, LLM planning and MaleCNS circuit experiments](docs/COGNITION_PLAN.md). The target-policy foundation below is implemented; model inference and new biological extraction remain future work.
 - Three timescales: continuous MaleCNS movement, bounded Open-Jev intention selection, occasional generative planning. Primary experiment measures decisions informed by observed circuit execution capability; anatomical routing and matched-null experiments follow.
 - First implementation milestone: local observation/action contracts plus a legacy policy adapter with exact baseline parity, followed by deterministic external-decision recording/replay.
 - Source review includes the selected Open-Jev project, current deployment guidance, the final 2026 MaleCNS publication, and adjacent embodied-control/LLM planning work. Candidate novelty is a hypothesis, not a priority claim.

@@ -2,6 +2,8 @@
 
 Status: proposed research and development plan, 2026-10-03. This document authorizes no claim of improved behavior or biological fidelity. Implementation follows separate validated commits. The user selected [Open-Jev](https://zefan-cai.github.io/open-jev/) as the decision-model project.
 
+Implementation update (2026-10-03): the [target decision boundary](DECISION_INTERFACE.md) is implemented with the legacy policy and exact trajectory parity. Phase A checkpoints/resumable state and all model-service phases remain pending.
+
 ## 1. Recommended direction
 
 Build an organism that can choose a goal, attempt it through its own neural controller, notice failure, and revise its strategy. Use three timescales:

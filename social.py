@@ -1,5 +1,7 @@
 """Engineered local food messages and bounded location memory, not fly cognition."""
 import math
+from cognition.contracts import LEGACY_POLICY
+from cognition.observation import prepare_targets
 
 DEFAULTS = dict(communication=True, social_learning=True, signal_range=18.0, signal_ticks=24,
                 signal_cooldown=60, signal_cost=0.01, memory_ticks=180)
@@ -137,11 +139,9 @@ def begin_tick(agents, patches, signals, tick, rules, events):
             a['memories'].append(dict(s, until=tick + rules['memory_ticks'], followed=False))
 
 
-def select_target(agent, direct, tick, rules, events):
-    options = [p for p in direct if distance(agent, p) < rules['sense_range']]
-    if rules['communication']:
-        options = [dict(m, kind='following_signal') for m in agent.get('memories', [])] + options
-    choice = min(options, key=lambda p: distance(agent, p), default=None)
+def select_target(agent, direct, tick, rules, events, *, policy=LEGACY_POLICY):
+    context = prepare_targets(agent, direct, tick, rules['sense_range'], rules['communication'])
+    choice = context.resolve(policy.choose(context.observation))
     if choice and choice['kind'] == 'following_signal':
         memory = next(m for m in agent['memories'] if m['id'] == choice['id'])
         if not memory['followed']:
