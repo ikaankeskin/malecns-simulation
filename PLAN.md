@@ -1,5 +1,11 @@
 # Implementation plan
 
+## Proposed cognition direction — 2026-10-03
+- Detailed staged plan: [Open-Jev, LLM planning and MaleCNS circuit experiments](docs/COGNITION_PLAN.md). Planning only; no model integration or new biological extract is implemented yet.
+- Three timescales: continuous MaleCNS movement, bounded Open-Jev intention selection, occasional generative planning. Primary experiment measures decisions informed by observed circuit execution capability; anatomical routing and matched-null experiments follow.
+- First implementation milestone: local observation/action contracts plus a legacy policy adapter with exact baseline parity, followed by deterministic external-decision recording/replay.
+- Source review includes the selected Open-Jev project, current deployment guidance, the final 2026 MaleCNS publication, and adjacent embodied-control/LLM planning work. Candidate novelty is a hypothesis, not a priority claim.
+
 ## CPU garden scaling — 2026-10-03
 - Profiled the bundled DNg13 controller in artificial garden ecology: 50 founders, 192 patches, 1,200 ticks, gardening/soil/water on. CPU profile identifies replay copies and spatial scans ahead of neural updates; no acceleration added.
 - Count gardens once per planting phase; at the 64-garden cap, skip placement scans while preserving seed expiry, sorted planting priority, energy and events. Added a standard-library reproducibility/profile runner.

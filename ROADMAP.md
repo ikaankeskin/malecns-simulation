@@ -64,6 +64,8 @@ Suggested later layout (gradual, not a rewrite): `simulation/`, `agents/`, `cont
 
 ## Research track: neural computation and connectome learning
 
+The proposed next implementation sequence is [COGNITION_PLAN.md](docs/COGNITION_PLAN.md): Open-Jev intention selection, occasional LLM planning, measured circuit capabilities, and controlled MaleCNS routing experiments. It extends this research track without treating the new mechanisms as implemented.
+
 This track asks whether biologically derived connectivity provides useful computational properties beyond producing interesting-looking behaviour. It should be developed as a controlled benchmark suite rather than as a claim that the MaleCNS connectome itself implements these abstractions.
 
 ### R1. Can the MaleCNS topology learn?

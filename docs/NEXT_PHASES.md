@@ -4,7 +4,7 @@ Detailed plan for the remaining artificial-life work. Each item names a mechanis
 
 MaleCNS-derived circuits stay the tick-level locomotion controller. New behaviour is a simulation abstraction unless a checked-in comparison says otherwise. One mechanism per commit, with an on/off baseline in the style of `social_experiment.py`. Python is the scientific engine; the browser page is an inspector and must match any rule that the live controls expose.
 
-LLM cognition is out of this plan. It stays behind a non-LLM social baseline.
+This historical eight-step plan excluded LLM cognition. The subsequent [cognition plan](COGNITION_PLAN.md), proposed 2026-10-03, adds Open-Jev and bounded LLM planning while retaining the completed non-LLM social baseline.
 
 ## Order
 
